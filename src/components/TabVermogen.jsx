@@ -66,9 +66,15 @@ export default function TabVermogen({ s, T, updClass, updArr, setModal, agg, fil
           </div>
         </div>
         {filteredAssets.map(a => {
-          const owner = (s.owners||[]).find(o => o.id === a.owner);
+          const ownershipLabels = (a.ownership || (a.owner ? [{ ownerId: a.owner, share: 1 }] : []))
+            .map(o => {
+              const own = (s.owners || []).find(x => x.id === o.ownerId);
+              if (!own) return null;
+              return a.ownership?.length > 1 ? `${own.label} ${Math.round(o.share * 100)}%` : own.label;
+            }).filter(Boolean);
           const isFord = a.class === "Forderung";
           const isSonst = a.class === "Sonstiges";
+          const stilleReserven = a.tax?.acquisitionPrice > 0 ? (a.value || 0) - a.tax.acquisitionPrice : null;
           return (
             <div key={a.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", borderBottom:"1px solid "+T.border, paddingBottom:10, marginBottom:10 }}>
               <div style={{ display:"flex", gap:9, alignItems:"flex-start", flex:1, minWidth:0 }}>
@@ -80,10 +86,17 @@ export default function TabVermogen({ s, T, updClass, updArr, setModal, agg, fil
                   </div>
                   <div style={{ display:"flex", gap:5, marginTop:2, flexWrap:"wrap" }}>
                     <span style={{ fontSize:8, color:T.textLow }}>{a.class}</span>
-                    {owner && <span style={{ fontSize:8, color:T.textDim }}>{owner.label}</span>}
+                    {ownershipLabels.map((lbl, i) => (
+                      <span key={i} style={{ fontSize:8, color:T.textDim }}>{lbl}</span>
+                    ))}
                     <span style={{ fontSize:8, color:LIQ_CLR[a.liquidity||"Semi-liquide"], background:LIQ_CLR[a.liquidity||"Semi-liquide"]+"18", padding:"1px 5px", borderRadius:3 }}>{a.liquidity||"Semi-liquide"}</span>
                     <span style={{ fontSize:8, color:ASSET_CLASS_DEFAULTS[a.class]?.color||T.textDim }}>{(s.classReturns[a.class] ?? ASSET_CLASS_DEFAULTS[a.class]?.return ?? 0).toFixed(1)}% p.a.</span>
                   </div>
+                  {stilleReserven !== null && (
+                    <div style={{ fontSize:8, color:stilleReserven>=0?T.green:T.red, marginTop:2 }}>
+                      Stille Reserven: {stilleReserven>=0?"+":""}{full(stilleReserven)}
+                    </div>
+                  )}
                   {isFord && (a.monthlyRepayment||0) > 0 && (
                     <div style={{ fontSize:8, color:T.green, marginTop:2 }}>
                       Ruckzahlung +{full(a.monthlyRepayment)}/Mo. | Zinssatz {a.loanRate||0}%
