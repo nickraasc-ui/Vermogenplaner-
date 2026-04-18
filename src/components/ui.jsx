@@ -98,6 +98,18 @@ export const Btn = ({ children, onClick, color, full=false, sm=false, danger=fal
   }}>{children}</button>
 );
 
+export const Card = ({ children, T, style={} }) => (
+  <div style={{ background:T.surface, border:"1px solid "+T.border, borderRadius:10, padding:14, ...style }}>
+    {children}
+  </div>
+);
+
+export const CardLabel = ({ children, T, mb=10 }) => (
+  <div style={{ fontSize:9, color:T.textLow, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:mb }}>
+    {children}
+  </div>
+);
+
 export const Row = ({ label, value, type="neutral", bold=false, sub, T }) => (
   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", padding:"6px 0", borderBottom:"1px solid "+T.border }}>
     <div>
