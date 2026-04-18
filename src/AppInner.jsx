@@ -28,7 +28,8 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
   const [s, setS]         = useState(() => loadProfileState(profileId, initialDark));
   const [tab, setTab]     = useState("dashboard");
   const [modal, setModal] = useState(null);
-  const [ownerFilter, setOwnerFilter] = useState([]);
+  const [ownerFilter, setOwnerFilter]       = useState([]);
+  const [projClassFilter, setProjClassFilter] = useState([]);
   const T = s.dark ? DARK : LIGHT;
 
   useEffect(() => { saveState(s, LS_KEY); }, [s, LS_KEY]);
@@ -36,11 +37,18 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
   const upd      = useCallback(patch => setS(p => ({ ...p, ...patch })), []);
   const updArr   = useCallback((key, arr) => setS(p => ({ ...p, [key]: arr })), []);
   const updClass = useCallback((cls, val) => setS(p => ({ ...p, classReturns: { ...p.classReturns, [cls]: val } })), []);
-  const toggleOwner = useCallback(id => setOwnerFilter(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]), []);
+  const toggleOwner     = useCallback(id  => setOwnerFilter(prev => prev.includes(id)  ? prev.filter(x => x !== id)  : [...prev, id]),  []);
+  const toggleProjClass = useCallback(cls => setProjClassFilter(prev => prev.includes(cls) ? prev.filter(c => c !== cls) : [...prev, cls]), []);
 
   const filteredAssets = useMemo(() =>
     ownerFilter.length === 0 ? s.assets : s.assets.filter(a => ownerFilter.includes(a.owner)),
     [s.assets, ownerFilter]
+  );
+
+  // separate filter for projection tab only
+  const projAssets = useMemo(() =>
+    projClassFilter.length === 0 ? filteredAssets : filteredAssets.filter(a => projClassFilter.includes(a.class)),
+    [filteredAssets, projClassFilter]
   );
 
   const loanSummary = useMemo(() =>
@@ -95,7 +103,7 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
         .filter(([, amt]) => (amt||0) > 0)
         .map(([cls, monthly]) => ({ cls, share: cf.eff > 0 ? monthly / cf.eff : 0, monthly }));
     }
-    const investable = filteredAssets.filter(a => !a.locked && a.class !== "Cash" && a.class !== "Immobilien" && a.class !== "Forderung");
+    const investable = filteredAssets.filter(a => !a.locked && a.class !== "Cash" && a.class !== "Immobilien" && a.class !== "Forderung" && a.class !== "Sonstiges");
     const total = investable.reduce((t, a) => t + (a.value||0), 0) || 1;
     const byClass = {};
     investable.forEach(a => { byClass[a.class] = (byClass[a.class]||0) + (a.value||0); });
@@ -104,13 +112,13 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
 
   const projection = useMemo(() => {
     const sp0 = cf.eff || 0;
-    const investable  = filteredAssets.filter(a => !a.locked && a.class !== "Cash" && a.class !== "Immobilien" && a.class !== "Forderung");
+    const investable  = projAssets.filter(a => !a.locked && a.class !== "Cash" && a.class !== "Immobilien" && a.class !== "Forderung" && a.class !== "Sonstiges");
     const invTotal    = investable.reduce((t, a) => t + (a.value||0), 0) || 1;
     const classTotals = {};
     investable.forEach(a => { classTotals[a.class] = (classTotals[a.class]||0) + (a.value||0); });
 
     const getAdd = (asset, scaledSp) => {
-      if (asset.locked || asset.class==="Cash" || asset.class==="Immobilien" || asset.class==="Forderung") return 0;
+      if (asset.locked || asset.class==="Cash" || asset.class==="Immobilien" || asset.class==="Forderung" || asset.class==="Sonstiges") return 0;
       if (s.sparDistMode === "manual") {
         const classMonthly = (s.manualSparDist[asset.class]||0) * (sp0 > 0 ? scaledSp/sp0 : 1);
         return classMonthly * ((asset.value||0) / (classTotals[asset.class]||1));
@@ -135,7 +143,7 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
       [["cons",-2],["base",0],["opt",2]].forEach(([key, adj]) => {
         let total = 0;
         const sp = s.sparRateGrowth ? sp0*Math.pow(1+(s.sparGrowthPct||0)/100,y) : sp0;
-        filteredAssets.forEach(a => {
+        projAssets.forEach(a => {
           const baseR = (s.classReturns[a.class]||5) + adj;
           const r = Math.max(0, baseR/100), rm = r/12, mo = y*12;
           if (a.class === "Forderung") {
@@ -169,7 +177,7 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
       });
       return row;
     });
-  }, [s, cf.eff, filteredAssets]);
+  }, [s, cf.eff, projAssets]);
 
   const final  = projection[projection.length-1] || {};
   const lastCI = useMemo(() => [...(s.checkins||[])].sort((a,b) => b.month.localeCompare(a.month))[0] ?? null, [s.checkins]);
@@ -234,7 +242,7 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
         {tab==="dashboard"  && <TabDashboard  s={s} T={T} setModal={setModal} agg={agg} cf={cf} loanSummary={loanSummary} lastCI={lastCI} snaps={snaps} totalMonthlyLoanPayment={totalMonthlyLoanPayment} projection={projection} final={final} />}
         {tab==="haushalt"   && <TabHaushalt   s={s} T={T} upd={upd} updArr={updArr} setModal={setModal} cf={cf} sparDist={sparDist} ownerFilter={ownerFilter} filteredAssets={filteredAssets} />}
         {tab==="vermogen"   && <TabVermogen   s={s} T={T} updClass={updClass} updArr={updArr} setModal={setModal} agg={agg} filteredAssets={filteredAssets} />}
-        {tab==="projektion" && <TabProjektion s={s} T={T} upd={upd} cf={cf} agg={agg} projection={projection} final={final} loanSummary={loanSummary} setModal={setModal} />}
+        {tab==="projektion" && <TabProjektion s={s} T={T} upd={upd} cf={cf} agg={agg} projection={projection} final={final} loanSummary={loanSummary} setModal={setModal} projClassFilter={projClassFilter} toggleProjClass={toggleProjClass} resetProjClass={() => setProjClassFilter([])} availClasses={[...new Set(filteredAssets.map(a => a.class))]} />}
         {tab==="buckets"    && <TabBuckets    s={s} T={T} updArr={updArr} setModal={setModal} />}
       </div>
 

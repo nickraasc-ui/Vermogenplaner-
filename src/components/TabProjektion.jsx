@@ -1,10 +1,43 @@
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Sl, ChTip, fmtE, full } from "./ui.jsx";
-import { CY } from "../constants.js";
+import { CY, ASSET_CLASS_DEFAULTS } from "../constants.js";
 
-export default function TabProjektion({ s, T, upd, cf, agg, projection, final, loanSummary, setModal }) {
+export default function TabProjektion({ s, T, upd, cf, agg, projection, final, loanSummary, setModal, projClassFilter, toggleProjClass, resetProjClass, availClasses }) {
+  const isFiltered = projClassFilter.length > 0;
+
+  const chipStyle = (active, color) => ({
+    fontSize:8, padding:"2px 9px", borderRadius:10,
+    border:"1px solid "+(active ? (color||T.accent) : T.border),
+    background: active ? (color||T.accent)+"22" : "transparent",
+    color: active ? (color||T.accent) : T.textMid,
+    cursor:"pointer", fontWeight: active ? 700 : 500,
+    WebkitTapHighlightColor:"transparent",
+  });
+
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+
+      {/* Class filter chips */}
+      {availClasses.length > 1 && (
+        <div style={{ background:T.surface, border:"1px solid "+T.border, borderRadius:10, padding:"10px 12px" }}>
+          <div style={{ fontSize:9, color:T.textLow, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:8 }}>Projektion filtern nach Asset-Klasse</div>
+          <div style={{ display:"flex", gap:5, flexWrap:"wrap" }}>
+            <button onClick={resetProjClass} style={chipStyle(projClassFilter.length === 0)}>Alle</button>
+            {availClasses.map(cls => (
+              <button key={cls} onClick={() => toggleProjClass(cls)}
+                style={chipStyle(projClassFilter.includes(cls), ASSET_CLASS_DEFAULTS[cls]?.color)}>
+                {cls}
+              </button>
+            ))}
+          </div>
+          {isFiltered && (
+            <div style={{ fontSize:9, color:T.amber, marginTop:6 }}>
+              Nur: {projClassFilter.join(", ")} — Sparrate wirkt nur auf investierbare Klassen in der Auswahl
+            </div>
+          )}
+        </div>
+      )}
+
       <div style={{ background:T.surface, border:"1px solid "+T.border, borderRadius:10, padding:14, display:"flex", flexDirection:"column", gap:14 }}>
         <div style={{ display:"flex", gap:8, flexWrap:"wrap", alignItems:"center" }}>
           <button onClick={() => upd({ inflationAdj:!s.inflationAdj })}
@@ -29,7 +62,7 @@ export default function TabProjektion({ s, T, upd, cf, agg, projection, final, l
       </div>
 
       <div style={{ background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:8, padding:"10px 13px", fontSize:10, color:T.textMid, lineHeight:1.7 }}>
-        <strong style={{ color:T.text }}>Berechnungslogik:</strong> Jede Position wachst mit der Rendite ihrer Asset-Klasse. Sparrate wird proportional zur aktuellen Gewichtung der investierbaren Positionen verteilt. Darlehen: Tilgung reduziert Restschuld jahrlich, nach Payoff entfallt die Annuitat aus dem Cashflow. {s.inflationAdj?"Alle Werte real (inflationsbereinigt).":"Alle Werte nominal."} Szenarien: +-2% Abweichung von der Klassenrendite.
+        <strong style={{ color:T.text }}>Berechnungslogik:</strong> Jede Position wachst mit der Rendite ihrer Asset-Klasse. Sparrate ({full(cf.eff)}/Mo.) fließt proportional in nicht-gesperrte, investierbare Positionen (Aktien, ETF, Anleihen etc.) — nicht in Cash, Immobilien, Forderungen oder Sonstiges. {s.inflationAdj?"Alle Werte real (inflationsbereinigt).":"Alle Werte nominal."} Szenarien: ±2% auf alle Klassenrenditen.
       </div>
 
       <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8 }}>
@@ -68,7 +101,7 @@ export default function TabProjektion({ s, T, upd, cf, agg, projection, final, l
         style={{ background:T.surface, border:"1px solid "+T.purple+"33", borderRadius:10, padding:14, cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"center", WebkitTapHighlightColor:"transparent" }}>
         <div>
           <div style={{ fontSize:13, fontWeight:700, color:T.purple }}>Was kann ich mir leisten?</div>
-          <div style={{ fontSize:10, color:T.textLow, marginTop:2 }}>Pruft Budget + Langzeitauswirkung</div>
+          <div style={{ fontSize:10, color:T.textLow, marginTop:2 }}>Wachstum vs. Substanz — Affordability</div>
         </div>
         <div style={{ fontSize:20, color:T.purple }}>{">"}</div>
       </button>
