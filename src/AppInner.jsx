@@ -109,6 +109,12 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
     const assetRunningCosts = filteredAssets.filter(a => a.class!=="Immobilien" && (a.monthlyRunningCost||0)>0).reduce((t, a) => t+(a.monthlyRunningCost||0)*sh(a), 0);
     const immoNetCF = immoGross - immoAnnuitat - immoRunning;
 
+    // Ausschüttungsrenditen: Dividenden, Kupons, Distributions (nicht Immo/Forderung — die haben eigene CF-Felder)
+    const kestFactor = (cls) => s.taxOnReturns ? (1 - (KEST_RATES[cls] ?? 0.2638)) : 1;
+    const assetYieldIncome = filteredAssets
+      .filter(a => (a.yieldPct||0) > 0 && a.class !== "Immobilien" && a.class !== "Forderung")
+      .reduce((t, a) => t + (a.value||0) * (a.yieldPct||0) / 100 / 12 * kestFactor(a.class) * sh(a), 0);
+
     const streamIncome = filteredIncomeStreams
       .filter(st => CY >= (st.startsAt||CY) && (!st.endsAt || CY <= st.endsAt))
       .reduce((t, st) => t + (st.amount||0)*Math.pow(1+(st.growthPct||0)/100, Math.max(0, CY-(st.startsAt||CY))), 0);
@@ -116,13 +122,13 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
       .filter(st => CY >= (st.startsAt||CY) && (!st.endsAt || CY <= st.endsAt))
       .reduce((t, st) => t+(st.amount||0), 0);
 
-    const avail = streamIncome + immoNetCF + forderungIncome;
+    const avail = streamIncome + immoNetCF + forderungIncome + assetYieldIncome;
     const bound = streamExpense + otherAnnuitat + assetRunningCosts;
     const rest  = avail - bound;
     const eff   = s.autoSpar ? Math.max(0, rest) : (s.manuellSparrate||0);
     const saldo = avail - bound - eff;
     const quote = avail > 0 ? (eff / avail) * 100 : 0;
-    return { avail, bound, rest, eff, saldo, quote, immoNetCF, immoGross, immoRunning, immoAnnuitat, otherAnnuitat, forderungIncome, assetRunningCosts, streamIncome, streamExpense };
+    return { avail, bound, rest, eff, saldo, quote, immoNetCF, immoGross, immoRunning, immoAnnuitat, otherAnnuitat, forderungIncome, assetRunningCosts, streamIncome, streamExpense, assetYieldIncome };
   }, [filteredAssets, filteredIncomeStreams, s.expenseStreams, s.autoSpar, s.manuellSparrate, ownerFilter]);
 
   const agg = useMemo(() => {
@@ -197,7 +203,12 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
       const runCosts = projAssets.filter(a => a.class!=="Immobilien" && (a.monthlyRunningCost||0)>0).reduce((t, a) => t+(a.monthlyRunningCost||0), 0);
       const otherAnnu = projAssets.filter(a => a.class!=="Immobilien" && a.class!=="Forderung" && (a.debt||0)>0 && (a.loanTilgung||0)>0).reduce((t, a) =>
         t + (Math.max(0,(a.debt||0)-(a.loanTilgung||0)*12*y) > 0 ? (a.loanAnnuitat||0) : 0), 0);
-      return Math.max(0, (inc + yImmoNetCF + fordInc) - (exp + runCosts + otherAnnu + financed));
+      // Ausschüttungsrenditen aus Finanzassets (Dividenden, Kupons) — ggf. nach KeSt
+      const kf = (cls) => s.taxOnReturns ? (1 - (KEST_RATES[cls] ?? 0.2638)) : 1;
+      const assetYield = projAssets
+        .filter(a => (a.yieldPct||0) > 0 && a.class !== "Immobilien" && a.class !== "Forderung")
+        .reduce((t, a) => t + (a.value||0) * (a.yieldPct||0) / 100 / 12 * kf(a.class), 0);
+      return Math.max(0, (inc + yImmoNetCF + fordInc + assetYield) - (exp + runCosts + otherAnnu + financed));
     };
 
     const getAdd = (asset, sp) => {
@@ -228,9 +239,12 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
       [["cons",-2],["base",0],["opt",2]].forEach(([key, adj]) => {
         let total = 0;
         projAssets.forEach(a => {
-          const pretaxR = (s.classReturns[a.class]||5) + adj;
-          const kest    = s.taxOnReturns ? (KEST_RATES[a.class] ?? 0.2638) : 0;
-          const baseR   = pretaxR * (1 - kest);
+          const pretaxR  = (s.classReturns[a.class]||5) + adj;
+          const yieldPct = a.yieldPct || 0;
+          // Capital appreciation = total return minus distributed yield (yield flows via sparrate/cashflow)
+          const capApprR = pretaxR - yieldPct;
+          const kest     = s.taxOnReturns ? (KEST_RATES[a.class] ?? 0.2638) : 0;
+          const baseR    = capApprR * (1 - kest);
           const r = Math.max(0, baseR/100), rm = r/12, mo = y*12;
           if (a.class==="Forderung") {
             const rep = a.monthlyRepayment||0;

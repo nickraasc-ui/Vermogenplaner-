@@ -31,7 +31,7 @@ export const loadProfileState = (profileId, initialDark) => {
           if (a.class === "Immobilien") {
             return { monthlyRent: IMMO_CF_GROSS, hausgeld: IMMO_HAUSGELD, grundsteuer: IMMO_GRUNDSTEUER, ...base };
           }
-          return base;
+          return { yieldPct: 0, ...base };
         });
       }
       if (!p.owners || p.owners.length === 0) p.owners = [...DEFAULT_OWNERS];

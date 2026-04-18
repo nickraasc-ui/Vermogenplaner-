@@ -12,6 +12,7 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
     loanRate: "3.5", loanTilgung: "0", loanAnnuitat: "0",
     monthlyRent: "", hausgeld: "", grundsteuer: "",
     monthlyRepayment: "", monthlyRunningCost: "",
+    yieldPct: "0",
     valuationMethod: "market",
     tax: { acquisitionPrice: "", acquisitionDate: "", taxType: "abgeltung" },
     lifecycle: { maturity: "" },
@@ -173,11 +174,27 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
         </div>
       )}
 
-      {/* Laufende Kosten */}
+      {/* Ausschüttungsrendite (Dividenden, Kupons) — nur für Finanzassets */}
       {!isImmo && !isFord && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <Inp label="Lfd. Kosten/Mo." value={f.monthlyRunningCost || ""} onChange={v => set({ monthlyRunningCost: v })} type="number" placeholder="0 (opt.)" T={T} />
-          <div />
+        <div style={{ background: T.surfaceHigh, border: "1px solid " + T.border, borderRadius: 8, padding: 12, marginBottom: 12 }}>
+          <div style={{ fontSize: 9, color: T.textMid, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Ausschüttungen / Cashflow</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <Inp label="Ausschüttungsrendite %/J." value={f.yieldPct ?? "0"}
+              onChange={v => set({ yieldPct: v })} type="number" placeholder="0 = thesaurierend" T={T} />
+            <Inp label="Lfd. Kosten/Mo." value={f.monthlyRunningCost || ""} onChange={v => set({ monthlyRunningCost: v })} type="number" placeholder="0 (opt.)" T={T} />
+          </div>
+          {(parseFloat(f.yieldPct) || 0) > 0 && (parseFloat(f.value) || 0) > 0 && (() => {
+            const monthly = (parseFloat(f.value) || 0) * (parseFloat(f.yieldPct) || 0) / 100 / 12;
+            return (
+              <div style={{ fontSize: 9, color: T.green, marginTop: 4 }}>
+                Monatlicher Zufluss: {full(monthly)}/Mo. ({full(monthly * 12)}/J.)
+                <span style={{ color: T.textDim }}> — fließt in Haushaltsrechnung</span>
+              </div>
+            );
+          })()}
+          {(parseFloat(f.yieldPct) || 0) === 0 && (
+            <div style={{ fontSize: 9, color: T.textDim, marginTop: 4 }}>0% = thesaurierend / keine Ausschüttung</div>
+          )}
         </div>
       )}
 
@@ -246,6 +263,7 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
           grundsteuer: +f.grundsteuer || 0,
           monthlyRepayment: +f.monthlyRepayment || 0,
           monthlyRunningCost: +f.monthlyRunningCost || 0,
+          yieldPct: +f.yieldPct || 0,
           ownership: f.ownership || [],
           valuationMethod: f.valuationMethod || "market",
           tax: {

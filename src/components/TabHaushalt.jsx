@@ -14,6 +14,8 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
 
   const forderungen   = filteredAssets.filter(a => a.class === "Forderung" && (a.monthlyRepayment||0) > 0);
   const runCostAssets = filteredAssets.filter(a => a.class !== "Immobilien" && (a.monthlyRunningCost||0) > 0);
+  const yieldAssets   = filteredAssets.filter(a => (a.yieldPct||0) > 0 && a.class !== "Immobilien" && a.class !== "Forderung");
+  const hasYield      = yieldAssets.length > 0;
 
   // Active streams in current year
   const isActive = st => CY >= (st.startsAt||CY) && (!st.endsAt || CY <= st.endsAt);
@@ -32,7 +34,7 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
       )}
 
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
-        <Tile label="Gesamtzufluss" value={full(cf.avail)} sub={hasImmo ? "Einkommen + Immo-CF "+full(cf.immoNetCF) : "Aus Einkommensströmen"} color={T.green} T={T} />
+        <Tile label="Gesamtzufluss" value={full(cf.avail)} sub={(hasImmo ? "Immo "+full(cf.immoNetCF)+" | " : "")+(hasYield ? "Ausschüttungen "+full(cf.assetYieldIncome)+" | " : "")+"Einkommen "+full(cf.streamIncome)} color={T.green} T={T} />
         <Tile label="Sparrate" value={full(cf.eff)} sub={s.autoSpar?"Auto":"Manuell"} color={T.accent} T={T} />
       </div>
 
@@ -95,6 +97,29 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
           {forderungen.length > 1 && (
             <Row label="Gesamt" value={"+" + full(cf.forderungIncome)} type="in" bold T={T} />
           )}
+        </div>
+      )}
+
+      {/* Kapitalerträge / Ausschüttungen Block */}
+      {hasYield && (
+        <div style={{ background:T.surface, border:"1px solid "+T.border, borderRadius:10, padding:14 }}>
+          <div style={{ fontSize:9, color:T.textLow, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:10 }}>Kapitalerträge / Ausschüttungen</div>
+          {yieldAssets.map(a => {
+            const monthly = (a.value||0) * (a.yieldPct||0) / 100 / 12;
+            return (
+              <Row key={a.id} label={a.name}
+                value={"+" + full(monthly)}
+                type="in"
+                sub={a.yieldPct+"% Ausschüttungsrendite | "+a.class}
+                T={T} />
+            );
+          })}
+          {yieldAssets.length > 1 && (
+            <Row label="Gesamt" value={"+" + full(cf.assetYieldIncome)} type="in" bold T={T} />
+          )}
+          <div style={{ fontSize:9, color:T.textDim, marginTop:4 }}>
+            Dividenden, Kupons und Distributions — Kurswertzuwachs läuft separat in der Projektion
+          </div>
         </div>
       )}
 
@@ -245,6 +270,7 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
         ))}
         {hasImmo && <Row label="Netto-Immo-CF" value={(cf.immoNetCF>=0?"+":"")+full(cf.immoNetCF)} type={cf.immoNetCF>=0?"in":"warn"} sub={full(cf.immoGross)+" Miete − "+full(cf.immoAnnuitat)+" Annuität − "+full(cf.immoRunning)+" NK"} T={T} />}
         {hasForderung && <Row label="Forderungszuflüsse" value={"+" + full(cf.forderungIncome)} type="in" T={T} />}
+        {hasYield && <Row label="Kapitalerträge" value={"+" + full(cf.assetYieldIncome)} type="in" sub="Dividenden, Kupons, Distributions" T={T} />}
         <Row label="Gesamtzufluss" value={"+" + full(cf.avail)} type="in" bold T={T} />
         {(s.expenseStreams||[]).filter(isActive).map(st => (
           <Row key={st.id} label={st.label} value={"-" + full(st.amount)} type="out" sub={st.category} T={T} />
