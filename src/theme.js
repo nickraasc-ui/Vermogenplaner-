@@ -19,6 +19,12 @@ export const DEFAULT_CLASS_RETURNS = Object.fromEntries(
   Object.entries(ASSET_CLASS_DEFAULTS).map(([k, v]) => [k, v.return])
 );
 
+export const DEFAULT_OWNERS = [
+  { id:"ehemann",     label:"Ehemann"     },
+  { id:"ehefrau",     label:"Ehefrau"     },
+  { id:"gemeinschaft",label:"Gemeinschaft"},
+];
+
 export const DEFAULT = {
   dark: true,
   nettoGesamt: 8500, ausgaben: 2000, reservenMonthly: 500,
@@ -27,6 +33,9 @@ export const DEFAULT = {
   horizon: 35,
   inflationAdj: false, inflation: 2.5,
   sparRateGrowth: false, sparGrowthPct: 2.0,
+  sparDistMode: "auto",
+  manualSparDist: {},
+  owners: DEFAULT_OWNERS,
   assets: [
     { id:"a1", name:"Direktaktien Schenkung", owner:"ehemann", class:"Aktien", liquidity:"Liquide", value:850000, debt:0, locked:true, note:"Bedingte Schenkung" },
     { id:"a2", name:"Depot Ehemann (frei)", owner:"ehemann", class:"Aktien-ETF", liquidity:"Liquide", value:170000, debt:0, locked:false, note:"" },

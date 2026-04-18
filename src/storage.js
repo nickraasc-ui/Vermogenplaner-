@@ -1,4 +1,4 @@
-import { DEFAULT, DEFAULT_CLASS_RETURNS } from "./theme.js";
+import { DEFAULT, DEFAULT_CLASS_RETURNS, DEFAULT_OWNERS } from "./theme.js";
 import { LIQUIDITY_DEFAULT } from "./constants.js";
 
 export const saveState = (st, key) => { try { localStorage.setItem(key, JSON.stringify(st)); } catch {} };
@@ -17,6 +17,9 @@ export const loadProfileState = (profileId, initialDark) => {
           liquidity: a.liquidity || LIQUIDITY_DEFAULT[a.class] || "Semi-liquide",
         }));
       }
+      if (!p.owners || p.owners.length === 0) p.owners = [...DEFAULT_OWNERS];
+      if (!p.sparDistMode) p.sparDistMode = "auto";
+      if (!p.manualSparDist) p.manualSparDist = {};
       return { ...DEFAULT, ...p, dark: initialDark };
     }
     return { ...DEFAULT, dark: initialDark };

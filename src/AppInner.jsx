@@ -13,6 +13,7 @@ import SnapshotModal from "./components/modals/SnapshotModal.jsx";
 import AffordModal   from "./components/modals/AffordModal.jsx";
 import AssetModal    from "./components/modals/AssetModal.jsx";
 import BucketModal   from "./components/modals/BucketModal.jsx";
+import OwnerModal    from "./components/modals/OwnerModal.jsx";
 
 const TABS = [
   { k:"dashboard",  lbl:"Ubersicht"  },
@@ -22,12 +23,12 @@ const TABS = [
   { k:"buckets",    lbl:"Ausgaben"   },
 ];
 
-export default function AppInner({ profileId, darkMode: initialDark }) {
+export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
   const LS_KEY = "wealth-pwa-v3-" + profileId;
-  const [s, setS]       = useState(() => loadProfileState(profileId, initialDark));
-  const [tab, setTab]   = useState("dashboard");
+  const [s, setS]         = useState(() => loadProfileState(profileId, initialDark));
+  const [tab, setTab]     = useState("dashboard");
   const [modal, setModal] = useState(null);
-  const T = initialDark ? DARK : LIGHT;
+  const T = s.dark ? DARK : LIGHT; // fix: use s.dark so toggle button works
 
   useEffect(() => { saveState(s, LS_KEY); }, [s, LS_KEY]);
 
@@ -77,17 +78,34 @@ export default function AppInner({ profileId, darkMode: initialDark }) {
   }, [s.assets, s.classReturns]);
 
   const sparDist = useMemo(() => {
+    if (s.sparDistMode === "manual") {
+      return Object.entries(s.manualSparDist)
+        .filter(([, amt]) => (amt||0) > 0)
+        .map(([cls, monthly]) => ({ cls, share: cf.eff > 0 ? monthly / cf.eff : 0, monthly }));
+    }
     const investable = s.assets.filter(a => !a.locked && a.class !== "Cash");
     const total = investable.reduce((t, a) => t + (a.value||0), 0) || 1;
     const byClass = {};
     investable.forEach(a => { byClass[a.class] = (byClass[a.class]||0) + (a.value||0); });
     return Object.entries(byClass).map(([cls, val]) => ({ cls, share:val/total, monthly:cf.eff*(val/total) }));
-  }, [s.assets, cf.eff]);
+  }, [s.assets, s.sparDistMode, s.manualSparDist, cf.eff]);
 
   const projection = useMemo(() => {
     const sp0 = cf.eff || 0;
     const investable = s.assets.filter(a => !a.locked && a.class!=="Cash" && a.class!=="Immobilien");
-    const invTotal = investable.reduce((t, a) => t + (a.value||0), 0) || 1;
+    const invTotal   = investable.reduce((t, a) => t + (a.value||0), 0) || 1;
+    const classTotals = {};
+    investable.forEach(a => { classTotals[a.class] = (classTotals[a.class]||0) + (a.value||0); });
+
+    const getAdd = (asset, scaledSp) => {
+      if (asset.locked || asset.class==="Cash" || asset.class==="Immobilien") return 0;
+      if (s.sparDistMode === "manual") {
+        const classMonthly = (s.manualSparDist[asset.class]||0) * (sp0 > 0 ? scaledSp/sp0 : 1);
+        return classMonthly * ((asset.value||0) / (classTotals[asset.class]||1));
+      }
+      return scaledSp * ((asset.value||0) / invTotal);
+    };
+
     const bucketDrain = (year) => {
       let d = 0;
       (s.buckets||[]).forEach(b => {
@@ -99,6 +117,7 @@ export default function AppInner({ profileId, darkMode: initialDark }) {
       });
       return d;
     };
+
     return Array.from({ length:s.horizon+1 }, (_, y) => {
       const row = { age:30+y };
       [["cons",-2],["base",0],["opt",2]].forEach(([key, adj]) => {
@@ -114,7 +133,7 @@ export default function AppInner({ profileId, darkMode: initialDark }) {
             total += grossFV - remDebt; return;
           }
           if (a.class==="Cash") { total += (a.value||0)*Math.pow(1+Math.max(0,(s.classReturns["Cash"]+adj)/100),y); return; }
-          const add = !a.locked ? sp*((a.value||0)/invTotal) : 0;
+          const add = getAdd(a, sp);
           total += rm>0 ? (a.value||0)*Math.pow(1+r,y)+add*((Math.pow(1+rm,mo)-1)/rm) : (a.value||0)+add*mo;
         });
         let drain = 0;
@@ -129,27 +148,38 @@ export default function AppInner({ profileId, darkMode: initialDark }) {
 
   const final  = projection[projection.length-1] || {};
   const lastCI = useMemo(() => [...(s.checkins||[])].sort((a,b) => b.month.localeCompare(a.month))[0] ?? null, [s.checkins]);
-  const snaps  = useMemo(() => [...(s.snapshots||[])].sort((a,b) => a.date.localeCompare(b.date)), [s.snapshots]);
+  const snaps  = useMemo(() =>
+    [...(s.snapshots||[])].sort((a,b) => a.date.localeCompare(b.date)).map(sn => ({
+      ...sn, value: sn.totalNet ?? sn.value  // normalise legacy vs new format
+    })), [s.snapshots]);
 
   return (
     <div style={{ minHeight:"100vh", background:T.bg, color:T.text, fontFamily:"system-ui,-apple-system,'Helvetica Neue',sans-serif", paddingBottom:"calc(64px + env(safe-area-inset-bottom,0px))", transition:"background 0.2s,color 0.2s" }}>
 
       {modal?.type==="checkin"  && <CheckinModal  s={s} cf={cf} T={T} setModal={setModal} updArr={updArr} />}
-      {modal?.type==="snapshot" && <SnapshotModal agg={agg} s={s} T={T} setModal={setModal} updArr={updArr} />}
+      {modal?.type==="snapshot" && <SnapshotModal s={s} cf={cf} agg={agg} T={T} setModal={setModal} updArr={updArr} />}
       {modal?.type==="afford"   && <AffordModal   s={s} cf={cf} agg={agg} final={final} T={T} setModal={setModal} updArr={updArr} />}
       {modal?.type==="asset"    && <AssetModal    data={modal.data} s={s} T={T} setModal={setModal} updArr={updArr} />}
       {modal?.type==="bucket"   && <BucketModal   data={modal.data} s={s} T={T} setModal={setModal} updArr={updArr} />}
+      {modal?.type==="owner"    && <OwnerModal    s={s} T={T} setModal={setModal} upd={upd} />}
 
       {/* Header */}
       <div style={{ background:T.header, borderBottom:"1px solid "+T.tabBorder, padding:"14px 16px 10px", paddingTop:"calc(14px + env(safe-area-inset-top,0px))", position:"sticky", top:0, zIndex:50 }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
-          <div>
-            <div style={{ fontSize:8, letterSpacing:"0.22em", color:T.textDim, fontWeight:700, textTransform:"uppercase" }}>Vermogensplaner</div>
-            <div style={{ display:"flex", alignItems:"baseline", gap:10, marginTop:2 }}>
-              <div style={{ fontSize:22, fontWeight:900, color:T.text, letterSpacing:"-0.02em" }}>{fmtE(agg.net)}</div>
-              <div style={{ fontSize:11, color:cf.quote>=20?T.green:cf.quote>=10?T.amber:T.red, fontWeight:700 }}>{cf.quote.toFixed(1)}% Sparquote</div>
+          <div style={{ display:"flex", alignItems:"flex-start", gap:10 }}>
+            {onBack && (
+              <button onClick={onBack} style={{ background:"none", border:"none", color:T.textMid, cursor:"pointer", fontSize:22, lineHeight:1, padding:"3px 0", WebkitTapHighlightColor:"transparent" }}>
+                ←
+              </button>
+            )}
+            <div>
+              <div style={{ fontSize:8, letterSpacing:"0.22em", color:T.textDim, fontWeight:700, textTransform:"uppercase" }}>Vermogensplaner</div>
+              <div style={{ display:"flex", alignItems:"baseline", gap:10, marginTop:2 }}>
+                <div style={{ fontSize:22, fontWeight:900, color:T.text, letterSpacing:"-0.02em" }}>{fmtE(agg.net)}</div>
+                <div style={{ fontSize:11, color:cf.quote>=20?T.green:cf.quote>=10?T.amber:T.red, fontWeight:700 }}>{cf.quote.toFixed(1)}% Sparquote</div>
+              </div>
+              <div style={{ fontSize:9, color:T.textDim, marginTop:1 }}>Gew. Ø-Rendite: {agg.wavgReturn.toFixed(1)}%</div>
             </div>
-            <div style={{ fontSize:9, color:T.textDim, marginTop:1 }}>Gew. Ø-Rendite: {agg.wavgReturn.toFixed(1)}%</div>
           </div>
           <button onClick={() => upd({ dark:!s.dark })}
             style={{ background:T.surface, border:"1px solid "+T.border, borderRadius:20, padding:"6px 12px", cursor:"pointer", fontSize:13, color:T.textMid, WebkitTapHighlightColor:"transparent", marginTop:4 }}>
