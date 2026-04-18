@@ -1,4 +1,4 @@
-import { ASSET_CLASS_DEFAULTS } from "./constants.js";
+import { ASSET_CLASS_DEFAULTS, CY } from "./constants.js";
 
 export const DARK = {
   bg:"#04080f", surface:"#06101a", surfaceHigh:"#07111e",
@@ -27,7 +27,14 @@ export const DEFAULT_OWNERS = [
 
 export const DEFAULT = {
   dark: true,
-  nettoGesamt: 8500, ausgaben: 2000, reservenMonthly: 500,
+  incomeStreams: [
+    { id:"i1", owner:"ehemann",  label:"Gehalt Ehemann",  type:"Gehalt", amount:5000, growthPct:2, startsAt:CY, endsAt:null },
+    { id:"i2", owner:"ehefrau",  label:"Gehalt Ehefrau",  type:"Gehalt", amount:3500, growthPct:2, startsAt:CY, endsAt:null },
+  ],
+  expenseStreams: [
+    { id:"e1", label:"Lebenshaltungskosten",     category:"Lebenshaltung", amount:2000, startsAt:CY, endsAt:null },
+    { id:"e2", label:"Reserven / Unregelmäßiges", category:"Sonstiges",    amount:500,  startsAt:CY, endsAt:null },
+  ],
   autoSpar: true, manuellSparrate: 1500,
   classReturns: DEFAULT_CLASS_RETURNS,
   horizon: 35,

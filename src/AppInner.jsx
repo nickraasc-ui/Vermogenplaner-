@@ -3,17 +3,19 @@ import { DARK, LIGHT } from "./theme.js";
 import { IMMO_CF_GROSS, IMMO_HAUSGELD, IMMO_GRUNDSTEUER, LIQUIDITY_DEFAULT, CY } from "./constants.js";
 import { saveState, loadProfileState } from "./storage.js";
 import { fmtE } from "./components/ui.jsx";
-import TabDashboard  from "./components/TabDashboard.jsx";
-import TabHaushalt   from "./components/TabHaushalt.jsx";
-import TabVermogen   from "./components/TabVermogen.jsx";
-import TabProjektion from "./components/TabProjektion.jsx";
-import TabBuckets    from "./components/TabBuckets.jsx";
-import CheckinModal  from "./components/modals/CheckinModal.jsx";
-import SnapshotModal from "./components/modals/SnapshotModal.jsx";
-import AffordModal   from "./components/modals/AffordModal.jsx";
-import AssetModal    from "./components/modals/AssetModal.jsx";
-import BucketModal   from "./components/modals/BucketModal.jsx";
-import OwnerModal    from "./components/modals/OwnerModal.jsx";
+import TabDashboard     from "./components/TabDashboard.jsx";
+import TabHaushalt      from "./components/TabHaushalt.jsx";
+import TabVermogen      from "./components/TabVermogen.jsx";
+import TabProjektion    from "./components/TabProjektion.jsx";
+import TabBuckets       from "./components/TabBuckets.jsx";
+import CheckinModal     from "./components/modals/CheckinModal.jsx";
+import SnapshotModal    from "./components/modals/SnapshotModal.jsx";
+import AffordModal      from "./components/modals/AffordModal.jsx";
+import AssetModal       from "./components/modals/AssetModal.jsx";
+import BucketModal      from "./components/modals/BucketModal.jsx";
+import OwnerModal       from "./components/modals/OwnerModal.jsx";
+import IncomeStreamModal  from "./components/modals/IncomeStreamModal.jsx";
+import ExpenseStreamModal from "./components/modals/ExpenseStreamModal.jsx";
 
 const TABS = [
   { k:"dashboard",  lbl:"Ubersicht"  },
@@ -28,7 +30,7 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
   const [s, setS]         = useState(() => loadProfileState(profileId, initialDark));
   const [tab, setTab]     = useState("dashboard");
   const [modal, setModal] = useState(null);
-  const [ownerFilter, setOwnerFilter]       = useState([]);
+  const [ownerFilter, setOwnerFilter]         = useState([]);
   const [projClassFilter, setProjClassFilter] = useState([]);
   const T = s.dark ? DARK : LIGHT;
 
@@ -45,7 +47,13 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
     [s.assets, ownerFilter]
   );
 
-  // separate filter for projection tab only
+  const filteredIncomeStreams = useMemo(() =>
+    ownerFilter.length === 0
+      ? (s.incomeStreams||[])
+      : (s.incomeStreams||[]).filter(st => !st.owner || ownerFilter.includes(st.owner)),
+    [s.incomeStreams, ownerFilter]
+  );
+
   const projAssets = useMemo(() =>
     projClassFilter.length === 0 ? filteredAssets : filteredAssets.filter(a => projClassFilter.includes(a.class)),
     [filteredAssets, projClassFilter]
@@ -64,22 +72,31 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
     loanSummary.reduce((t, l) => t + l.annuitat, 0), [loanSummary]);
 
   const cf = useMemo(() => {
-    const immoAssets     = filteredAssets.filter(a => a.class === "Immobilien");
-    const immoGross      = immoAssets.reduce((t, a) => t + (a.monthlyRent  || IMMO_CF_GROSS),   0);
-    const immoRunning    = immoAssets.reduce((t, a) => t + (a.hausgeld || IMMO_HAUSGELD) + (a.grundsteuer || IMMO_GRUNDSTEUER), 0);
-    const immoAnnuitat   = immoAssets.filter(a => (a.debt||0) > 0).reduce((t, a) => t + (a.loanAnnuitat||0), 0);
-    const otherAnnuitat  = filteredAssets.filter(a => a.class !== "Immobilien" && a.class !== "Forderung" && (a.debt||0) > 0).reduce((t, a) => t + (a.loanAnnuitat||0), 0);
-    const forderungIncome    = filteredAssets.filter(a => a.class === "Forderung").reduce((t, a) => t + (a.monthlyRepayment||0), 0);
-    const assetRunningCosts  = filteredAssets.filter(a => a.class !== "Immobilien" && (a.monthlyRunningCost||0) > 0).reduce((t, a) => t + (a.monthlyRunningCost||0), 0);
+    const immoAssets    = filteredAssets.filter(a => a.class === "Immobilien");
+    const immoGross     = immoAssets.reduce((t, a) => t + (a.monthlyRent||IMMO_CF_GROSS), 0);
+    const immoRunning   = immoAssets.reduce((t, a) => t + (a.hausgeld||IMMO_HAUSGELD) + (a.grundsteuer||IMMO_GRUNDSTEUER), 0);
+    const immoAnnuitat  = immoAssets.filter(a => (a.debt||0)>0).reduce((t, a) => t+(a.loanAnnuitat||0), 0);
+    const otherAnnuitat = filteredAssets.filter(a => a.class!=="Immobilien" && a.class!=="Forderung" && (a.debt||0)>0).reduce((t, a) => t+(a.loanAnnuitat||0), 0);
+    const forderungIncome   = filteredAssets.filter(a => a.class==="Forderung").reduce((t, a) => t+(a.monthlyRepayment||0), 0);
+    const assetRunningCosts = filteredAssets.filter(a => a.class!=="Immobilien" && (a.monthlyRunningCost||0)>0).reduce((t, a) => t+(a.monthlyRunningCost||0), 0);
     const immoNetCF = immoGross - immoAnnuitat - immoRunning;
-    const avail = s.nettoGesamt + immoNetCF + forderungIncome;
-    const bound = s.ausgaben + s.reservenMonthly + otherAnnuitat + assetRunningCosts;
+
+    // Aggregate from time-based streams (owner-filtered income, global expenses)
+    const streamIncome = filteredIncomeStreams
+      .filter(st => CY >= (st.startsAt||CY) && (!st.endsAt || CY <= st.endsAt))
+      .reduce((t, st) => t + (st.amount||0) * Math.pow(1+(st.growthPct||0)/100, Math.max(0, CY-(st.startsAt||CY))), 0);
+    const streamExpense = (s.expenseStreams||[])
+      .filter(st => CY >= (st.startsAt||CY) && (!st.endsAt || CY <= st.endsAt))
+      .reduce((t, st) => t+(st.amount||0), 0);
+
+    const avail = streamIncome + immoNetCF + forderungIncome;
+    const bound = streamExpense + otherAnnuitat + assetRunningCosts;
     const rest  = avail - bound;
-    const eff   = s.autoSpar ? Math.max(0, rest) : s.manuellSparrate;
+    const eff   = s.autoSpar ? Math.max(0, rest) : (s.manuellSparrate||0);
     const saldo = avail - bound - eff;
     const quote = avail > 0 ? (eff / avail) * 100 : 0;
-    return { avail, bound, rest, eff, saldo, quote, immoNetCF, immoGross, immoRunning, immoAnnuitat, otherAnnuitat, forderungIncome, assetRunningCosts };
-  }, [filteredAssets, s.nettoGesamt, s.ausgaben, s.reservenMonthly, s.autoSpar, s.manuellSparrate]);
+    return { avail, bound, rest, eff, saldo, quote, immoNetCF, immoGross, immoRunning, immoAnnuitat, otherAnnuitat, forderungIncome, assetRunningCosts, streamIncome, streamExpense };
+  }, [filteredAssets, filteredIncomeStreams, s.expenseStreams, s.autoSpar, s.manuellSparrate]);
 
   const agg = useMemo(() => {
     let gross = 0, debt = 0;
@@ -93,7 +110,7 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
     });
     const totalNet = gross - debt;
     let wavg = 0;
-    if (totalNet > 0) Object.entries(byClass).forEach(([cls, val]) => { if (val > 0) wavg += (val/totalNet) * (s.classReturns[cls]||0); });
+    if (totalNet > 0) Object.entries(byClass).forEach(([cls, val]) => { if (val > 0) wavg += (val/totalNet)*(s.classReturns[cls]||0); });
     return { gross, debt, net:totalNet, byClass, byLiquidity, wavgReturn:wavg };
   }, [filteredAssets, s.classReturns]);
 
@@ -101,45 +118,85 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
     if (s.sparDistMode === "manual") {
       return Object.entries(s.manualSparDist)
         .filter(([, amt]) => (amt||0) > 0)
-        .map(([cls, monthly]) => ({ cls, share: cf.eff > 0 ? monthly / cf.eff : 0, monthly }));
+        .map(([cls, monthly]) => ({ cls, share: cf.eff > 0 ? monthly/cf.eff : 0, monthly }));
     }
-    const investable = filteredAssets.filter(a => !a.locked && a.class !== "Cash" && a.class !== "Immobilien" && a.class !== "Forderung" && a.class !== "Sonstiges");
-    const total = investable.reduce((t, a) => t + (a.value||0), 0) || 1;
+    const investable = filteredAssets.filter(a => !a.locked && a.class!=="Cash" && a.class!=="Immobilien" && a.class!=="Forderung" && a.class!=="Sonstiges");
+    const total = investable.reduce((t, a) => t+(a.value||0), 0) || 1;
     const byClass = {};
-    investable.forEach(a => { byClass[a.class] = (byClass[a.class]||0) + (a.value||0); });
+    investable.forEach(a => { byClass[a.class] = (byClass[a.class]||0)+(a.value||0); });
     return Object.entries(byClass).map(([cls, val]) => ({ cls, share:val/total, monthly:cf.eff*(val/total) }));
   }, [filteredAssets, s.sparDistMode, s.manualSparDist, cf.eff]);
 
   const projection = useMemo(() => {
-    const sp0 = cf.eff || 0;
-    const investable  = projAssets.filter(a => !a.locked && a.class !== "Cash" && a.class !== "Immobilien" && a.class !== "Forderung" && a.class !== "Sonstiges");
-    const invTotal    = investable.reduce((t, a) => t + (a.value||0), 0) || 1;
+    const investable  = projAssets.filter(a => !a.locked && a.class!=="Cash" && a.class!=="Immobilien" && a.class!=="Forderung" && a.class!=="Sonstiges");
+    const invTotal    = investable.reduce((t, a) => t+(a.value||0), 0) || 1;
     const classTotals = {};
-    investable.forEach(a => { classTotals[a.class] = (classTotals[a.class]||0) + (a.value||0); });
+    investable.forEach(a => { classTotals[a.class] = (classTotals[a.class]||0)+(a.value||0); });
+    const hasAnyInvestable = filteredAssets.some(a => !a.locked && a.class!=="Cash" && a.class!=="Immobilien" && a.class!=="Forderung" && a.class!=="Sonstiges");
 
-    // True investable check across ALL filtered assets (not just projAssets) — for pure-savings fallback
-    const hasAnyInvestable = filteredAssets.some(a => !a.locked && a.class !== "Cash" && a.class !== "Immobilien" && a.class !== "Forderung" && a.class !== "Sonstiges");
+    const sp0 = cf.eff || 0; // year-0 sparrate for manual-mode distribution ratios
 
-    // Non-Immo loans that will be paid off → freed annuität flows back into sparrate (auto mode only)
-    const nonImmoLoans = filteredAssets
-      .filter(a => a.class !== "Immobilien" && a.class !== "Forderung" && (a.debt||0) > 0 && (a.loanTilgung||0) > 0 && (a.loanAnnuitat||0) > 0)
-      .map(a => ({ annuitat: a.loanAnnuitat, yrsLeft: (a.debt||0) / ((a.loanTilgung||0) * 12) }));
-    const freedAt = (y) => s.autoSpar
-      ? nonImmoLoans.filter(l => y >= l.yrsLeft).reduce((t, l) => t + l.annuitat, 0)
-      : 0;
+    // Non-immo loans for manual-mode freedAt
+    const nonImmoLoans = projAssets
+      .filter(a => a.class!=="Immobilien" && a.class!=="Forderung" && (a.debt||0)>0 && (a.loanTilgung||0)>0 && (a.loanAnnuitat||0)>0)
+      .map(a => ({ annuitat:a.loanAnnuitat, yrsLeft:(a.debt||0)/((a.loanTilgung||0)*12) }));
 
-    const getAdd = (asset, scaledSp) => {
-      if (asset.locked || asset.class==="Cash" || asset.class==="Immobilien" || asset.class==="Forderung" || asset.class==="Sonstiges") return 0;
-      if (s.sparDistMode === "manual") {
-        const classMonthly = (s.manualSparDist[asset.class]||0) * (sp0 > 0 ? scaledSp/sp0 : 1);
-        return classMonthly * ((asset.value||0) / (classTotals[asset.class]||1));
+    // Compute year-specific sparrate
+    const computeSp = (y) => {
+      if (!s.autoSpar) {
+        const freed = nonImmoLoans.filter(l => y >= l.yrsLeft).reduce((t, l) => t+l.annuitat, 0);
+        const base  = (s.manuellSparrate||0) + freed;
+        return s.sparRateGrowth ? base*Math.pow(1+(s.sparGrowthPct||0)/100, y) : base;
       }
-      return scaledSp * ((asset.value||0) / invTotal);
+      const absYear = CY + y;
+
+      const inc = filteredIncomeStreams
+        .filter(st => absYear >= (st.startsAt||CY) && (!st.endsAt || absYear <= st.endsAt))
+        .reduce((t, st) => t + (st.amount||0)*Math.pow(1+(st.growthPct||0)/100, Math.max(0, absYear-(st.startsAt||CY))), 0);
+
+      const exp = (s.expenseStreams||[])
+        .filter(st => absYear >= (st.startsAt||CY) && (!st.endsAt || absYear <= st.endsAt))
+        .reduce((t, st) => t+(st.amount||0), 0);
+
+      // Financed bucket payments reduce cashflow during financing period
+      const financed = (s.buckets||[]).reduce((t, b) => {
+        if (b.fundingMode !== "financed") return t;
+        const sy = +(b.financingStart||b.year||CY);
+        return absYear >= sy && absYear < sy+Math.ceil((+b.financingMonths||12)/12) ? t+(+b.monthlyPayment||0) : t;
+      }, 0);
+
+      // Immo CF in year y (annuität stops when loan paid off)
+      const immoAssets = projAssets.filter(a => a.class==="Immobilien");
+      const yearImmoGross   = immoAssets.reduce((t, a) => t+(a.monthlyRent||IMMO_CF_GROSS), 0);
+      const yearImmoRunning = immoAssets.reduce((t, a) => t+(a.hausgeld||IMMO_HAUSGELD)+(a.grundsteuer||IMMO_GRUNDSTEUER), 0);
+      const yearImmoAnnu    = immoAssets.filter(a => (a.debt||0)>0 && (a.loanTilgung||0)>0).reduce((t, a) =>
+        t + (Math.max(0,(a.debt||0)-(a.loanTilgung||0)*12*y) > 0 ? (a.loanAnnuitat||0) : 0), 0);
+      const yearImmoNetCF = yearImmoGross - yearImmoRunning - yearImmoAnnu;
+
+      const fordInc  = projAssets.filter(a => a.class==="Forderung").reduce((t, a) => t+(a.monthlyRepayment||0), 0);
+      const runCosts = projAssets.filter(a => a.class!=="Immobilien" && (a.monthlyRunningCost||0)>0).reduce((t, a) => t+(a.monthlyRunningCost||0), 0);
+      const otherAnnu = projAssets.filter(a => a.class!=="Immobilien" && a.class!=="Forderung" && (a.debt||0)>0 && (a.loanTilgung||0)>0).reduce((t, a) =>
+        t + (Math.max(0,(a.debt||0)-(a.loanTilgung||0)*12*y) > 0 ? (a.loanAnnuitat||0) : 0), 0);
+
+      const avail = inc + yearImmoNetCF + fordInc;
+      const bound = exp + runCosts + otherAnnu + financed;
+      return Math.max(0, avail - bound);
     };
 
+    const getAdd = (asset, sp) => {
+      if (asset.locked || asset.class==="Cash" || asset.class==="Immobilien" || asset.class==="Forderung" || asset.class==="Sonstiges") return 0;
+      if (s.sparDistMode === "manual") {
+        const classMonthly = (s.manualSparDist[asset.class]||0) * (sp0 > 0 ? sp/sp0 : 1);
+        return classMonthly * ((asset.value||0)/(classTotals[asset.class]||1));
+      }
+      return sp * ((asset.value||0)/invTotal);
+    };
+
+    // Only lump_sum buckets drain the portfolio — financed ones reduce sp (already in computeSp)
     const bucketDrain = (year) => {
       let d = 0;
       (s.buckets||[]).forEach(b => {
+        if (b.fundingMode === "financed") return;
         const ty = b.year ? +b.year : b.age ? CY+(+b.age-30) : null;
         if (!ty) return;
         if (b.type==="Einmalig"  && year===ty) d += b.amount||0;
@@ -151,43 +208,33 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
 
     return Array.from({ length:s.horizon+1 }, (_, y) => {
       const row = { age:30+y };
+      const sp = computeSp(y);  // year-specific sparrate (same across all scenarios)
       [["cons",-2],["base",0],["opt",2]].forEach(([key, adj]) => {
         let total = 0;
-        const freed = freedAt(y);
-        const base_sp = sp0 + freed;
-        const sp = s.sparRateGrowth ? base_sp*Math.pow(1+(s.sparGrowthPct||0)/100,y) : base_sp;
         projAssets.forEach(a => {
           const baseR = (s.classReturns[a.class]||5) + adj;
           const r = Math.max(0, baseR/100), rm = r/12, mo = y*12;
-          if (a.class === "Forderung") {
-            const rep = a.monthlyRepayment || 0;
-            const fv  = rm > 0
-              ? (a.value||0)*Math.pow(1+rm,mo) - rep*((Math.pow(1+rm,mo)-1)/rm)
-              : (a.value||0) - rep*mo;
-            total += Math.max(0, fv);
-            return;
+          if (a.class==="Forderung") {
+            const rep = a.monthlyRepayment||0;
+            const fv  = rm>0 ? (a.value||0)*Math.pow(1+rm,mo)-rep*((Math.pow(1+rm,mo)-1)/rm) : (a.value||0)-rep*mo;
+            total += Math.max(0, fv); return;
           }
           if (a.class==="Immobilien") {
-            const growR  = Math.max(0, ((s.classReturns["Immobilien"]||3)+adj)/100);
+            const growR = Math.max(0,((s.classReturns["Immobilien"]||3)+adj)/100);
             const grossFV = (a.value||0)*Math.pow(1+growR,y);
             const remDebt = (a.loanTilgung||0)>0 ? Math.max(0,(a.debt||0)-(a.loanTilgung||0)*12*y) : (a.debt||0);
             total += grossFV - remDebt; return;
           }
           if (a.class==="Cash") { total += (a.value||0)*Math.pow(1+Math.max(0,((s.classReturns["Cash"]||2)+adj)/100),y); return; }
-          if (a.class==="Sonstiges") {
-            const depR = Math.min(0, baseR/100);
-            total += Math.max(0, (a.value||0)*Math.pow(1+depR,y));
-            return;
-          }
+          if (a.class==="Sonstiges") { total += Math.max(0,(a.value||0)*Math.pow(1+Math.min(0,baseR/100),y)); return; }
           const add = getAdd(a, sp);
           total += rm>0 ? (a.value||0)*Math.pow(1+r,y)+add*((Math.pow(1+rm,mo)-1)/rm) : (a.value||0)+add*mo;
         });
-        // Fallback: no investable positions anywhere → savings accumulate at ETF rate
+        // Fallback: no investable positions → pure savings at ETF rate
         if (!hasAnyInvestable && sp > 0) {
-          const defR = Math.max(0, ((s.classReturns?.["Aktien-ETF"] || 8) + adj) / 100);
-          const rm_def = defR / 12;
-          const mo = y * 12;
-          total += rm_def > 0 ? sp * ((Math.pow(1+rm_def,mo)-1)/rm_def) : sp * mo;
+          const defR = Math.max(0,((s.classReturns?.["Aktien-ETF"]||8)+adj)/100);
+          const rm_def = defR/12, mo = y*12;
+          total += rm_def>0 ? sp*((Math.pow(1+rm_def,mo)-1)/rm_def) : sp*mo;
         }
         let drain = 0;
         for (let i=0; i<=y; i++) drain += bucketDrain(CY+i);
@@ -197,14 +244,12 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
       });
       return row;
     });
-  }, [s, cf.eff, projAssets]);
+  }, [s, projAssets, filteredIncomeStreams, cf.eff]);
 
   const final  = projection[projection.length-1] || {};
   const lastCI = useMemo(() => [...(s.checkins||[])].sort((a,b) => b.month.localeCompare(a.month))[0] ?? null, [s.checkins]);
   const snaps  = useMemo(() =>
-    [...(s.snapshots||[])].sort((a,b) => a.date.localeCompare(b.date)).map(sn => ({
-      ...sn, value: sn.totalNet ?? sn.value
-    })), [s.snapshots]);
+    [...(s.snapshots||[])].sort((a,b) => a.date.localeCompare(b.date)).map(sn => ({ ...sn, value:sn.totalNet??sn.value })), [s.snapshots]);
 
   const chipStyle = (active) => ({
     fontSize:8, padding:"2px 9px", borderRadius:10,
@@ -218,21 +263,21 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
   return (
     <div style={{ minHeight:"100vh", background:T.bg, color:T.text, fontFamily:"system-ui,-apple-system,'Helvetica Neue',sans-serif", paddingBottom:"calc(64px + env(safe-area-inset-bottom,0px))", transition:"background 0.2s,color 0.2s" }}>
 
-      {modal?.type==="checkin"  && <CheckinModal  s={s} cf={cf} T={T} setModal={setModal} updArr={updArr} />}
-      {modal?.type==="snapshot" && <SnapshotModal s={s} cf={cf} agg={agg} T={T} setModal={setModal} updArr={updArr} />}
-      {modal?.type==="afford"   && <AffordModal   s={s} cf={cf} agg={agg} final={final} T={T} setModal={setModal} updArr={updArr} />}
-      {modal?.type==="asset"    && <AssetModal    data={modal.data} s={s} T={T} setModal={setModal} updArr={updArr} />}
-      {modal?.type==="bucket"   && <BucketModal   data={modal.data} s={s} T={T} setModal={setModal} updArr={updArr} />}
-      {modal?.type==="owner"    && <OwnerModal    s={s} T={T} setModal={setModal} upd={upd} />}
+      {modal?.type==="checkin"       && <CheckinModal       s={s} cf={cf} T={T} setModal={setModal} updArr={updArr} />}
+      {modal?.type==="snapshot"      && <SnapshotModal      s={s} cf={cf} agg={agg} T={T} setModal={setModal} updArr={updArr} />}
+      {modal?.type==="afford"        && <AffordModal        s={s} cf={cf} agg={agg} final={final} T={T} setModal={setModal} updArr={updArr} />}
+      {modal?.type==="asset"         && <AssetModal         data={modal.data} s={s} T={T} setModal={setModal} updArr={updArr} />}
+      {modal?.type==="bucket"        && <BucketModal        data={modal.data} s={s} T={T} setModal={setModal} updArr={updArr} />}
+      {modal?.type==="owner"         && <OwnerModal         s={s} T={T} setModal={setModal} upd={upd} />}
+      {modal?.type==="incomeStream"  && <IncomeStreamModal  data={modal.data} s={s} T={T} setModal={setModal} updArr={updArr} />}
+      {modal?.type==="expenseStream" && <ExpenseStreamModal data={modal.data} s={s} T={T} setModal={setModal} updArr={updArr} />}
 
       {/* Header */}
       <div style={{ background:T.header, borderBottom:"1px solid "+T.tabBorder, padding:"14px 16px 10px", paddingTop:"calc(14px + env(safe-area-inset-top,0px))", position:"sticky", top:0, zIndex:50 }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
           <div style={{ display:"flex", alignItems:"flex-start", gap:10, flex:1, minWidth:0 }}>
             {onBack && (
-              <button onClick={onBack} style={{ background:"none", border:"none", color:T.textMid, cursor:"pointer", fontSize:22, lineHeight:1, padding:"3px 0", WebkitTapHighlightColor:"transparent" }}>
-                ←
-              </button>
+              <button onClick={onBack} style={{ background:"none", border:"none", color:T.textMid, cursor:"pointer", fontSize:22, lineHeight:1, padding:"3px 0", WebkitTapHighlightColor:"transparent" }}>←</button>
             )}
             <div style={{ flex:1, minWidth:0 }}>
               <div style={{ fontSize:8, letterSpacing:"0.22em", color:T.textDim, fontWeight:700, textTransform:"uppercase" }}>Vermogensplaner</div>

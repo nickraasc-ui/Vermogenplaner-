@@ -31,3 +31,6 @@ export const BCK_CLRS = ["#f59e0b","#10b981","#38bdf8","#a78bfa","#f472b6","#fb9
 
 export const CY = new Date().getFullYear();
 export const CM = new Date().toISOString().slice(0, 7);
+
+export const INCOME_TYPES = ["Gehalt","Freelance","Selbstständig","Rente","Mieteinnahmen","Kapitalerträge","Sonstiges"];
+export const EXPENSE_CATEGORIES = ["Lebenshaltung","Versicherung","Bildung","Wohnen","Freizeit","Sonstiges"];

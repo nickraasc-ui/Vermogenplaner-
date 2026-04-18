@@ -3,7 +3,7 @@ import { Sheet, Inp, Btn, uid } from "../ui.jsx";
 import { CM } from "../../constants.js";
 
 export default function CheckinModal({ s, cf, T, setModal, updArr }) {
-  const [f, setF] = useState({ month: CM, ausgaben_ist: String(s.ausgaben), reserven_ist: "0", sparrate_ist: String(Math.round(cf.eff)), note: "" });
+  const [f, setF] = useState({ month: CM, ausgaben_ist: String(Math.round(cf.streamExpense||0)), reserven_ist: "0", sparrate_ist: String(Math.round(cf.eff)), note: "" });
   return (
     <Sheet title="Monatliches Check-in" onClose={() => setModal(null)} T={T}>
       <Inp label="Monat" value={f.month} onChange={v => setF(p => ({ ...p, month: v }))} type="month" T={T} />

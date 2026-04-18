@@ -63,7 +63,7 @@ export default function TabDashboard({ s, T, setModal, agg, cf, loanSummary, las
       )}
 
       {lastCI && (() => {
-        const dA = (lastCI.ausgaben_ist||0) - s.ausgaben;
+        const dA = (lastCI.ausgaben_ist||0) - cf.streamExpense;
         const dS = (lastCI.sparrate_ist||0) - cf.eff;
         return (
           <div style={{ background:T.surface, border:"1px solid "+T.border, borderRadius:10, padding:14 }}>
