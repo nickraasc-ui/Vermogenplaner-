@@ -49,17 +49,20 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
     loanSummary.reduce((t, l) => t + l.annuitat, 0), [loanSummary]);
 
   const cf = useMemo(() => {
-    const immoGross   = s.assets.filter(a => a.class==="Immobilien" && (a.debt||0)>0).reduce(t => t + IMMO_CF_GROSS, 0);
-    const immoRunning = s.assets.filter(a => a.class==="Immobilien" && (a.debt||0)>0).reduce(t => t + IMMO_HAUSGELD + IMMO_GRUNDSTEUER, 0);
-    const immoNetCF   = immoGross - totalMonthlyLoanPayment - immoRunning;
+    const immoAssets   = s.assets.filter(a => a.class === "Immobilien");
+    const immoGross    = immoAssets.reduce((t, a) => t + (a.monthlyRent  || IMMO_CF_GROSS),   0);
+    const immoRunning  = immoAssets.reduce((t, a) => t + (a.hausgeld     || IMMO_HAUSGELD) + (a.grundsteuer || IMMO_GRUNDSTEUER), 0);
+    const immoAnnuitat = immoAssets.filter(a => (a.debt||0) > 0).reduce((t, a) => t + (a.loanAnnuitat||0), 0);
+    const otherAnnuitat= s.assets.filter(a => a.class !== "Immobilien" && (a.debt||0) > 0).reduce((t, a) => t + (a.loanAnnuitat||0), 0);
+    const immoNetCF = immoGross - immoAnnuitat - immoRunning;
     const avail = s.nettoGesamt + immoNetCF;
-    const bound = s.ausgaben + s.reservenMonthly;
+    const bound = s.ausgaben + s.reservenMonthly + otherAnnuitat;
     const rest  = avail - bound;
     const eff   = s.autoSpar ? Math.max(0, rest) : s.manuellSparrate;
     const saldo = avail - bound - eff;
     const quote = avail > 0 ? (eff / avail) * 100 : 0;
-    return { avail, bound, rest, eff, saldo, quote, immoNetCF, immoGross, immoRunning };
-  }, [s.nettoGesamt, s.ausgaben, s.reservenMonthly, s.autoSpar, s.manuellSparrate, totalMonthlyLoanPayment, s.assets]);
+    return { avail, bound, rest, eff, saldo, quote, immoNetCF, immoGross, immoRunning, immoAnnuitat, otherAnnuitat };
+  }, [s.nettoGesamt, s.ausgaben, s.reservenMonthly, s.autoSpar, s.manuellSparrate, s.assets]);
 
   const agg = useMemo(() => {
     let gross = 0, debt = 0;
@@ -190,7 +193,7 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
 
       <div style={{ padding:"14px 14px 4px", maxWidth:600, margin:"0 auto" }}>
         {tab==="dashboard"  && <TabDashboard  s={s} T={T} setModal={setModal} agg={agg} cf={cf} loanSummary={loanSummary} lastCI={lastCI} snaps={snaps} totalMonthlyLoanPayment={totalMonthlyLoanPayment} projection={projection} final={final} />}
-        {tab==="haushalt"   && <TabHaushalt   s={s} T={T} upd={upd} updArr={updArr} setModal={setModal} cf={cf} sparDist={sparDist} totalMonthlyLoanPayment={totalMonthlyLoanPayment} />}
+        {tab==="haushalt"   && <TabHaushalt   s={s} T={T} upd={upd} updArr={updArr} setModal={setModal} cf={cf} sparDist={sparDist} />}
         {tab==="vermogen"   && <TabVermogen   s={s} T={T} updClass={updClass} updArr={updArr} setModal={setModal} agg={agg} />}
         {tab==="projektion" && <TabProjektion s={s} T={T} upd={upd} cf={cf} agg={agg} projection={projection} final={final} loanSummary={loanSummary} setModal={setModal} />}
         {tab==="buckets"    && <TabBuckets    s={s} T={T} updArr={updArr} setModal={setModal} />}

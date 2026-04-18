@@ -43,7 +43,7 @@ export const DEFAULT = {
     { id:"a4", name:"Gemeinschaftsdepot", owner:"gemeinschaft", class:"Aktien-ETF", liquidity:"Liquide", value:15000, debt:0, locked:false, note:"" },
     { id:"a5", name:"Liquiditat Ehefrau", owner:"ehefrau", class:"Cash", liquidity:"Liquide", value:10000, debt:0, locked:false, note:"" },
     { id:"a6", name:"Liquiditat Gemeinschaft", owner:"gemeinschaft", class:"Cash", liquidity:"Liquide", value:15000, debt:0, locked:false, note:"" },
-    { id:"a7", name:"Immobilie Munchen", owner:"ehemann", class:"Immobilien", liquidity:"Illiquide", value:430000, debt:130000, locked:false, note:"Kaufpreis 230k", loanRate:3.5, loanTilgung:450, loanAnnuitat:850 },
+    { id:"a7", name:"Immobilie Munchen", owner:"ehemann", class:"Immobilien", liquidity:"Illiquide", value:430000, debt:130000, locked:false, note:"Kaufpreis 230k", loanRate:3.5, loanTilgung:450, loanAnnuitat:850, monthlyRent:1200, hausgeld:220, grundsteuer:10 },
   ],
   buckets: [], checkins: [], snapshots: [],
 };
