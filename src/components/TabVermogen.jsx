@@ -1,8 +1,22 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Sl, Tile, Btn, fmtE, full } from "./ui.jsx";
 import { ASSET_CLASSES, ASSET_CLASS_DEFAULTS, LIQUIDITY_CATS, LIQ_CLR } from "../constants.js";
+import { exportAssetsToExcel, parseImportFile } from "../utils/excelIO.js";
 
 export default function TabVermogen({ s, T, updClass, updArr, setModal, agg, filteredAssets }) {
+  const fileInputRef = useRef(null);
+
+  const handleImport = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    try {
+      const preview = await parseImportFile(file, s.assets, s.owners || []);
+      setModal({ type: "importPreview", data: preview });
+    } catch (err) {
+      alert("Import-Fehler: " + err.message);
+    }
+  };
   const [expandedSnap, setExpandedSnap] = useState(null);
 
   const sliderMin = (cls) => (cls === "Sonstiges" || cls === "Forderung") ? -30 : 0;
@@ -62,8 +76,11 @@ export default function TabVermogen({ s, T, updClass, updArr, setModal, agg, fil
           <div style={{ fontSize:9, color:T.textLow, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em" }}>Positionen</div>
           <div style={{ display:"flex", gap:6 }}>
             <Btn sm T={T} onClick={() => setModal({ type:"owner" })}>Eigentümer</Btn>
+            <Btn sm color={T.amber} T={T} onClick={() => exportAssetsToExcel(s.assets, s.owners || [])}>↓ Excel</Btn>
+            <Btn sm color={T.purple} T={T} onClick={() => fileInputRef.current?.click()}>↑ Import</Btn>
             <Btn sm color={T.green} T={T} onClick={() => setModal({ type:"asset", data:null })}>+ Position</Btn>
           </div>
+          <input ref={fileInputRef} type="file" accept=".xlsx,.xls" style={{ display:"none" }} onChange={handleImport} />
         </div>
         {filteredAssets.map(a => {
           const ownershipLabels = (a.ownership || (a.owner ? [{ ownerId: a.owner, share: 1 }] : []))

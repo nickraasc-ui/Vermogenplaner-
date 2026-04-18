@@ -14,8 +14,9 @@ import AffordModal      from "./components/modals/AffordModal.jsx";
 import AssetModal       from "./components/modals/AssetModal.jsx";
 import BucketModal      from "./components/modals/BucketModal.jsx";
 import OwnerModal       from "./components/modals/OwnerModal.jsx";
-import IncomeStreamModal  from "./components/modals/IncomeStreamModal.jsx";
-import ExpenseStreamModal from "./components/modals/ExpenseStreamModal.jsx";
+import IncomeStreamModal    from "./components/modals/IncomeStreamModal.jsx";
+import ExpenseStreamModal   from "./components/modals/ExpenseStreamModal.jsx";
+import ImportPreviewModal   from "./components/modals/ImportPreviewModal.jsx";
 
 const TABS = [
   { k:"dashboard",  lbl:"Übersicht"  },
@@ -301,7 +302,8 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
       {modal?.type==="bucket"        && <BucketModal        data={modal.data} s={s} T={T} setModal={setModal} updArr={updArr} />}
       {modal?.type==="owner"         && <OwnerModal         s={s} T={T} setModal={setModal} upd={upd} updArr={updArr} />}
       {modal?.type==="incomeStream"  && <IncomeStreamModal  data={modal.data} s={s} T={T} setModal={setModal} updArr={updArr} />}
-      {modal?.type==="expenseStream" && <ExpenseStreamModal data={modal.data} s={s} T={T} setModal={setModal} updArr={updArr} />}
+      {modal?.type==="expenseStream"  && <ExpenseStreamModal  data={modal.data} s={s} T={T} setModal={setModal} updArr={updArr} />}
+      {modal?.type==="importPreview"  && <ImportPreviewModal  preview={modal.data} s={s} T={T} setModal={setModal} updArr={updArr} />}
 
       <div style={{ background:T.header, borderBottom:"1px solid "+T.tabBorder, padding:"14px 16px 10px", paddingTop:"calc(14px + env(safe-area-inset-top,0px))", position:"sticky", top:0, zIndex:50 }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
