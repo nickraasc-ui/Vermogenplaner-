@@ -115,6 +115,14 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
             </button>
           </div>
 
+          {s.sparDistMode !== "manual" && sparDist.length === 0 && (
+            <div style={{ background:T.amber+"12", border:"1px solid "+T.amber+"33", borderRadius:7, padding:"10px 12px", marginBottom:8 }}>
+              <div style={{ fontSize:11, fontWeight:700, color:T.amber, marginBottom:3 }}>Keine investierbaren Positionen</div>
+              <div style={{ fontSize:10, color:T.textMid, lineHeight:1.5 }}>
+                Alle Positionen sind gesperrt, Cash oder Immobilien. Wechsle zu "Manuell" um die Sparrate explizit zuzuweisen — oder leg eine investierbare Position an.
+              </div>
+            </div>
+          )}
           {s.sparDistMode === "manual" ? (
             <>
               {ALL_INVEST_CLASSES.map(cls => (
@@ -141,16 +149,21 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
                 </div>
               </div>
             </>
-          ) : (
+          ) : sparDist.length > 0 ? (
             <>
-              <div style={{ fontSize:9, color:T.textDim, marginBottom:10 }}>Proportional zur aktuellen Gewichtung der investierbaren Positionen</div>
+              <div style={{ fontSize:9, color:T.textDim, marginBottom:8 }}>
+                Proportional zur aktuellen Gewichtung der investierbaren Positionen
+                {cf.eff === 0 && <span style={{ color:T.amber }}> — Sparrate 0 €/Mo., Anteile für sobald Spielraum entsteht</span>}
+              </div>
               {sparDist.map(({ cls, share, monthly }) => (
-                <div key={cls} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:8 }}>
+                <div key={cls} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:8, opacity: cf.eff === 0 ? 0.5 : 1 }}>
                   <div style={{ width:8, height:8, borderRadius:"50%", background:ASSET_CLASS_DEFAULTS[cls]?.color||T.textMid, flexShrink:0 }} />
                   <div style={{ flex:1 }}>
                     <div style={{ display:"flex", justifyContent:"space-between", marginBottom:2 }}>
                       <span style={{ fontSize:10, color:T.textMid }}>{cls}</span>
-                      <span style={{ fontSize:10, fontWeight:700, color:T.text }}>{full(monthly)}/Mo.</span>
+                      <span style={{ fontSize:10, fontWeight:700, color:T.text }}>
+                        {cf.eff > 0 ? full(monthly)+"/Mo." : (share*100).toFixed(0)+"% — "+full(monthly)+"/Mo."}
+                      </span>
                     </div>
                     <div style={{ background:T.border, borderRadius:3, height:4, overflow:"hidden" }}>
                       <div style={{ height:"100%", background:ASSET_CLASS_DEFAULTS[cls]?.color||T.accent, width:(share*100)+"%" }} />
@@ -160,7 +173,7 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
                 </div>
               ))}
             </>
-          )}
+          ) : null}
         </div>
       )}
 

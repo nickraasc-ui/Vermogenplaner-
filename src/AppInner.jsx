@@ -117,6 +117,17 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
     const classTotals = {};
     investable.forEach(a => { classTotals[a.class] = (classTotals[a.class]||0) + (a.value||0); });
 
+    // True investable check across ALL filtered assets (not just projAssets) — for pure-savings fallback
+    const hasAnyInvestable = filteredAssets.some(a => !a.locked && a.class !== "Cash" && a.class !== "Immobilien" && a.class !== "Forderung" && a.class !== "Sonstiges");
+
+    // Non-Immo loans that will be paid off → freed annuität flows back into sparrate (auto mode only)
+    const nonImmoLoans = filteredAssets
+      .filter(a => a.class !== "Immobilien" && a.class !== "Forderung" && (a.debt||0) > 0 && (a.loanTilgung||0) > 0 && (a.loanAnnuitat||0) > 0)
+      .map(a => ({ annuitat: a.loanAnnuitat, yrsLeft: (a.debt||0) / ((a.loanTilgung||0) * 12) }));
+    const freedAt = (y) => s.autoSpar
+      ? nonImmoLoans.filter(l => y >= l.yrsLeft).reduce((t, l) => t + l.annuitat, 0)
+      : 0;
+
     const getAdd = (asset, scaledSp) => {
       if (asset.locked || asset.class==="Cash" || asset.class==="Immobilien" || asset.class==="Forderung" || asset.class==="Sonstiges") return 0;
       if (s.sparDistMode === "manual") {
@@ -142,7 +153,9 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
       const row = { age:30+y };
       [["cons",-2],["base",0],["opt",2]].forEach(([key, adj]) => {
         let total = 0;
-        const sp = s.sparRateGrowth ? sp0*Math.pow(1+(s.sparGrowthPct||0)/100,y) : sp0;
+        const freed = freedAt(y);
+        const base_sp = sp0 + freed;
+        const sp = s.sparRateGrowth ? base_sp*Math.pow(1+(s.sparGrowthPct||0)/100,y) : base_sp;
         projAssets.forEach(a => {
           const baseR = (s.classReturns[a.class]||5) + adj;
           const r = Math.max(0, baseR/100), rm = r/12, mo = y*12;
@@ -169,6 +182,13 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
           const add = getAdd(a, sp);
           total += rm>0 ? (a.value||0)*Math.pow(1+r,y)+add*((Math.pow(1+rm,mo)-1)/rm) : (a.value||0)+add*mo;
         });
+        // Fallback: no investable positions anywhere → savings accumulate at ETF rate
+        if (!hasAnyInvestable && sp > 0) {
+          const defR = Math.max(0, ((s.classReturns?.["Aktien-ETF"] || 8) + adj) / 100);
+          const rm_def = defR / 12;
+          const mo = y * 12;
+          total += rm_def > 0 ? sp * ((Math.pow(1+rm_def,mo)-1)/rm_def) : sp * mo;
+        }
         let drain = 0;
         for (let i=0; i<=y; i++) drain += bucketDrain(CY+i);
         total = Math.max(0, total-drain);
