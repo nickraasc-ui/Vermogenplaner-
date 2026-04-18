@@ -18,7 +18,14 @@ export const loadProfileState = (profileId, initialDark) => {
           const base = {
             loanRate: 3.5, loanTilgung: 0, loanAnnuitat: 0,
             monthlyRepayment: 0, monthlyRunningCost: 0,
+            valuationMethod: "market",
+            commitment: 0, called: 0, distributed: 0,
             ...a,
+            // Migrate owner → ownership[]
+            ownership: a.ownership || (a.owner ? [{ ownerId: a.owner, share: 1.0 }] : []),
+            // Migrate tax basis
+            tax: a.tax || { acquisitionPrice: 0, acquisitionDate: "", taxType: a.class === "Immobilien" ? "immobilien" : "abgeltung" },
+            lifecycle: a.lifecycle || { maturity: null },
             liquidity: a.liquidity || LIQUIDITY_DEFAULT[a.class] || "Semi-liquide",
           };
           if (a.class === "Immobilien") {
@@ -30,6 +37,17 @@ export const loadProfileState = (profileId, initialDark) => {
       if (!p.owners || p.owners.length === 0) p.owners = [...DEFAULT_OWNERS];
       if (!p.sparDistMode) p.sparDistMode = "auto";
       if (!p.manualSparDist) p.manualSparDist = {};
+
+      // Migrate owners: add type, tax profile, ownedBy
+      p.owners = (p.owners||[]).map(o => ({
+        type: "Person", ownedBy: [],
+        tax: { personalTaxRate:42, churchTax:false, sparerpauschbetrag:1000, zusammenveranlagung:true },
+        ...o,
+      }));
+
+      // Profile-level fields
+      if (!p.maritalProperty) p.maritalProperty = "zugewinn";
+      if (!p.taxFiling) p.taxFiling = "gemeinsam";
 
       // Migrate nettoGesamt / ausgaben → streams
       if (!p.incomeStreams || p.incomeStreams.length === 0) {

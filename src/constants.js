@@ -34,3 +34,23 @@ export const CM = new Date().toISOString().slice(0, 7);
 
 export const INCOME_TYPES = ["Gehalt","Freelance","Selbstständig","Rente","Mieteinnahmen","Kapitalerträge","Sonstiges"];
 export const EXPENSE_CATEGORIES = ["Lebenshaltung","Versicherung","Bildung","Wohnen","Freizeit","Sonstiges"];
+
+export const OWNER_TYPES = ["Person","GmbH","Stiftung","GbR","AG","Sonstiges"];
+export const ASSET_TAX_TYPES = [
+  { value:"abgeltung",      label:"Abgeltungsteuer (Aktien/ETF/Zinsen)" },
+  { value:"teileinkuenfte", label:"Teileinkünfteverfahren (GmbH-Anteile)" },
+  { value:"immobilien",     label:"Immobilien (10-Jahres-Regel)" },
+  { value:"steuerfrei",     label:"Steuerfrei" },
+];
+export const VALUATION_METHODS = [
+  { value:"market",         label:"Marktwert (Börse/Kurs)" },
+  { value:"nav",            label:"NAV (Fondswert)" },
+  { value:"appraisal",      label:"Gutachterwert" },
+  { value:"lastround",      label:"Letzter Financing Round" },
+  { value:"selbstauskunft", label:"Selbstauskunft / geschätzt" },
+];
+export const MARITAL_PROPERTY_OPTIONS = [
+  { value:"zugewinn",         label:"Zugewinngemeinschaft" },
+  { value:"gutertrennung",    label:"Gütertrennung" },
+  { value:"gutergemeinschaft",label:"Gütergemeinschaft" },
+];
