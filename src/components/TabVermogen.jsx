@@ -43,7 +43,7 @@ export default function TabVermogen({ s, T, updClass, updArr, setModal, agg, fil
       </div>
 
       <div style={{ background:T.surface, border:"1px solid "+T.border, borderRadius:10, padding:14 }}>
-        <div style={{ fontSize:9, color:T.textLow, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:10 }}>Liquiditat</div>
+        <div style={{ fontSize:9, color:T.textLow, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:10 }}>Liquidität</div>
         <div style={{ display:"flex", borderRadius:6, overflow:"hidden", height:10, marginBottom:10 }}>
           {LIQUIDITY_CATS.map(l => { const w = agg.net > 0 ? ((agg.byLiquidity[l]||0) / agg.net * 100) : 0; return w > 0 ? <div key={l} style={{ width:w+"%", background:LIQ_CLR[l] }} /> : null; })}
         </div>
@@ -61,7 +61,7 @@ export default function TabVermogen({ s, T, updClass, updArr, setModal, agg, fil
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
           <div style={{ fontSize:9, color:T.textLow, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em" }}>Positionen</div>
           <div style={{ display:"flex", gap:6 }}>
-            <Btn sm T={T} onClick={() => setModal({ type:"owner" })}>Eigentumer</Btn>
+            <Btn sm T={T} onClick={() => setModal({ type:"owner" })}>Eigentümer</Btn>
             <Btn sm color={T.green} T={T} onClick={() => setModal({ type:"asset", data:null })}>+ Position</Btn>
           </div>
         </div>
@@ -99,7 +99,7 @@ export default function TabVermogen({ s, T, updClass, updArr, setModal, agg, fil
                   )}
                   {isFord && (a.monthlyRepayment||0) > 0 && (
                     <div style={{ fontSize:8, color:T.green, marginTop:2 }}>
-                      Ruckzahlung +{full(a.monthlyRepayment)}/Mo. | Zinssatz {a.loanRate||0}%
+                      Rückzahlung +{full(a.monthlyRepayment)}/Mo. | Zinssatz {a.loanRate||0}%
                     </div>
                   )}
                   {(a.monthlyRunningCost||0) > 0 && (
@@ -109,7 +109,7 @@ export default function TabVermogen({ s, T, updClass, updArr, setModal, agg, fil
                   )}
                   {!isFord && (a.debt||0) > 0 && (
                     <div style={{ fontSize:8, color:T.red, marginTop:2 }}>
-                      Schulden {full(a.debt)} | {full(a.loanAnnuitat||0)}/Mo. Annuitat
+                      Schulden {full(a.debt)} | {full(a.loanAnnuitat||0)}/Mo. Annuität
                     </div>
                   )}
                 </div>

@@ -7,7 +7,7 @@ export default function TabBuckets({ s, T, updArr, setModal }) {
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
         <div>
           <div style={{ fontWeight:900, color:T.text, fontSize:15 }}>Ausgaben-Buckets</div>
-          <div style={{ fontSize:10, color:T.textDim, marginTop:2 }}>Fliesst in Projektion ein</div>
+          <div style={{ fontSize:10, color:T.textDim, marginTop:2 }}>Fließt in Projektion ein</div>
         </div>
         <Btn color={T.green} T={T} onClick={() => setModal({ type:"bucket", data:null })}>+ Bucket</Btn>
       </div>
@@ -42,7 +42,7 @@ export default function TabBuckets({ s, T, updArr, setModal }) {
                     </div>
                   ) : (
                     <div style={{ fontSize:9, color:T.textLow, marginTop:3, lineHeight:1.6 }}>
-                      {b.type} {full(b.amount)}{b.type==="Monatlich"?"/Mo.":b.type==="Jahrlich"?"/J.":""}
+                      {b.type} {full(b.amount)}{b.type==="Monatlich"?"/Mo.":(b.type==="Jährlich"||b.type==="Jahrlich")?"/J.":""}
                       {ty&&" "+ty}{away!==null&&" (in "+away+" J.)"}
                     </div>
                   )}
@@ -59,7 +59,7 @@ export default function TabBuckets({ s, T, updArr, setModal }) {
       {s.buckets?.length > 0 && (
         <button onClick={() => setModal({ type:"afford" })}
           style={{ background:T.surface, border:"1px solid "+T.purple+"33", borderRadius:10, padding:13, cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"center", WebkitTapHighlightColor:"transparent" }}>
-          <div style={{ fontSize:12, fontWeight:700, color:T.purple }}>Neue Ausgabe prufen</div>
+          <div style={{ fontSize:12, fontWeight:700, color:T.purple }}>Neue Ausgabe prüfen</div>
           <div style={{ fontSize:16, color:T.purple }}>{">"}</div>
         </button>
       )}

@@ -51,7 +51,7 @@ export default function BucketModal({ data, s, T, setModal, updArr }) {
       ) : (
         <>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
-            <SelEl label="Typ" value={f.type} onChange={v => set("type",v)} options={["Einmalig","Jahrlich","Monatlich","Reserve"]} T={T} />
+            <SelEl label="Typ" value={f.type} onChange={v => set("type",v)} options={["Einmalig","Jährlich","Monatlich","Reserve"]} T={T} />
             <Inp label="Betrag (€)" value={f.amount} onChange={v => set("amount",v)} type="number" T={T} />
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>

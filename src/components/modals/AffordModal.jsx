@@ -17,7 +17,7 @@ export default function AffordModal({ s, cf, agg, final, T, setModal, updArr }) 
   const [lbl, setLbl]   = useState("");
 
   const amount  = parseFloat(amt) || 0;
-  const monthly = type === "Monatlich" ? amount : type === "Jahrlich" ? amount / 12 : 0;
+  const monthly = type === "Monatlich" ? amount : type === "Jährlich" ? amount / 12 : 0;
 
   // --- Wachstumsanalyse ---
   const annualGrowthEUR  = agg.net > 0 ? agg.net * (agg.wavgReturn / 100) : 0;
@@ -25,7 +25,7 @@ export default function AffordModal({ s, cf, agg, final, T, setModal, updArr }) 
   const liquidCash = (s.assets||[]).filter(a => a.class === "Cash").reduce((t, a) => t + (a.value||0), 0);
   const liquidNet  = (agg.byLiquidity?.["Liquide"] || 0);
 
-  // Opportunitatskosten: Endwert-Impact
+  // Opportunitätskosten: Endwert-Impact
   const r = agg.wavgReturn / 100;
   const rm = r / 12;
   const impact = type === "Einmalig"
@@ -60,7 +60,7 @@ export default function AffordModal({ s, cf, agg, final, T, setModal, updArr }) 
       verdictSub   = `Übersteigt liquides Vermögen (${fmtE(liquidNet)}). ${monthsOfSaving < Infinity ? Math.ceil(monthsOfSaving)+" Monate ansparen." : ""}`;
       verdictColor = T.red;
     }
-  } else if ((type === "Monatlich" || type === "Jahrlich") && monthly > 0) {
+  } else if ((type === "Monatlich" || type === "Jährlich") && monthly > 0) {
     if (monthly <= monthlyGrowthEUR) {
       verdictLabel = "Vollständig aus Wachstum finanziert";
       verdictSub   = `${full(monthly)}/Mo. Kosten vs. ${full(monthlyGrowthEUR)}/Mo. Wachstum — Substanz unberührt`;
@@ -83,7 +83,7 @@ export default function AffordModal({ s, cf, agg, final, T, setModal, updArr }) 
   return (
     <Sheet title="Was kann ich mir leisten?" onClose={() => setModal(null)} T={T}>
       <Inp label="Bezeichnung" value={lbl} onChange={setLbl} placeholder="z.B. Neues Auto..." T={T} />
-      <SelEl label="Typ" value={type} onChange={setType} options={["Einmalig","Monatlich","Jahrlich"]} T={T} />
+      <SelEl label="Typ" value={type} onChange={setType} options={["Einmalig","Monatlich","Jährlich"]} T={T} />
       <Inp label="Betrag (EUR)" value={amt} onChange={setAmt} type="number" placeholder="0" T={T} />
 
       {/* Wachstumsbasis immer zeigen */}
@@ -123,7 +123,7 @@ export default function AffordModal({ s, cf, agg, final, T, setModal, updArr }) 
               <Row label="Cash vorhanden" value={fmtE(liquidCash)} type={liquidCash >= amount ? "in" : "out"} T={T} />
             </div>
           )}
-          {(type === "Monatlich" || type === "Jahrlich") && (
+          {(type === "Monatlich" || type === "Jährlich") && (
             <div style={{ background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:8, padding:13, marginBottom:10 }}>
               <div style={{ fontSize:9, color:T.textMid, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:8 }}>Cashflow-Impact</div>
               <Row label="Kosten/Mo." value={full(monthly)} type="out" T={T} />
@@ -136,7 +136,7 @@ export default function AffordModal({ s, cf, agg, final, T, setModal, updArr }) 
           {/* Langfristiger Effekt */}
           <div style={{ background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:8, padding:13, marginBottom:12 }}>
             <div style={{ fontSize:9, color:T.textMid, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:4 }}>Langfristiger Effekt ({s.horizon} J.)</div>
-            <div style={{ fontSize:9, color:T.textDim, marginBottom:8 }}>Opportunitatskosten bei {agg.wavgReturn.toFixed(1)}% gew. Ø-Rendite</div>
+            <div style={{ fontSize:9, color:T.textDim, marginBottom:8 }}>Opportunitätskosten bei {agg.wavgReturn.toFixed(1)}% gew. Ø-Rendite</div>
             <Row label="Projektion ohne" value={fmtE(baseEnd)} T={T} />
             <Row label="Entgangenes Wachstum" value={"−"+fmtE(impact)} type="out" T={T} />
             <Row label="Projektion mit" value={fmtE(newEnd)} type={pctI < 5 ? "in" : "warn"} bold T={T} />

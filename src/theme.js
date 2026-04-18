@@ -33,8 +33,11 @@ const LIFECYCLE_DEFAULT  = { maturity:null };
 
 export const DEFAULT = {
   dark: true,
+  birthYear: new Date().getFullYear() - 35,
   maritalProperty: "zugewinn",
   taxFiling: "gemeinsam",
+  taxOnReturns: false,
+  immoRentGrowthPct: 2,
 
   incomeStreams: [
     { id:"i1", owner:"ehemann", label:"Gehalt Ehemann", type:"Gehalt", amount:5000, growthPct:2, startsAt:CY, endsAt:null },

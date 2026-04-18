@@ -48,6 +48,12 @@ export const loadProfileState = (profileId, initialDark) => {
       // Profile-level fields
       if (!p.maritalProperty) p.maritalProperty = "zugewinn";
       if (!p.taxFiling) p.taxFiling = "gemeinsam";
+      if (!p.birthYear) p.birthYear = CY - 35;
+      if (!("taxOnReturns" in p)) p.taxOnReturns = false;
+      if (!("immoRentGrowthPct" in p)) p.immoRentGrowthPct = 2;
+
+      // Migrate bucket type spelling
+      if (p.buckets) p.buckets = p.buckets.map(b => ({ ...b, type: b.type === "Jahrlich" ? "Jährlich" : b.type }));
 
       // Migrate nettoGesamt / ausgaben → streams
       if (!p.incomeStreams || p.incomeStreams.length === 0) {
