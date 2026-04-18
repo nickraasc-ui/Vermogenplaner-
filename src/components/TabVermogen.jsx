@@ -2,8 +2,11 @@ import { useState } from "react";
 import { Sl, Tile, Btn, fmtE, full } from "./ui.jsx";
 import { ASSET_CLASSES, ASSET_CLASS_DEFAULTS, LIQUIDITY_CATS, LIQ_CLR } from "../constants.js";
 
-export default function TabVermogen({ s, T, updClass, updArr, setModal, agg }) {
+export default function TabVermogen({ s, T, updClass, updArr, setModal, agg, filteredAssets }) {
   const [expandedSnap, setExpandedSnap] = useState(null);
+
+  const sliderMin = (cls) => (cls === "Sonstiges" || cls === "Forderung") ? -30 : 0;
+  const sliderMax = (cls) => (cls === "Aktien" || cls === "Krypto" || cls === "Private Equity") ? 30 : 15;
 
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
@@ -16,10 +19,12 @@ export default function TabVermogen({ s, T, updClass, updArr, setModal, agg }) {
       <div style={{ background:T.surface, border:"1px solid "+T.border, borderRadius:10, padding:16 }}>
         <div style={{ fontSize:9, color:T.textLow, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:4 }}>Renditeerwartungen nach Asset-Klasse</div>
         <div style={{ fontSize:9, color:T.textDim, marginBottom:14 }}>Gilt fur alle Positionen der jeweiligen Klasse. Gewichteter Durchschnitt: <strong style={{ color:T.amber }}>{agg.wavgReturn.toFixed(1)}% p.a.</strong></div>
-        {ASSET_CLASSES.filter(cls => s.assets.some(a => a.class === cls)).map(cls => {
-          const clsAssets = s.assets.filter(a => a.class === cls);
+        {ASSET_CLASSES.filter(cls => filteredAssets.some(a => a.class === cls)).map(cls => {
+          const clsAssets = filteredAssets.filter(a => a.class === cls);
           const clsNet = clsAssets.reduce((t, a) => t + (a.value||0) - (a.debt||0), 0);
           const weight = agg.net > 0 ? (clsNet / agg.net * 100) : 0;
+          const retVal = s.classReturns[cls] ?? ASSET_CLASS_DEFAULTS[cls]?.return ?? 0;
+          const isNeg  = retVal < 0;
           return (
             <div key={cls} style={{ marginBottom:16 }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 }}>
@@ -28,9 +33,10 @@ export default function TabVermogen({ s, T, updClass, updArr, setModal, agg }) {
                   <span style={{ fontSize:11, fontWeight:600, color:T.text }}>{cls}</span>
                   <span style={{ fontSize:9, color:T.textDim }}>{fmtE(clsNet)} ({weight.toFixed(0)}%)</span>
                 </div>
+                {isNeg && <span style={{ fontSize:8, color:T.red, background:T.red+"15", padding:"1px 6px", borderRadius:4 }}>Wertverlust</span>}
               </div>
-              <Sl label="" value={s.classReturns[cls]||5} min={0} max={cls==="Aktien"||cls==="Krypto"||cls==="Private Equity"?30:15} step={0.5}
-                onChange={v => updClass(cls, v)} fmt={v => v.toFixed(1)+"%"} color={ASSET_CLASS_DEFAULTS[cls]?.color||T.accent} T={T} />
+              <Sl label="" value={retVal} min={sliderMin(cls)} max={sliderMax(cls)} step={0.5}
+                onChange={v => updClass(cls, v)} fmt={v => v.toFixed(1)+"%"} color={isNeg?T.red:ASSET_CLASS_DEFAULTS[cls]?.color||T.accent} T={T} />
             </div>
           );
         })}
@@ -59,8 +65,10 @@ export default function TabVermogen({ s, T, updClass, updArr, setModal, agg }) {
             <Btn sm color={T.green} T={T} onClick={() => setModal({ type:"asset", data:null })}>+ Position</Btn>
           </div>
         </div>
-        {s.assets.map(a => {
+        {filteredAssets.map(a => {
           const owner = (s.owners||[]).find(o => o.id === a.owner);
+          const isFord = a.class === "Forderung";
+          const isSonst = a.class === "Sonstiges";
           return (
             <div key={a.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", borderBottom:"1px solid "+T.border, paddingBottom:10, marginBottom:10 }}>
               <div style={{ display:"flex", gap:9, alignItems:"flex-start", flex:1, minWidth:0 }}>
@@ -74,9 +82,19 @@ export default function TabVermogen({ s, T, updClass, updArr, setModal, agg }) {
                     <span style={{ fontSize:8, color:T.textLow }}>{a.class}</span>
                     {owner && <span style={{ fontSize:8, color:T.textDim }}>{owner.label}</span>}
                     <span style={{ fontSize:8, color:LIQ_CLR[a.liquidity||"Semi-liquide"], background:LIQ_CLR[a.liquidity||"Semi-liquide"]+"18", padding:"1px 5px", borderRadius:3 }}>{a.liquidity||"Semi-liquide"}</span>
-                    <span style={{ fontSize:8, color:ASSET_CLASS_DEFAULTS[a.class]?.color||T.textDim }}>{(s.classReturns[a.class]||5).toFixed(1)}% p.a.</span>
+                    <span style={{ fontSize:8, color:ASSET_CLASS_DEFAULTS[a.class]?.color||T.textDim }}>{(s.classReturns[a.class] ?? ASSET_CLASS_DEFAULTS[a.class]?.return ?? 0).toFixed(1)}% p.a.</span>
                   </div>
-                  {(a.debt||0) > 0 && (
+                  {isFord && (a.monthlyRepayment||0) > 0 && (
+                    <div style={{ fontSize:8, color:T.green, marginTop:2 }}>
+                      Ruckzahlung +{full(a.monthlyRepayment)}/Mo. | Zinssatz {a.loanRate||0}%
+                    </div>
+                  )}
+                  {(a.monthlyRunningCost||0) > 0 && (
+                    <div style={{ fontSize:8, color:T.red, marginTop:2 }}>
+                      Lfd. Kosten -{full(a.monthlyRunningCost)}/Mo.
+                    </div>
+                  )}
+                  {!isFord && (a.debt||0) > 0 && (
                     <div style={{ fontSize:8, color:T.red, marginTop:2 }}>
                       Schulden {full(a.debt)} | {full(a.loanAnnuitat||0)}/Mo. Annuitat
                     </div>
@@ -86,7 +104,8 @@ export default function TabVermogen({ s, T, updClass, updArr, setModal, agg }) {
               <div style={{ display:"flex", gap:6, alignItems:"center", flexShrink:0 }}>
                 <div style={{ textAlign:"right" }}>
                   <div style={{ fontSize:12, fontWeight:800, color:T.text }}>{fmtE(a.value)}</div>
-                  {(a.debt||0) > 0 && <div style={{ fontSize:9, color:T.green }}>netto {fmtE((a.value||0)-(a.debt||0))}</div>}
+                  {!isFord && (a.debt||0) > 0 && <div style={{ fontSize:9, color:T.green }}>netto {fmtE((a.value||0)-(a.debt||0))}</div>}
+                  {isFord && <div style={{ fontSize:9, color:T.green }}>Forderung</div>}
                 </div>
                 <Btn sm T={T} onClick={() => setModal({ type:"asset", data:a })}>edit</Btn>
                 <Btn sm danger T={T} onClick={() => updArr("assets", s.assets.filter(x => x.id !== a.id))}>x</Btn>

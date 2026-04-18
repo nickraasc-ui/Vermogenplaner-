@@ -13,8 +13,12 @@ export const loadProfileState = (profileId, initialDark) => {
       else p.classReturns = { ...DEFAULT_CLASS_RETURNS, ...p.classReturns };
       if (p.assets) {
         p.assets = p.assets.map(a => {
-          const base = { loanRate: 3.5, loanTilgung: 0, loanAnnuitat: 0, ...a,
-            liquidity: a.liquidity || LIQUIDITY_DEFAULT[a.class] || "Semi-liquide" };
+          const base = {
+            loanRate: 3.5, loanTilgung: 0, loanAnnuitat: 0,
+            monthlyRepayment: 0, monthlyRunningCost: 0,
+            ...a,
+            liquidity: a.liquidity || LIQUIDITY_DEFAULT[a.class] || "Semi-liquide",
+          };
           if (a.class === "Immobilien") {
             return { monthlyRent: IMMO_CF_GROSS, hausgeld: IMMO_HAUSGELD, grundsteuer: IMMO_GRUNDSTEUER, ...base };
           }

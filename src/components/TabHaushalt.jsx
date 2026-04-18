@@ -1,16 +1,27 @@
 import { Sl, Tile, Row, Btn, full, mlbl } from "./ui.jsx";
 import { ASSET_CLASS_DEFAULTS, ASSET_CLASSES } from "../constants.js";
 
-const ALL_INVEST_CLASSES = ASSET_CLASSES.filter(cls => cls !== "Cash" && cls !== "Immobilien");
+const ALL_INVEST_CLASSES = ASSET_CLASSES.filter(cls => cls !== "Cash" && cls !== "Immobilien" && cls !== "Forderung");
 
-export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist }) {
+export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist, ownerFilter, filteredAssets }) {
   const totalManual = ALL_INVEST_CLASSES.reduce((t, cls) => t + (s.manualSparDist[cls]||0), 0);
   const manualDiff  = cf.eff - totalManual;
-  const hasImmo     = s.assets.some(a => a.class === "Immobilien");
+  const hasImmo       = filteredAssets.some(a => a.class === "Immobilien");
+  const hasForderung  = filteredAssets.some(a => a.class === "Forderung" && (a.monthlyRepayment||0) > 0);
   const hasOtherLoans = cf.otherAnnuitat > 0;
+  const hasRunCosts   = cf.assetRunningCosts > 0;
+  const isFiltered    = ownerFilter.length > 0;
+
+  const forderungen   = filteredAssets.filter(a => a.class === "Forderung" && (a.monthlyRepayment||0) > 0);
+  const runCostAssets = filteredAssets.filter(a => a.class !== "Immobilien" && (a.monthlyRunningCost||0) > 0);
 
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+      {isFiltered && (
+        <div style={{ background:T.accent+"12", border:"1px solid "+T.accent+"33", borderRadius:8, padding:"7px 12px", fontSize:10, color:T.accent }}>
+          Gefiltert: {ownerFilter.map(id => (s.owners||[]).find(o => o.id===id)?.label||id).join(", ")} — Haushaltseinkommen und -ausgaben bleiben global
+        </div>
+      )}
       {cf.rest < 0 && (
         <div style={{ background:T.red+"15", border:"1px solid "+T.red+"44", borderRadius:8, padding:"9px 13px", fontSize:11, color:T.red }}>
           Ausgaben ubersteigen Einkommen um {full(Math.abs(cf.rest))}/Mo.
@@ -33,6 +44,32 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist 
         </div>
       )}
 
+      {/* Forderungen Block */}
+      {hasForderung && (
+        <div style={{ background:T.surface, border:"1px solid "+T.border, borderRadius:10, padding:14 }}>
+          <div style={{ fontSize:9, color:T.textLow, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:10 }}>Forderungen / Darlehenszuflüsse</div>
+          {forderungen.map(a => (
+            <Row key={a.id} label={a.name} value={"+" + full(a.monthlyRepayment)} type="in" sub="Monatl. Ruckzahlung" T={T} />
+          ))}
+          {forderungen.length > 1 && (
+            <Row label="Gesamt" value={"+" + full(cf.forderungIncome)} type="in" bold T={T} />
+          )}
+        </div>
+      )}
+
+      {/* Laufende Kosten Block */}
+      {hasRunCosts && (
+        <div style={{ background:T.surface, border:"1px solid "+T.border, borderRadius:10, padding:14 }}>
+          <div style={{ fontSize:9, color:T.textLow, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:10 }}>Laufende Vermögenskosten</div>
+          {runCostAssets.map(a => (
+            <Row key={a.id} label={a.name} value={"-" + full(a.monthlyRunningCost)} type="out" sub={a.class} T={T} />
+          ))}
+          {runCostAssets.length > 1 && (
+            <Row label="Gesamt" value={"-" + full(cf.assetRunningCosts)} type="out" bold T={T} />
+          )}
+        </div>
+      )}
+
       {/* Haushalt inputs */}
       <div style={{ background:T.surface, border:"1px solid "+T.border, borderRadius:10, padding:16, display:"flex", flexDirection:"column", gap:20 }}>
         <Sl label="Netto-Haushaltseinkommen/Mo." value={s.nettoGesamt} min={2000} max={25000} step={100} onChange={v => upd({ nettoGesamt:v })} fmt={full} color={T.green} T={T} />
@@ -40,7 +77,7 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist 
         <Sl label="Reserven / Unregelmassiges" value={s.reservenMonthly} min={0} max={3000} step={50} onChange={v => upd({ reservenMonthly:v })} fmt={full} color={T.amber} T={T} />
         {hasOtherLoans && (
           <div style={{ background:T.surfaceHigh, borderRadius:7, padding:"9px 13px", fontSize:12, color:T.textMid }}>
-            Konsumkredite (Annuitaten): <strong style={{ color:T.red }}>{full(cf.otherAnnuitat)}/Mo.</strong>
+            Konsumkredite: <strong style={{ color:T.red }}>{full(cf.otherAnnuitat)}/Mo.</strong>
             <div style={{ fontSize:9, color:T.textDim, marginTop:2 }}>Automatisch aus Positionen mit Schulden (non-Immo)</div>
           </div>
         )}
@@ -53,7 +90,10 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist 
           </div>
           {s.autoSpar ? (
             <div style={{ background:T.surfaceHigh, borderRadius:7, padding:"11px 13px", fontSize:12, color:T.textMid, lineHeight:1.7 }}>
-              {full(cf.avail)} - {full(s.ausgaben)} - {full(s.reservenMonthly)}{hasOtherLoans?" - "+full(cf.otherAnnuitat):""} = <strong style={{ color:cf.eff>0?T.accent:T.red, fontSize:15 }}>{full(cf.eff)}/Mo.</strong>
+              {full(cf.avail)} - {full(cf.bound)} = <strong style={{ color:cf.eff>0?T.accent:T.red, fontSize:15 }}>{full(cf.eff)}/Mo.</strong>
+              <div style={{ fontSize:9, color:T.textDim, marginTop:2 }}>
+                Zufluss ({full(s.nettoGesamt)} Netto{hasImmo?" + "+full(cf.immoNetCF)+" Immo":""}{hasForderung?" + "+full(cf.forderungIncome)+" Ford.":""}) − Ausgaben ({full(s.ausgaben)} HH{hasOtherLoans?" + "+full(cf.otherAnnuitat)+" Kredite":""}{hasRunCosts?" + "+full(cf.assetRunningCosts)+" Kosten":""} + {full(s.reservenMonthly)} Res.)
+              </div>
             </div>
           ) : (
             <Sl label="" value={s.manuellSparrate} min={0} max={6000} step={100} onChange={v => upd({ manuellSparrate:v })} fmt={full} color={T.accent} warn={s.manuellSparrate>cf.rest} note={s.manuellSparrate>cf.rest?"Ubersteigt Rest ("+full(cf.rest)+")":"Saldo: "+full(cf.saldo)+"/Mo."} T={T} />
@@ -129,10 +169,12 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist 
         <div style={{ fontSize:9, color:T.textLow, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:10 }}>Monatsubersicht</div>
         <Row label="Netto-Einkommen" value={"+" + full(s.nettoGesamt)} type="in" T={T} />
         {hasImmo && <Row label="Netto-Immo-CF" value={(cf.immoNetCF>=0?"+":"")+full(cf.immoNetCF)} type={cf.immoNetCF>=0?"in":"warn"} sub={full(cf.immoGross)+" Miete - "+full(cf.immoAnnuitat)+" Annuitat - "+full(cf.immoRunning)+" NK"} T={T} />}
+        {hasForderung && <Row label="Forderungszuflüsse" value={"+" + full(cf.forderungIncome)} type="in" T={T} />}
         <Row label="Gesamtzufluss" value={"+" + full(cf.avail)} type="in" bold T={T} />
         <Row label="Haushaltsausgaben" value={"-" + full(s.ausgaben)} type="out" T={T} />
         <Row label="Reserven" value={"-" + full(s.reservenMonthly)} type="out" T={T} />
         {hasOtherLoans && <Row label="Konsumkredite" value={"-" + full(cf.otherAnnuitat)} type="out" sub="Annuitaten non-Immo" T={T} />}
+        {hasRunCosts   && <Row label="Vermogenskosten" value={"-" + full(cf.assetRunningCosts)} type="out" sub="Auto, Boot, etc." T={T} />}
         <Row label="Sparrate" value={"-" + full(cf.eff)} type="out" T={T} />
         <Row label="Monatssaldo" value={(cf.saldo>=0?"+":"")+full(cf.saldo)} type={cf.saldo>=0?"in":"warn"} bold T={T} />
       </div>

@@ -28,46 +28,55 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
   const [s, setS]         = useState(() => loadProfileState(profileId, initialDark));
   const [tab, setTab]     = useState("dashboard");
   const [modal, setModal] = useState(null);
-  const T = s.dark ? DARK : LIGHT; // fix: use s.dark so toggle button works
+  const [ownerFilter, setOwnerFilter] = useState([]);
+  const T = s.dark ? DARK : LIGHT;
 
   useEffect(() => { saveState(s, LS_KEY); }, [s, LS_KEY]);
 
   const upd      = useCallback(patch => setS(p => ({ ...p, ...patch })), []);
   const updArr   = useCallback((key, arr) => setS(p => ({ ...p, [key]: arr })), []);
   const updClass = useCallback((cls, val) => setS(p => ({ ...p, classReturns: { ...p.classReturns, [cls]: val } })), []);
+  const toggleOwner = useCallback(id => setOwnerFilter(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]), []);
+
+  const filteredAssets = useMemo(() =>
+    ownerFilter.length === 0 ? s.assets : s.assets.filter(a => ownerFilter.includes(a.owner)),
+    [s.assets, ownerFilter]
+  );
 
   const loanSummary = useMemo(() =>
-    s.assets.filter(a => (a.debt||0) > 0).map(a => {
+    filteredAssets.filter(a => (a.debt||0) > 0).map(a => {
       const annuitat = a.loanAnnuitat || 0;
       const tilgung  = a.loanTilgung  || 0;
       const zinsen   = annuitat - tilgung;
       const yrsLeft  = tilgung > 0 ? Math.ceil((a.debt||0) / (tilgung * 12)) : null;
       return { id:a.id, name:a.name, debt:a.debt||0, annuitat, tilgung, zinsen, yrsLeft };
-    }), [s.assets]);
+    }), [filteredAssets]);
 
   const totalMonthlyLoanPayment = useMemo(() =>
     loanSummary.reduce((t, l) => t + l.annuitat, 0), [loanSummary]);
 
   const cf = useMemo(() => {
-    const immoAssets   = s.assets.filter(a => a.class === "Immobilien");
-    const immoGross    = immoAssets.reduce((t, a) => t + (a.monthlyRent  || IMMO_CF_GROSS),   0);
-    const immoRunning  = immoAssets.reduce((t, a) => t + (a.hausgeld     || IMMO_HAUSGELD) + (a.grundsteuer || IMMO_GRUNDSTEUER), 0);
-    const immoAnnuitat = immoAssets.filter(a => (a.debt||0) > 0).reduce((t, a) => t + (a.loanAnnuitat||0), 0);
-    const otherAnnuitat= s.assets.filter(a => a.class !== "Immobilien" && (a.debt||0) > 0).reduce((t, a) => t + (a.loanAnnuitat||0), 0);
+    const immoAssets     = filteredAssets.filter(a => a.class === "Immobilien");
+    const immoGross      = immoAssets.reduce((t, a) => t + (a.monthlyRent  || IMMO_CF_GROSS),   0);
+    const immoRunning    = immoAssets.reduce((t, a) => t + (a.hausgeld || IMMO_HAUSGELD) + (a.grundsteuer || IMMO_GRUNDSTEUER), 0);
+    const immoAnnuitat   = immoAssets.filter(a => (a.debt||0) > 0).reduce((t, a) => t + (a.loanAnnuitat||0), 0);
+    const otherAnnuitat  = filteredAssets.filter(a => a.class !== "Immobilien" && a.class !== "Forderung" && (a.debt||0) > 0).reduce((t, a) => t + (a.loanAnnuitat||0), 0);
+    const forderungIncome    = filteredAssets.filter(a => a.class === "Forderung").reduce((t, a) => t + (a.monthlyRepayment||0), 0);
+    const assetRunningCosts  = filteredAssets.filter(a => a.class !== "Immobilien" && (a.monthlyRunningCost||0) > 0).reduce((t, a) => t + (a.monthlyRunningCost||0), 0);
     const immoNetCF = immoGross - immoAnnuitat - immoRunning;
-    const avail = s.nettoGesamt + immoNetCF;
-    const bound = s.ausgaben + s.reservenMonthly + otherAnnuitat;
+    const avail = s.nettoGesamt + immoNetCF + forderungIncome;
+    const bound = s.ausgaben + s.reservenMonthly + otherAnnuitat + assetRunningCosts;
     const rest  = avail - bound;
     const eff   = s.autoSpar ? Math.max(0, rest) : s.manuellSparrate;
     const saldo = avail - bound - eff;
     const quote = avail > 0 ? (eff / avail) * 100 : 0;
-    return { avail, bound, rest, eff, saldo, quote, immoNetCF, immoGross, immoRunning, immoAnnuitat, otherAnnuitat };
-  }, [s.nettoGesamt, s.ausgaben, s.reservenMonthly, s.autoSpar, s.manuellSparrate, s.assets]);
+    return { avail, bound, rest, eff, saldo, quote, immoNetCF, immoGross, immoRunning, immoAnnuitat, otherAnnuitat, forderungIncome, assetRunningCosts };
+  }, [filteredAssets, s.nettoGesamt, s.ausgaben, s.reservenMonthly, s.autoSpar, s.manuellSparrate]);
 
   const agg = useMemo(() => {
     let gross = 0, debt = 0;
     const byClass = {}, byLiquidity = { "Liquide":0, "Semi-liquide":0, "Illiquide":0 };
-    s.assets.forEach(a => {
+    filteredAssets.forEach(a => {
       gross += a.value||0; debt += a.debt||0;
       const net = (a.value||0) - (a.debt||0);
       byClass[a.class] = (byClass[a.class]||0) + net;
@@ -78,7 +87,7 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
     let wavg = 0;
     if (totalNet > 0) Object.entries(byClass).forEach(([cls, val]) => { if (val > 0) wavg += (val/totalNet) * (s.classReturns[cls]||0); });
     return { gross, debt, net:totalNet, byClass, byLiquidity, wavgReturn:wavg };
-  }, [s.assets, s.classReturns]);
+  }, [filteredAssets, s.classReturns]);
 
   const sparDist = useMemo(() => {
     if (s.sparDistMode === "manual") {
@@ -86,22 +95,22 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
         .filter(([, amt]) => (amt||0) > 0)
         .map(([cls, monthly]) => ({ cls, share: cf.eff > 0 ? monthly / cf.eff : 0, monthly }));
     }
-    const investable = s.assets.filter(a => !a.locked && a.class !== "Cash");
+    const investable = filteredAssets.filter(a => !a.locked && a.class !== "Cash" && a.class !== "Immobilien" && a.class !== "Forderung");
     const total = investable.reduce((t, a) => t + (a.value||0), 0) || 1;
     const byClass = {};
     investable.forEach(a => { byClass[a.class] = (byClass[a.class]||0) + (a.value||0); });
     return Object.entries(byClass).map(([cls, val]) => ({ cls, share:val/total, monthly:cf.eff*(val/total) }));
-  }, [s.assets, s.sparDistMode, s.manualSparDist, cf.eff]);
+  }, [filteredAssets, s.sparDistMode, s.manualSparDist, cf.eff]);
 
   const projection = useMemo(() => {
     const sp0 = cf.eff || 0;
-    const investable = s.assets.filter(a => !a.locked && a.class!=="Cash" && a.class!=="Immobilien");
-    const invTotal   = investable.reduce((t, a) => t + (a.value||0), 0) || 1;
+    const investable  = filteredAssets.filter(a => !a.locked && a.class !== "Cash" && a.class !== "Immobilien" && a.class !== "Forderung");
+    const invTotal    = investable.reduce((t, a) => t + (a.value||0), 0) || 1;
     const classTotals = {};
     investable.forEach(a => { classTotals[a.class] = (classTotals[a.class]||0) + (a.value||0); });
 
     const getAdd = (asset, scaledSp) => {
-      if (asset.locked || asset.class==="Cash" || asset.class==="Immobilien") return 0;
+      if (asset.locked || asset.class==="Cash" || asset.class==="Immobilien" || asset.class==="Forderung") return 0;
       if (s.sparDistMode === "manual") {
         const classMonthly = (s.manualSparDist[asset.class]||0) * (sp0 > 0 ? scaledSp/sp0 : 1);
         return classMonthly * ((asset.value||0) / (classTotals[asset.class]||1));
@@ -126,16 +135,29 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
       [["cons",-2],["base",0],["opt",2]].forEach(([key, adj]) => {
         let total = 0;
         const sp = s.sparRateGrowth ? sp0*Math.pow(1+(s.sparGrowthPct||0)/100,y) : sp0;
-        s.assets.forEach(a => {
+        filteredAssets.forEach(a => {
           const baseR = (s.classReturns[a.class]||5) + adj;
           const r = Math.max(0, baseR/100), rm = r/12, mo = y*12;
+          if (a.class === "Forderung") {
+            const rep = a.monthlyRepayment || 0;
+            const fv  = rm > 0
+              ? (a.value||0)*Math.pow(1+rm,mo) - rep*((Math.pow(1+rm,mo)-1)/rm)
+              : (a.value||0) - rep*mo;
+            total += Math.max(0, fv);
+            return;
+          }
           if (a.class==="Immobilien") {
-            const growR  = Math.max(0, (s.classReturns["Immobilien"]+adj)/100);
+            const growR  = Math.max(0, ((s.classReturns["Immobilien"]||3)+adj)/100);
             const grossFV = (a.value||0)*Math.pow(1+growR,y);
             const remDebt = (a.loanTilgung||0)>0 ? Math.max(0,(a.debt||0)-(a.loanTilgung||0)*12*y) : (a.debt||0);
             total += grossFV - remDebt; return;
           }
-          if (a.class==="Cash") { total += (a.value||0)*Math.pow(1+Math.max(0,(s.classReturns["Cash"]+adj)/100),y); return; }
+          if (a.class==="Cash") { total += (a.value||0)*Math.pow(1+Math.max(0,((s.classReturns["Cash"]||2)+adj)/100),y); return; }
+          if (a.class==="Sonstiges") {
+            const depR = Math.min(0, baseR/100);
+            total += Math.max(0, (a.value||0)*Math.pow(1+depR,y));
+            return;
+          }
           const add = getAdd(a, sp);
           total += rm>0 ? (a.value||0)*Math.pow(1+r,y)+add*((Math.pow(1+rm,mo)-1)/rm) : (a.value||0)+add*mo;
         });
@@ -147,14 +169,23 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
       });
       return row;
     });
-  }, [s, cf.eff]);
+  }, [s, cf.eff, filteredAssets]);
 
   const final  = projection[projection.length-1] || {};
   const lastCI = useMemo(() => [...(s.checkins||[])].sort((a,b) => b.month.localeCompare(a.month))[0] ?? null, [s.checkins]);
   const snaps  = useMemo(() =>
     [...(s.snapshots||[])].sort((a,b) => a.date.localeCompare(b.date)).map(sn => ({
-      ...sn, value: sn.totalNet ?? sn.value  // normalise legacy vs new format
+      ...sn, value: sn.totalNet ?? sn.value
     })), [s.snapshots]);
+
+  const chipStyle = (active) => ({
+    fontSize:8, padding:"2px 9px", borderRadius:10,
+    border:"1px solid "+(active ? T.accent : T.border),
+    background: active ? T.accent+"22" : "transparent",
+    color: active ? T.accent : T.textMid,
+    cursor:"pointer", fontWeight: active ? 700 : 500,
+    WebkitTapHighlightColor:"transparent",
+  });
 
   return (
     <div style={{ minHeight:"100vh", background:T.bg, color:T.text, fontFamily:"system-ui,-apple-system,'Helvetica Neue',sans-serif", paddingBottom:"calc(64px + env(safe-area-inset-bottom,0px))", transition:"background 0.2s,color 0.2s" }}>
@@ -169,23 +200,31 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
       {/* Header */}
       <div style={{ background:T.header, borderBottom:"1px solid "+T.tabBorder, padding:"14px 16px 10px", paddingTop:"calc(14px + env(safe-area-inset-top,0px))", position:"sticky", top:0, zIndex:50 }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
-          <div style={{ display:"flex", alignItems:"flex-start", gap:10 }}>
+          <div style={{ display:"flex", alignItems:"flex-start", gap:10, flex:1, minWidth:0 }}>
             {onBack && (
               <button onClick={onBack} style={{ background:"none", border:"none", color:T.textMid, cursor:"pointer", fontSize:22, lineHeight:1, padding:"3px 0", WebkitTapHighlightColor:"transparent" }}>
                 ←
               </button>
             )}
-            <div>
+            <div style={{ flex:1, minWidth:0 }}>
               <div style={{ fontSize:8, letterSpacing:"0.22em", color:T.textDim, fontWeight:700, textTransform:"uppercase" }}>Vermogensplaner</div>
               <div style={{ display:"flex", alignItems:"baseline", gap:10, marginTop:2 }}>
                 <div style={{ fontSize:22, fontWeight:900, color:T.text, letterSpacing:"-0.02em" }}>{fmtE(agg.net)}</div>
                 <div style={{ fontSize:11, color:cf.quote>=20?T.green:cf.quote>=10?T.amber:T.red, fontWeight:700 }}>{cf.quote.toFixed(1)}% Sparquote</div>
               </div>
               <div style={{ fontSize:9, color:T.textDim, marginTop:1 }}>Gew. Ø-Rendite: {agg.wavgReturn.toFixed(1)}%</div>
+              {s.owners?.length > 0 && (
+                <div style={{ display:"flex", gap:5, flexWrap:"wrap", marginTop:7 }}>
+                  <button onClick={() => setOwnerFilter([])} style={chipStyle(ownerFilter.length===0)}>Alle</button>
+                  {s.owners.map(o => (
+                    <button key={o.id} onClick={() => toggleOwner(o.id)} style={chipStyle(ownerFilter.includes(o.id))}>{o.label}</button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
           <button onClick={() => upd({ dark:!s.dark })}
-            style={{ background:T.surface, border:"1px solid "+T.border, borderRadius:20, padding:"6px 12px", cursor:"pointer", fontSize:13, color:T.textMid, WebkitTapHighlightColor:"transparent", marginTop:4 }}>
+            style={{ background:T.surface, border:"1px solid "+T.border, borderRadius:20, padding:"6px 12px", cursor:"pointer", fontSize:13, color:T.textMid, WebkitTapHighlightColor:"transparent", marginTop:4, flexShrink:0 }}>
             {s.dark ? "Light" : "Dark"}
           </button>
         </div>
@@ -193,8 +232,8 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
 
       <div style={{ padding:"14px 14px 4px", maxWidth:600, margin:"0 auto" }}>
         {tab==="dashboard"  && <TabDashboard  s={s} T={T} setModal={setModal} agg={agg} cf={cf} loanSummary={loanSummary} lastCI={lastCI} snaps={snaps} totalMonthlyLoanPayment={totalMonthlyLoanPayment} projection={projection} final={final} />}
-        {tab==="haushalt"   && <TabHaushalt   s={s} T={T} upd={upd} updArr={updArr} setModal={setModal} cf={cf} sparDist={sparDist} />}
-        {tab==="vermogen"   && <TabVermogen   s={s} T={T} updClass={updClass} updArr={updArr} setModal={setModal} agg={agg} />}
+        {tab==="haushalt"   && <TabHaushalt   s={s} T={T} upd={upd} updArr={updArr} setModal={setModal} cf={cf} sparDist={sparDist} ownerFilter={ownerFilter} filteredAssets={filteredAssets} />}
+        {tab==="vermogen"   && <TabVermogen   s={s} T={T} updClass={updClass} updArr={updArr} setModal={setModal} agg={agg} filteredAssets={filteredAssets} />}
         {tab==="projektion" && <TabProjektion s={s} T={T} upd={upd} cf={cf} agg={agg} projection={projection} final={final} loanSummary={loanSummary} setModal={setModal} />}
         {tab==="buckets"    && <TabBuckets    s={s} T={T} updArr={updArr} setModal={setModal} />}
       </div>
