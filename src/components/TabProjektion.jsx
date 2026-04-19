@@ -55,14 +55,17 @@ export default function TabProjektion({ s, T, upd, cf, agg, projection, final, l
       <div style={{ background:T.surface, border:"1px solid "+T.border, borderRadius:10, padding:14, display:"flex", flexDirection:"column", gap:14 }}>
         <div style={{ display:"flex", gap:8, flexWrap:"wrap", alignItems:"center" }}>
           {toggleBtn(s.inflationAdj, T.amber, "Inflation "+(s.inflationAdj?s.inflation+"% ein":"aus"), () => upd({ inflationAdj:!s.inflationAdj }))}
-          {toggleBtn(s.sparRateGrowth, T.green, "Sparrate wächst "+(s.sparRateGrowth?s.sparGrowthPct+"%/J. ein":"aus"), () => upd({ sparRateGrowth:!s.sparRateGrowth }))}
+          {s.autoSpar
+            ? <span style={{ fontSize:10, color:T.textDim, fontStyle:"italic" }}>Sparrate wächst mit Einkommensströmen</span>
+            : toggleBtn(s.sparRateGrowth, T.green, "Sparrate wächst "+(s.sparRateGrowth?s.sparGrowthPct+"%/J. ein":"aus"), () => upd({ sparRateGrowth:!s.sparRateGrowth }))
+          }
           {toggleBtn(s.taxOnReturns, T.red, s.taxOnReturns?"nach Steuern":"vor Steuern", () => upd({ taxOnReturns:!s.taxOnReturns }))}
         </div>
 
         {s.inflationAdj && (
           <Sl label="Inflationsrate" value={s.inflation} min={0.5} max={6} step={0.25} onChange={v => upd({ inflation:v })} fmt={v => v+"%"} color={T.amber} T={T} />
         )}
-        {s.sparRateGrowth && (
+        {!s.autoSpar && s.sparRateGrowth && (
           <Sl label="Sparraten-Wachstum p.a." value={s.sparGrowthPct||2} min={0.5} max={10} step={0.5} onChange={v => upd({ sparGrowthPct:v })} fmt={v => v+"%"} color={T.green}
             note="Sparrate steigt jährlich (z.B. mit Gehaltserhöhungen)"
             sub={"In 10 Jahren: "+full(cf.eff*Math.pow(1+(s.sparGrowthPct||2)/100,10))+"/Mo."}
@@ -82,6 +85,14 @@ export default function TabProjektion({ s, T, upd, cf, agg, projection, final, l
         {s.inflationAdj && <span> Alle Werte real (inflationsbereinigt).</span>}
         {" "}Szenarien: ±2% auf alle Klassenrenditen.
       </div>
+
+      {/* Starting value */}
+      {projection[0] && (
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:8, padding:"8px 12px" }}>
+          <span style={{ fontSize:10, color:T.textDim }}>Startwert heute</span>
+          <span style={{ fontSize:14, fontWeight:900, color:T.text }}>{fmtE(projection[0].base)}</span>
+        </div>
+      )}
 
       {/* Scenario tiles */}
       <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8 }}>

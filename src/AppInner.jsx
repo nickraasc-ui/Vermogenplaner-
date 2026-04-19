@@ -254,12 +254,12 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
           if (a.class==="Immobilien") {
             const growR = Math.max(0, ((s.classReturns["Immobilien"]||3)+adj) / 100);
             const remDebt = (a.loanTilgung||0)>0 ? Math.max(0,(a.debt||0)-(a.loanTilgung||0)*12*y) : (a.debt||0);
-            total += (a.value||0)*Math.pow(1+growR,y) - remDebt; return;
+            total += (a.value||0)*Math.pow(1+growR/12,mo) - remDebt; return;
           }
-          if (a.class==="Cash") { total += (a.value||0)*Math.pow(1+r,y); return; }
-          if (a.class==="Sonstiges") { total += Math.max(0,(a.value||0)*Math.pow(1+Math.min(0,baseR/100),y)); return; }
+          if (a.class==="Cash") { total += (a.value||0)*Math.pow(1+rm,mo); return; }
+          if (a.class==="Sonstiges") { total += Math.max(0,(a.value||0)*Math.pow(1+Math.min(0,baseR/100)/12,mo)); return; }
           const add = getAdd(a, sp);
-          total += rm>0 ? (a.value||0)*Math.pow(1+r,y)+add*((Math.pow(1+rm,mo)-1)/rm) : (a.value||0)+add*mo;
+          total += rm>0 ? (a.value||0)*Math.pow(1+rm,mo)+add*((Math.pow(1+rm,mo)-1)/rm) : (a.value||0)+add*mo;
         });
         if (!hasAnyInvestable && sp > 0) {
           const pretaxDef = (s.classReturns?.["Aktien-ETF"]||8) + adj;
