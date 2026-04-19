@@ -198,15 +198,29 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
         .filter(([, amt]) => (amt||0) > 0)
         .map(([cls, monthly]) => ({ cls, share: cf.eff > 0 ? monthly/cf.eff : 0, monthly }));
     }
+    const shS = (a) => ownerShare(a, ownerFilter);
     const investable = filteredAssets.filter(a => !a.locked && a.class!=="Cash" && a.class!=="Immobilien" && a.class!=="Forderung" && a.class!=="Sonstiges");
-    const total = investable.reduce((t, a) => t+(a.value||0), 0) || 1;
+    const total = investable.reduce((t, a) => t+(a.value||0)*shS(a), 0) || 1;
     const byClass = {};
-    investable.forEach(a => { byClass[a.class] = (byClass[a.class]||0)+(a.value||0); });
+    investable.forEach(a => { byClass[a.class] = (byClass[a.class]||0)+(a.value||0)*shS(a); });
     return Object.entries(byClass).map(([cls, val]) => ({ cls, share:val/total, monthly:cf.eff*(val/total) }));
-  }, [filteredAssets, s.sparDistMode, s.manualSparDist, cf.eff]);
+  }, [filteredAssets, s.sparDistMode, s.manualSparDist, cf.eff, ownerFilter]);
 
   const { projection, cashflowProjection } = useMemo(() => {
     const rentGrowth = s.immoRentGrowthPct || 0;
+    const sh = (a) => ownerShare(a, ownerFilter);
+
+    // Forderung: track declining principal balance per year to prevent double-counting with V0
+    const fordBalance = (a, y) => {
+      const D = (a.value||0) * sh(a);
+      const r = (a.loanRate||0) / 1200;
+      const M = (a.monthlyRepayment||0) * sh(a);
+      const mo = y * 12;
+      if (r > 0 && M > 0) return Math.max(0, D * Math.pow(1+r, mo) - M * (Math.pow(1+r,mo)-1)/r);
+      return M > 0 ? Math.max(0, D - M * mo) : D;
+    };
+    const fordAssets = projAssets.filter(a => a.class === "Forderung");
+    const totalFordBal = (y) => fordAssets.reduce((t, a) => t + fordBalance(a, y), 0);
 
     const nonImmoLoans = projAssets
       .filter(a => a.class!=="Immobilien" && a.class!=="Forderung" && (a.debt||0)>0 && (a.loanAnnuitat||0)>0)
@@ -215,7 +229,7 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
         const yrsLeft = loanType === "endfaellig"
           ? (a.loanTermYears || null)
           : (a.loanTilgung||0) > 0 ? (a.debt||0)/((a.loanTilgung||0)*12) : (a.loanTermYears || null);
-        return { a, annuitat:a.loanAnnuitat, yrsLeft };
+        return { a, annuitat:(a.loanAnnuitat||0)*sh(a), yrsLeft };
       });
 
     // Returns all cashflow components for year y — single source of truth for both projection and export
@@ -240,18 +254,18 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
       }, 0);
 
       const immoAssets   = projAssets.filter(a => a.class==="Immobilien");
-      const immoGross    = immoAssets.reduce((t, a) => t+(a.monthlyRent||IMMO_CF_GROSS)*Math.pow(1+rentGrowth/100, y), 0);
-      const immoRunning  = immoAssets.reduce((t, a) => t+(a.hausgeld||IMMO_HAUSGELD)+(a.grundsteuer||IMMO_GRUNDSTEUER), 0);
+      const immoGross    = immoAssets.reduce((t, a) => t+(a.monthlyRent||IMMO_CF_GROSS)*Math.pow(1+rentGrowth/100, y)*sh(a), 0);
+      const immoRunning  = immoAssets.reduce((t, a) => t+((a.hausgeld||IMMO_HAUSGELD)+(a.grundsteuer||IMMO_GRUNDSTEUER))*sh(a), 0);
       const immoAnnu     = immoAssets.filter(a => (a.debt||0)>0).reduce((t, a) =>
-        t + (computeRemDebt(a, y) > 0 ? (a.loanAnnuitat||0) : 0), 0);
+        t + (computeRemDebt(a, y) > 0 ? (a.loanAnnuitat||0)*sh(a) : 0), 0);
       const immoNetCF    = immoGross - immoRunning - immoAnnu;
-      const fordInc      = projAssets.filter(a => a.class==="Forderung").reduce((t, a) => t+(a.monthlyRepayment||0), 0);
-      const runCosts     = projAssets.filter(a => a.class!=="Immobilien" && (a.monthlyRunningCost||0)>0).reduce((t, a) => t+(a.monthlyRunningCost||0), 0);
+      const fordInc      = fordAssets.reduce((t, a) => t+(a.monthlyRepayment||0)*sh(a), 0);
+      const runCosts     = projAssets.filter(a => a.class!=="Immobilien" && (a.monthlyRunningCost||0)>0).reduce((t, a) => t+(a.monthlyRunningCost||0)*sh(a), 0);
       const otherAnnu    = projAssets.filter(a => a.class!=="Immobilien" && a.class!=="Forderung" && (a.debt||0)>0).reduce((t, a) =>
-        t + (computeRemDebt(a, y) > 0 ? (a.loanAnnuitat||0) : 0), 0);
+        t + (computeRemDebt(a, y) > 0 ? (a.loanAnnuitat||0)*sh(a) : 0), 0);
       const assetYield   = projAssets
         .filter(a => (a.yieldPct||0) > 0 && a.class !== "Immobilien" && a.class !== "Forderung")
-        .reduce((t, a) => t + (a.value||0) * (a.yieldPct||0) / 100 / 12 * (s.taxOnReturns ? (1 - kestRate(a)) : 1), 0);
+        .reduce((t, a) => t + (a.value||0) * (a.yieldPct||0) / 100 / 12 * (s.taxOnReturns ? (1 - kestRate(a)) : 1) * sh(a), 0);
 
       const avail = inc + immoNetCF + fordInc + assetYield;
       const bound = streamExp + runCosts + otherAnnu + financed;
@@ -287,46 +301,50 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
       return d;
     };
 
-    // Initial net portfolio value (Immo: net equity, others: gross value)
-    const V0 = projAssets.reduce((t, a) => {
-      if (a.class === "Immobilien") return t + Math.max(0, (a.value||0) - (a.debt||0));
-      return t + (a.value||0);
+    // V0: investable assets only — Forderung tracked separately via totalFordBal to prevent double-counting
+    const V0_invest = projAssets.reduce((t, a) => {
+      if (a.class === "Forderung") return t;
+      const share = sh(a);
+      if (a.class === "Immobilien") return t + Math.max(0, (a.value||0) - (a.debt||0)) * share;
+      return t + (a.value||0) * share;
     }, 0);
+    const V0 = V0_invest + totalFordBal(0);
 
-    // Blended net annual return rate weighted by initial asset net values
+    // Blended net annual return rate — negative contributions allowed for depreciating asset classes
     const computeBlendedRM = (adj) => {
       let totalV = 0, wtdR = 0;
       projAssets.forEach(a => {
         if (a.class === "Forderung") return;
-        const netV = a.class === "Immobilien"
+        const share = sh(a);
+        const netV = (a.class === "Immobilien"
           ? Math.max(0, (a.value||0) - (a.debt||0))
-          : (a.value||0);
+          : (a.value||0)) * share;
         if (netV <= 0) return;
         const pretaxR  = (s.classReturns[a.class]||5) + adj;
         const capApprR = pretaxR - (a.yieldPct||0);
         const kest     = s.taxOnReturns ? kestRate(a) : 0;
-        const netAnnR  = Math.max(0, capApprR * (1 - kest));
+        const netAnnR  = capApprR * (1 - kest);
         totalV += netV;
         wtdR   += netV * netAnnR;
       });
       if (totalV === 0) {
         const def = ((s.classReturns?.["Aktien-ETF"]||8) + adj) * (s.taxOnReturns ? (1-KEST_RATES["Aktien-ETF"]) : 1);
-        return Math.max(0, def) / 100 / 12;
+        return def / 100 / 12;
       }
-      return Math.max(0, wtdR / totalV) / 100 / 12;
+      return (wtdR / totalV) / 100 / 12;
     };
 
     const runScenario = (adj) => {
       const rm  = computeBlendedRM(adj);
       const g12 = Math.pow(1 + rm, 12);
-      const spF = rm > 0 ? (g12 - 1) / rm : 12;
-      let V = V0;
+      const spF = rm !== 0 ? (g12 - 1) / rm : 12; // correct for rm < 0 too
+      let V_invest = V0_invest;
       const vals = [V0];
       for (let y = 1; y <= s.horizon; y++) {
         const sp    = computeSp(y);
         const drain = bucketDrain(CY + y);
-        V = Math.max(0, V * g12 + sp * spF - drain);
-        vals.push(V);
+        V_invest = Math.max(0, V_invest * g12 + sp * spF - drain);
+        vals.push(V_invest + totalFordBal(y));
       }
       return vals;
     };
@@ -351,7 +369,7 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
     });
 
     return { projection, cashflowProjection };
-  }, [s, projAssets, filteredIncomeStreams, cf.eff, currentAge]);
+  }, [s, projAssets, filteredIncomeStreams, currentAge, ownerFilter]);
 
   const final  = projection[projection.length-1] || {};
   const lastCI = useMemo(() => [...(s.checkins||[])].sort((a,b) => b.month.localeCompare(a.month))[0] ?? null, [s.checkins]);
