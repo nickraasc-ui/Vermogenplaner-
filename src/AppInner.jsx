@@ -370,7 +370,7 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
   return (
     <div style={{ minHeight:"100vh", background:T.bg, color:T.text, fontFamily:"system-ui,-apple-system,'Helvetica Neue',sans-serif", paddingBottom:"calc(64px + env(safe-area-inset-bottom,0px))", transition:"background 0.2s,color 0.2s" }}>
 
-      {modal?.type==="checkin"       && <CheckinModal       s={s} cf={cf} T={T} setModal={setModal} updArr={updArr} />}
+      {modal?.type==="checkin"       && <CheckinModal       s={s} cf={cf} T={T} setModal={setModal} updArr={updArr} cashflowProjection={cashflowProjection} initialYear={modal.year} />}
       {modal?.type==="snapshot"      && <SnapshotModal      s={s} cf={cf} agg={agg} T={T} setModal={setModal} updArr={updArr} />}
       {modal?.type==="afford"        && <AffordModal        s={s} cf={cf} agg={agg} final={final} T={T} setModal={setModal} updArr={updArr} />}
       {modal?.type==="asset"         && <AssetModal         data={modal.data} s={s} T={T} setModal={setModal} updArr={updArr} />}
