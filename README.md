@@ -169,6 +169,38 @@ git update-index --add --cacheinfo "100644,${HASH},src/MeineDatei.jsx"
 
 ## Datenmodell
 
+### Feldnutzungs-Matrix
+
+Jedes Feld im System wird entweder in Berechnungen eingesetzt oder dient als Metadaten/Anzeige. Die folgende Übersicht zeigt, wo welche Felder tatsächlich wirken:
+
+| Feld | Projektion | Cashflow | Anzeige | Status |
+|---|:---:|:---:|:---:|---|
+| `value` | ✓ | ✓ | ✓ | Kern |
+| `debt` | ✓ | — | ✓ | Kern |
+| `class` | ✓ (Rendite-Lookup) | ✓ | ✓ | Kern |
+| `ownership` | ✓ (Anteil-Skalierung) | ✓ | ✓ | Kern |
+| `locked` | ✓ (Sparverteilung) | — | ✓ | Kern |
+| `loanType` | ✓ (Tilgungsformel) | ✓ | ✓ | Kern |
+| `loanRate` | ✓ (Amortisierung) | — | ✓ | Kern |
+| `loanTermYears` | ✓ (Laufzeit) | ✓ | ✓ | Kern |
+| `loanAnnuitat` | ✓ (CF-Abzug) | ✓ | ✓ | Kern (berechnet) |
+| `loanTilgung` | ✓ (Fallback) | ✓ | ✓ | Kern (berechnet) |
+| `monthlyRent` | ✓ (Immo-CF) | ✓ | ✓ | Kern (Immo) |
+| `hausgeld` | ✓ (Immo-CF) | ✓ | ✓ | Kern (Immo) |
+| `grundsteuer` | ✓ (Immo-CF) | ✓ | ✓ | Kern (Immo) |
+| `monthlyRepayment` | ✓ (Ford-CF) | ✓ | ✓ | Kern (Forderung) |
+| `monthlyRunningCost` | ✓ (Abzug) | ✓ | ✓ | Kern (optional) |
+| `yieldPct` | ✓ (capAppr-Trennung) | ✓ | ✓ | Kern |
+| `liquidity` | — | — | ✓ | Anzeige |
+| `valuationMethod` | — | — | ✓ | Metadaten |
+| `note` | — | — | ✓ | Metadaten |
+| `tax.acquisitionPrice/Date` | — | — | ✓ (stille Reserven) | Metadaten |
+| `tax.taxType` | — | — | ✓ | Metadaten |
+| `lifecycle.maturity` | — | — | ✓ | Metadaten |
+| `commitment/called/distributed` | — | — | ✓ (PE) | Metadaten |
+| Owner `tax.*` | — | — | — | Gespeichert, noch nicht genutzt |
+| `maritalProperty`, `taxFiling` | — | — | — | Gespeichert, noch nicht genutzt |
+
 ### Asset
 
 ```js
@@ -192,13 +224,23 @@ git update-index --add --cacheinfo "100644,${HASH},src/MeineDatei.jsx"
     acquisitionDate: string,       // YYYY-MM-DD
   },
 
-  // Immobilien
+  // Darlehen (gilt für Immobilien und alle anderen Assets mit Schulden)
+  loanType: "annuitat" | "volltilger" | "endfaellig",
+  loanRate: number,                // Nominalzins in % p.a.
+  loanTermYears: number,           // Gesamtlaufzeit in Jahren
+  loanAnnuitat: number,            // monatliche Rate in € (berechnet aus Rate+Laufzeit)
+  loanTilgung: number,             // monatliche Tilgung in € (berechnet: Annuität - Zinsen)
+
+  // Immobilien-spezifisch
   monthlyRent: number,
   hausgeld: number,
   grundsteuer: number,
-  loanRate: number,                // Zinssatz in %
-  loanTilgung: number,             // monatliche Tilgung in €
-  loanAnnuitat: number,            // monatliche Annuität (Zins + Tilgung) in €
+
+  // Forderung (ausgegebenes Darlehen)
+  monthlyRepayment: number,        // monatlicher Rückfluss
+
+  // Sonstige laufende Kosten (Bootsliegeplatz, Versicherung, etc.)
+  monthlyRunningCost: number,
 
   // Private Equity
   commitment: number,
@@ -333,10 +375,20 @@ Dabei ist `sp` die monatliche Sparrate `computeSp(y)` (zeitabhängig), `r/mo = b
 
 **Immobilien:**
 ```
-FV = value × (1 + classReturn/100)^y - remDebt
-remDebt = max(0, debt - tilgung×12×y)
+FV = value × (1 + classReturn/100/12)^(y×12) - remDebt(y)
 ```
-Keine Sparrate-Zufuhr, kein KeSt (10-Jahres-Regel).
+
+`remDebt(y)` wird je nach Darlehenstyp berechnet:
+
+| Typ | Formel |
+|---|---|
+| Annuität / Volltilger | `D × (1+r)^(y×12) - M × ((1+r)^(y×12) - 1) / r` |
+| Endfällig | `D` bis Laufzeitende, danach `0` |
+| Legacy (kein loanType) | `max(0, D - tilgung × 12 × y)` (linearer Fallback) |
+
+Dabei: `D = debt`, `r = loanRate/1200` (monatl. Zinssatz), `M = loanAnnuitat`.
+
+Keine Sparrate-Zufuhr, kein KeSt (10-Jahres-Regel vereinfacht).
 
 **Cash:**
 ```
@@ -411,6 +463,14 @@ Dynamisch: Aus einem Satz vordefinierter Schwellen (250k, 500k, 750k, 1M, 1.5M, 
 ---
 
 ## Versionshistorie
+
+### v1.6 — Darlehenstypen & exakte Tilgungsberechnung (April 2026)
+- Drei Darlehenstypen pro Asset: **Annuität** (gleichbleibende Rate), **Volltilger** (vollständige Tilgung in der Laufzeit), **Endfällig** (nur Zinsen, Kapital am Ende)
+- Annuität und Tilgung werden automatisch aus Zinssatz + Laufzeit + Restschuld berechnet (kein manuelles Einpflegen mehr)
+- Anzeige: monatliche Rate, anfängliche Tilgung %, Gesamtzinsaufwand
+- Projektion verwendet exakte Tilgungsformel (`D × (1+r)^n - M × ((1+r)^n - 1)/r`) statt linearer Näherung
+- Endfällige Darlehen: konstante Zinszahlung in CF-Projektion, Restschuld fällt zum Laufzeitende auf 0
+- Datenmodell-Dokumentation: vollständige Feldnutzungs-Matrix (welche Felder wo wirken)
 
 ### v1.5 — Excel Export & Import (April 2026)
 - Excel-Export aller Assets als `.xlsx` mit Datum-Stempel (Datum, Name, Klasse, Eigentümer, Wert, Schulden, Nettowert, Liquidität, Ausschüttungsrendite, Bewertungsmethode, Notiz)

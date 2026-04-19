@@ -41,6 +41,29 @@ const KEST_RATES = {
   "Sonstiges":      0.2638,
 };
 
+// Remaining debt at year y, using exact amortization schedule per loan type
+const computeRemDebt = (a, y) => {
+  const D = a.debt || 0;
+  if (!D) return 0;
+  const mo = y * 12;
+  const loanType = a.loanType || "annuitat";
+  const r = (a.loanRate || 0) / 1200; // monthly rate
+  const M = a.loanAnnuitat || 0;
+  const n = (a.loanTermYears || 0) * 12; // total months in term
+
+  if (loanType === "endfaellig") {
+    // Interest-only: principal stays constant until term end
+    return n > 0 && mo >= n ? 0 : D;
+  }
+  // Annuität / Volltilger: standard amortization formula
+  if (r > 0 && M > 0) {
+    return Math.max(0, D * Math.pow(1 + r, mo) - M * (Math.pow(1 + r, mo) - 1) / r);
+  }
+  // Legacy fallback: linear decay via loanTilgung
+  const til = a.loanTilgung || 0;
+  return til > 0 ? Math.max(0, D - til * 12 * y) : D;
+};
+
 // Returns combined ownership share for filtered owners (1.0 if no filter)
 const ownerShare = (asset, ownerFilter) => {
   if (ownerFilter.length === 0) return 1;
@@ -92,8 +115,13 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
       const annuitat = (a.loanAnnuitat||0) * sh;
       const tilgung  = (a.loanTilgung||0)  * sh;
       const zinsen   = annuitat - tilgung;
-      const yrsLeft  = (a.loanTilgung||0) > 0 ? Math.ceil((a.debt||0) / ((a.loanTilgung||0)*12)) : null;
-      return { id:a.id, name:a.name, debt:(a.debt||0)*sh, annuitat, tilgung, zinsen, yrsLeft };
+      const loanType = a.loanType || "annuitat";
+      const yrsLeft  = loanType === "endfaellig"
+        ? (a.loanTermYears || null)
+        : (a.loanTilgung||0) > 0
+          ? Math.ceil((a.debt||0) / ((a.loanTilgung||0)*12))
+          : (a.loanTermYears || null);
+      return { id:a.id, name:a.name, loanType, debt:(a.debt||0)*sh, annuitat, tilgung, zinsen, yrsLeft };
     }), [filteredAssets, ownerFilter]);
 
   const totalMonthlyLoanPayment = useMemo(() =>
@@ -173,12 +201,18 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
     const rentGrowth = s.immoRentGrowthPct || 0;
 
     const nonImmoLoans = projAssets
-      .filter(a => a.class!=="Immobilien" && a.class!=="Forderung" && (a.debt||0)>0 && (a.loanTilgung||0)>0 && (a.loanAnnuitat||0)>0)
-      .map(a => ({ annuitat:a.loanAnnuitat, yrsLeft:(a.debt||0)/((a.loanTilgung||0)*12) }));
+      .filter(a => a.class!=="Immobilien" && a.class!=="Forderung" && (a.debt||0)>0 && (a.loanAnnuitat||0)>0)
+      .map(a => {
+        const loanType = a.loanType || "annuitat";
+        const yrsLeft = loanType === "endfaellig"
+          ? (a.loanTermYears || null)
+          : (a.loanTilgung||0) > 0 ? (a.debt||0)/((a.loanTilgung||0)*12) : (a.loanTermYears || null);
+        return { a, annuitat:a.loanAnnuitat, yrsLeft };
+      });
 
     const computeSp = (y) => {
       if (!s.autoSpar) {
-        const freed = nonImmoLoans.filter(l => y >= l.yrsLeft).reduce((t, l) => t+l.annuitat, 0);
+        const freed = nonImmoLoans.filter(l => l.yrsLeft !== null && y >= l.yrsLeft).reduce((t, l) => t+l.annuitat, 0);
         const base  = (s.manuellSparrate||0) + freed;
         return s.sparRateGrowth ? base*Math.pow(1+(s.sparGrowthPct||0)/100, y) : base;
       }
@@ -197,13 +231,13 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
       const immoAssets   = projAssets.filter(a => a.class==="Immobilien");
       const yImmoGross   = immoAssets.reduce((t, a) => t+(a.monthlyRent||IMMO_CF_GROSS)*Math.pow(1+rentGrowth/100, y), 0);
       const yImmoRunning = immoAssets.reduce((t, a) => t+(a.hausgeld||IMMO_HAUSGELD)+(a.grundsteuer||IMMO_GRUNDSTEUER), 0);
-      const yImmoAnnu    = immoAssets.filter(a => (a.debt||0)>0 && (a.loanTilgung||0)>0).reduce((t, a) =>
-        t + (Math.max(0,(a.debt||0)-(a.loanTilgung||0)*12*y) > 0 ? (a.loanAnnuitat||0) : 0), 0);
+      const yImmoAnnu    = immoAssets.filter(a => (a.debt||0)>0).reduce((t, a) =>
+        t + (computeRemDebt(a, y) > 0 ? (a.loanAnnuitat||0) : 0), 0);
       const yImmoNetCF = yImmoGross - yImmoRunning - yImmoAnnu;
       const fordInc  = projAssets.filter(a => a.class==="Forderung").reduce((t, a) => t+(a.monthlyRepayment||0), 0);
       const runCosts = projAssets.filter(a => a.class!=="Immobilien" && (a.monthlyRunningCost||0)>0).reduce((t, a) => t+(a.monthlyRunningCost||0), 0);
-      const otherAnnu = projAssets.filter(a => a.class!=="Immobilien" && a.class!=="Forderung" && (a.debt||0)>0 && (a.loanTilgung||0)>0).reduce((t, a) =>
-        t + (Math.max(0,(a.debt||0)-(a.loanTilgung||0)*12*y) > 0 ? (a.loanAnnuitat||0) : 0), 0);
+      const otherAnnu = projAssets.filter(a => a.class!=="Immobilien" && a.class!=="Forderung" && (a.debt||0)>0).reduce((t, a) =>
+        t + (computeRemDebt(a, y) > 0 ? (a.loanAnnuitat||0) : 0), 0);
       // Ausschüttungsrenditen aus Finanzassets (Dividenden, Kupons) — ggf. nach KeSt
       const kf = (cls) => s.taxOnReturns ? (1 - (KEST_RATES[cls] ?? 0.2638)) : 1;
       const assetYield = projAssets
@@ -253,7 +287,7 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
           }
           if (a.class==="Immobilien") {
             const growR = Math.max(0, ((s.classReturns["Immobilien"]||3)+adj) / 100);
-            const remDebt = (a.loanTilgung||0)>0 ? Math.max(0,(a.debt||0)-(a.loanTilgung||0)*12*y) : (a.debt||0);
+            const remDebt = computeRemDebt(a, y);
             total += (a.value||0)*Math.pow(1+growR/12,mo) - remDebt; return;
           }
           if (a.class==="Cash") { total += (a.value||0)*Math.pow(1+rm,mo); return; }

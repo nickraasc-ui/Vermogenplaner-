@@ -49,6 +49,12 @@ export const VALUATION_METHODS = [
   { value:"lastround",      label:"Letzter Financing Round" },
   { value:"selbstauskunft", label:"Selbstauskunft / geschätzt" },
 ];
+export const LOAN_TYPES = [
+  { value: "annuitat",   label: "Annuität",   desc: "Gleichbleibende Rate, sinkender Zinsanteil" },
+  { value: "volltilger", label: "Volltilger",  desc: "Vollständige Tilgung innerhalb der Laufzeit" },
+  { value: "endfaellig", label: "Endfällig",   desc: "Nur Zinsen lfd., Kapital am Ende fällig" },
+];
+
 export const MARITAL_PROPERTY_OPTIONS = [
   { value:"zugewinn",         label:"Zugewinngemeinschaft" },
   { value:"gutertrennung",    label:"Gütertrennung" },

@@ -1,22 +1,25 @@
 import { useState } from "react";
 import { Sheet, Inp, SelEl, Btn, full, uid } from "../ui.jsx";
-import { ASSET_CLASSES, LIQUIDITY_CATS, LIQUIDITY_DEFAULT, LIQ_CLR, ASSET_TAX_TYPES, VALUATION_METHODS, IMMO_CF_GROSS, IMMO_HAUSGELD, IMMO_GRUNDSTEUER } from "../../constants.js";
+import { ASSET_CLASSES, LIQUIDITY_CATS, LIQUIDITY_DEFAULT, LIQ_CLR, ASSET_TAX_TYPES, VALUATION_METHODS, IMMO_CF_GROSS, IMMO_HAUSGELD, IMMO_GRUNDSTEUER, LOAN_TYPES } from "../../constants.js";
 
 export default function AssetModal({ data, s, T, setModal, updArr }) {
   const owners = s.owners || [];
   const defaultOwnership = owners[0] ? [{ ownerId: owners[0].id, share: 1.0 }] : [];
 
-  const [f, setF] = useState(data || {
-    name: "", ownership: defaultOwnership, class: "Aktien-ETF", liquidity: "Liquide",
-    value: "", debt: "", locked: false, note: "",
-    loanRate: "3.5", loanTilgung: "0", loanAnnuitat: "0",
-    monthlyRent: "", hausgeld: "", grundsteuer: "",
-    monthlyRepayment: "", monthlyRunningCost: "",
-    yieldPct: "0",
-    valuationMethod: "market",
-    tax: { acquisitionPrice: "", acquisitionDate: "", taxType: "abgeltung" },
-    lifecycle: { maturity: "" },
-    commitment: "", called: "", distributed: "",
+  const [f, setF] = useState(() => {
+    if (data) return { loanType: "annuitat", loanTermYears: data.loanTermYears || "", ...data };
+    return {
+      name: "", ownership: defaultOwnership, class: "Aktien-ETF", liquidity: "Liquide",
+      value: "", debt: "", locked: false, note: "",
+      loanType: "annuitat", loanRate: "3.5", loanTermYears: "",
+      monthlyRent: "", hausgeld: "", grundsteuer: "",
+      monthlyRepayment: "", monthlyRunningCost: "",
+      yieldPct: "0",
+      valuationMethod: "market",
+      tax: { acquisitionPrice: "", acquisitionDate: "", taxType: "abgeltung" },
+      lifecycle: { maturity: "" },
+      commitment: "", called: "", distributed: "",
+    };
   });
   const set = (patch) => setF(p => ({ ...p, ...patch }));
   const handleClassChange = (cls) => {
@@ -33,6 +36,26 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
   const isFord  = f.class === "Forderung";
   const isPE    = f.class === "Private Equity";
   const isBond  = f.class === "Anleihen" || f.class === "Anleihen-ETF";
+
+  // Loan calculations (derived, not stored in state)
+  const lDebt = parseFloat(f.debt) || 0;
+  const lRate = parseFloat(f.loanRate) || 0;
+  const lTerm = parseFloat(f.loanTermYears) || 0;
+  const lMonthlyRate = lRate / 1200;
+  const lMonths = lTerm * 12;
+  const calcAnnuitat = (() => {
+    if (!lDebt || !lMonthlyRate) return 0;
+    if (f.loanType === "endfaellig") return lDebt * lMonthlyRate;
+    if (!lMonths) return 0;
+    const r = lMonthlyRate, n = lMonths;
+    return lDebt * r * Math.pow(1+r,n) / (Math.pow(1+r,n)-1);
+  })();
+  const calcMonthlyInterest = lDebt * lMonthlyRate;
+  const calcTilgung = f.loanType === "endfaellig" ? 0 : Math.max(0, calcAnnuitat - calcMonthlyInterest);
+  const calcTilgungPct = lDebt > 0 ? calcTilgung * 12 / lDebt * 100 : 0;
+  const calcTotalInterest = f.loanType === "endfaellig"
+    ? calcMonthlyInterest * lMonths
+    : lMonths > 0 ? calcAnnuitat * lMonths - lDebt : 0;
 
   const immoNetCF = isImmo
     ? (parseFloat(f.monthlyRent) || 0) - (parseFloat(f.hausgeld) || 0) - (parseFloat(f.grundsteuer) || 0) - (parseFloat(f.loanAnnuitat) || 0)
@@ -161,14 +184,60 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
       {hasDebt && !isFord && (
         <div style={sectionBox}>
           <div style={sectionLabel}>Darlehensdetails</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-            <Inp label="Zinssatz %" value={f.loanRate} onChange={v => set({ loanRate: v })} type="number" T={T} />
-            <Inp label="Tilgung/Mo." value={f.loanTilgung} onChange={v => set({ loanTilgung: v })} type="number" T={T} />
-            <Inp label="Annuität/Mo." value={f.loanAnnuitat} onChange={v => set({ loanAnnuitat: v })} type="number" T={T} />
+          {/* Loan type selector */}
+          <div style={{ display:"flex", gap:5, marginBottom:12 }}>
+            {LOAN_TYPES.map(lt => (
+              <button key={lt.value} onClick={() => set({ loanType: lt.value })}
+                style={{ flex:1, padding:"7px 4px", borderRadius:7, border:"1px solid "+(f.loanType===lt.value?T.accent:T.border),
+                  background:f.loanType===lt.value?T.accent+"18":"transparent",
+                  color:f.loanType===lt.value?T.accent:T.textMid,
+                  cursor:"pointer", fontSize:10, fontWeight:700, textAlign:"center" }}>
+                {lt.label}
+              </button>
+            ))}
           </div>
-          {(parseFloat(f.loanTilgung) || 0) > 0 && (parseFloat(f.debt) || 0) > 0 && (
-            <div style={{ fontSize: 9, color: T.accent, marginTop: 4 }}>
-              Schuldenfrei in ca. {Math.ceil((parseFloat(f.debt) || 0) / ((parseFloat(f.loanTilgung) || 1) * 12))} Jahren
+          {f.loanType && (
+            <div style={{ fontSize:9, color:T.textDim, marginBottom:10 }}>
+              {LOAN_TYPES.find(l=>l.value===f.loanType)?.desc}
+            </div>
+          )}
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:8 }}>
+            <Inp label="Zinssatz % p.a." value={f.loanRate} onChange={v => set({ loanRate: v })} type="number" T={T} />
+            <Inp label="Laufzeit (Jahre)" value={f.loanTermYears} onChange={v => set({ loanTermYears: v })} type="number" placeholder="z.B. 20" T={T} />
+          </div>
+          {/* Calculated results */}
+          {calcAnnuitat > 0 && (
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:6, marginTop:4 }}>
+              <div style={{ background:T.bg, borderRadius:6, padding:"7px 8px" }}>
+                <div style={{ fontSize:8, color:T.textDim, marginBottom:2 }}>Annuität/Mo.</div>
+                <div style={{ fontSize:12, fontWeight:800, color:T.accent }}>{full(calcAnnuitat)}</div>
+              </div>
+              <div style={{ background:T.bg, borderRadius:6, padding:"7px 8px" }}>
+                <div style={{ fontSize:8, color:T.textDim, marginBottom:2 }}>
+                  {f.loanType==="endfaellig" ? "Zinsen/Mo." : "Tilgung/Mo."}
+                </div>
+                <div style={{ fontSize:12, fontWeight:800, color:f.loanType==="endfaellig"?T.red:T.green }}>
+                  {f.loanType==="endfaellig" ? full(calcMonthlyInterest) : full(calcTilgung)}
+                </div>
+              </div>
+              <div style={{ background:T.bg, borderRadius:6, padding:"7px 8px" }}>
+                <div style={{ fontSize:8, color:T.textDim, marginBottom:2 }}>
+                  {f.loanType==="endfaellig" ? "Gesamtzinsen" : "Tilgung % p.a."}
+                </div>
+                <div style={{ fontSize:12, fontWeight:800, color:T.textMid }}>
+                  {f.loanType==="endfaellig" ? full(calcTotalInterest) : calcTilgungPct.toFixed(2)+"%"}
+                </div>
+              </div>
+            </div>
+          )}
+          {f.loanType==="endfaellig" && lTerm > 0 && (
+            <div style={{ fontSize:9, color:T.amber, marginTop:8 }}>
+              Endfällig: Kapital {full(lDebt)} fällig in {lTerm} Jahren — Gesamtzinsaufwand {full(calcTotalInterest)}
+            </div>
+          )}
+          {f.loanType!=="endfaellig" && calcTilgung > 0 && lTerm > 0 && (
+            <div style={{ fontSize:9, color:T.green, marginTop:8 }}>
+              Schuldenfrei in {lTerm} Jahren — Gesamtzinsaufwand {full(calcTotalInterest)}
             </div>
           )}
         </div>
@@ -249,14 +318,32 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
       </div>
 
       <Btn full color={T.green} T={T} onClick={() => {
+        const saveDebt = +f.debt || 0;
+        const saveRate = +f.loanRate || 0;
+        const saveTerm = +f.loanTermYears || 0;
+        const saveType = f.loanType || "annuitat";
+        const saveMonthlyRate = saveRate / 1200;
+        const saveMonths = saveTerm * 12;
+        const savedAnnuitat = (() => {
+          if (!saveDebt || !saveMonthlyRate) return 0;
+          if (saveType === "endfaellig") return saveDebt * saveMonthlyRate;
+          if (!saveMonths) return 0;
+          const r = saveMonthlyRate, n = saveMonths;
+          return saveDebt * r * Math.pow(1+r,n) / (Math.pow(1+r,n)-1);
+        })();
+        const savedMonthlyInterest = saveDebt * saveMonthlyRate;
+        const savedTilgung = saveType === "endfaellig" ? 0 : Math.max(0, savedAnnuitat - savedMonthlyInterest);
+
         const asset = {
           ...f,
           id: f.id || uid(),
           value: +f.value || 0,
-          debt: +f.debt || 0,
-          loanRate: +f.loanRate || 3.5,
-          loanTilgung: +f.loanTilgung || 0,
-          loanAnnuitat: +f.loanAnnuitat || 0,
+          debt: saveDebt,
+          loanType: saveType,
+          loanRate: saveRate || 3.5,
+          loanTermYears: saveTerm,
+          loanTilgung: savedTilgung,
+          loanAnnuitat: savedAnnuitat,
           liquidity: f.liquidity || "Liquide",
           monthlyRent: +f.monthlyRent || 0,
           hausgeld: +f.hausgeld || 0,
