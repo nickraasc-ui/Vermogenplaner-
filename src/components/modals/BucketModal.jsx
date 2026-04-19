@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { Sheet, Inp, SelEl, Btn, full, uid } from "../ui.jsx";
-import { CY, BCK_CLRS } from "../../constants.js";
+import { CY, BCK_CLRS, ASSET_CLASSES } from "../../constants.js";
 
 const SCENARIO_TYPES = [
-  { key:"ausgabe",  label:"Ausgabe",            icon:"↓", color:"#ef4444", desc:"Einmalige oder wiederkehrende Kosten aus dem Portfolio" },
-  { key:"zufluss",  label:"Zufluss",             icon:"↑", color:"#10b981", desc:"Erbschaft, Bonus, Verkaufserlös — erhöht das Portfolio" },
-  { key:"sparrate", label:"Sparratenänderung",   icon:"⇄", color:"#f59e0b", desc:"Gehaltserhöhung, Renteneintritt, Teilzeit — ändert den Spar-Cashflow" },
-  { key:"finanziert",label:"Finanziert",         icon:"≡", color:"#38bdf8", desc:"Monatliche Rate reduziert Sparrate im Finanzierungszeitraum" },
+  { key:"ausgabe",  label:"Ausgabe",              icon:"↓", color:"#ef4444", desc:"Einmalige oder wiederkehrende Kosten aus dem Portfolio" },
+  { key:"zufluss",  label:"Zufluss",               icon:"↑", color:"#10b981", desc:"Erbschaft, Bonus, Verkaufserlös — erhöht das Portfolio" },
+  { key:"sparrate", label:"Einnahmenänderung",     icon:"⇄", color:"#f59e0b", desc:"Gehaltserhöhung, Renteneintritt, Teilzeit — ändert den Spar-Cashflow" },
+  { key:"finanziert",label:"Finanziert",           icon:"≡", color:"#38bdf8", desc:"Monatliche Rate reduziert Sparrate im Finanzierungszeitraum" },
 ];
+
+const INVESTABLE_CLASSES = ASSET_CLASSES.filter(c => !["Cash","Immobilien","Forderung","Sonstiges"].includes(c));
 
 export default function BucketModal({ data, s, T, setModal, updArr }) {
   const inferCategory = (d) => {
@@ -19,11 +21,14 @@ export default function BucketModal({ data, s, T, setModal, updArr }) {
   };
 
   const [category, setCategory] = useState(() => inferCategory(data));
-  const [f, setF] = useState(data || {
+  const [f, setF] = useState(data ? {
+    spartopfMode: "proportional", spartopfAmounts: {}, ...data,
+  } : {
     name: "", amount: "", year: "", age: "", color: BCK_CLRS[0], note: "",
     type: "Einmalig", fundingMode: "lump_sum",
     monthlyPayment: "", financingMonths: "", financingStart: "",
     delta: "", startsAt: "", endsAt: "",
+    spartopfMode: "proportional", spartopfAmounts: {},
     active: true,
   });
   const set = (k, v) => setF(p => ({ ...p, [k]: v }));
@@ -130,7 +135,7 @@ export default function BucketModal({ data, s, T, setModal, updArr }) {
         </div>
       )}
 
-      {/* SPARRATENÄNDERUNG */}
+      {/* EINNAHMENÄNDERUNG */}
       {category === "sparrate" && (
         <div style={sectionBox}>
           <div style={{ marginBottom:10 }}>
@@ -164,6 +169,48 @@ export default function BucketModal({ data, s, T, setModal, updArr }) {
               {f.endsAt ? " bis "+f.endsAt : " dauerhaft"}
             </div>
           )}
+
+          {/* Spartöpfe */}
+          <div style={{ marginTop:12, paddingTop:12, borderTop:"1px solid "+T.border }}>
+            <div style={{ fontSize:9, color:T.textMid, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:8 }}>Spartöpfe</div>
+            <div style={{ display:"flex", gap:8, marginBottom:10 }}>
+              {[["proportional","Proportional (auto)"],["manuell","Manuell je Klasse"]].map(([k,l]) => (
+                <button key={k} onClick={() => set("spartopfMode", k)}
+                  style={{ flex:1, padding:"6px 0", borderRadius:7, border:"1px solid "+(f.spartopfMode===k ? T.amber : T.border), background:f.spartopfMode===k ? T.amber+"18" : "transparent", color:f.spartopfMode===k ? T.amber : T.textMid, cursor:"pointer", fontSize:10, fontWeight:700, WebkitTapHighlightColor:"transparent" }}>
+                  {l}
+                </button>
+              ))}
+            </div>
+            {f.spartopfMode === "manuell" && (
+              <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+                <div style={{ fontSize:9, color:T.textDim, marginBottom:2 }}>
+                  Wie soll die Sparratenänderung (+{full(Math.abs(+f.delta||0))}/Mo.) verteilt werden?
+                </div>
+                {INVESTABLE_CLASSES.map(cls => (
+                  <div key={cls} style={{ display:"flex", alignItems:"center", gap:8 }}>
+                    <span style={{ fontSize:10, color:T.textMid, flex:1 }}>{cls}</span>
+                    <div style={{ width:110 }}>
+                      <Inp label="" value={(f.spartopfAmounts||{})[cls]||""} onChange={v => set("spartopfAmounts", { ...(f.spartopfAmounts||{}), [cls]: +v||0 })} type="number" placeholder="0 €/Mo." T={T} />
+                    </div>
+                  </div>
+                ))}
+                {(() => {
+                  const total = Object.values(f.spartopfAmounts||{}).reduce((t,v)=>t+(+v||0),0);
+                  const rem = (Math.abs(+f.delta||0)) - total;
+                  return total > 0 ? (
+                    <div style={{ fontSize:9, color:Math.abs(rem)<1?T.green:T.amber, marginTop:2 }}>
+                      Verteilt: {full(total)}/Mo.{Math.abs(rem)>1?" · "+full(Math.abs(rem))+" unzugewiesen":""}
+                    </div>
+                  ) : null;
+                })()}
+              </div>
+            )}
+            {f.spartopfMode === "proportional" && (
+              <div style={{ fontSize:9, color:T.textDim }}>
+                Die Erhöhung wird proportional zur aktuellen Portfoliogewichtung verteilt.
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -224,6 +271,8 @@ export default function BucketModal({ data, s, T, setModal, updArr }) {
           delta: +f.delta||0,
           startsAt: +f.startsAt||0,
           endsAt: f.endsAt ? +f.endsAt : null,
+          spartopfMode: category==="sparrate" ? (f.spartopfMode||"proportional") : undefined,
+          spartopfAmounts: category==="sparrate" && f.spartopfMode==="manuell" ? (f.spartopfAmounts||{}) : undefined,
           active: f.active !== false,
         };
         if (data?.id) updArr("buckets", s.buckets.map(x => x.id===b.id ? b : x));

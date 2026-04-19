@@ -179,7 +179,16 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
           <Row label="Vermögenskosten" value={"-" + full(val(cf.assetRunningCosts, selCF.runCosts))} type="out" sub="Laufende Kosten" T={T} />
         )}
 
-        <Row label="Sparrate" value={"-" + full(val(cf.eff, selCF.sp))} type="out" T={T} />
+        {/* Active finanziert scenario payments (reduce sparrate) */}
+        {isCurrent && (cf.scnFinancedItems||[]).map(b => (
+          <Row key={b.id} label={b.name||"Finanziert"} value={"-" + full(+b.monthlyPayment||0)} type="out" sub="Szenario · Finanzierung" T={T} />
+        ))}
+
+        <Row label="Sparrate" value={"-" + full(val(cf.eff, selCF.sp))} type="out"
+          sub={isCurrent && (cf.scnSpItems||[]).length > 0
+            ? (cf.scnSpItems||[]).map(b => `${(+b.delta||0)>=0?"+":""}${full(+b.delta||0)} ${b.name||""}`).join(" · ")
+            : undefined}
+          T={T} />
 
         {isCurrent && (
           <Row label="Monatssaldo" value={(cf.saldo>=0?"+":"")+full(cf.saldo)} type={cf.saldo>=0?"in":"warn"} bold T={T} />

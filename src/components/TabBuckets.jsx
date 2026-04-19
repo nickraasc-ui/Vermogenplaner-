@@ -6,7 +6,7 @@ const TYPE_META = {
   "Jährlich":  { icon:"↓", color:"#ef4444", label:"Ausgabe jährlich" },
   "Monatlich": { icon:"↓", color:"#ef4444", label:"Ausgabe monatlich" },
   "Zufluss":   { icon:"↑", color:"#10b981", label:"Zufluss" },
-  "Sparrate":  { icon:"⇄", color:"#f59e0b", label:"Sparratenänderung" },
+  "Sparrate":  { icon:"⇄", color:"#f59e0b", label:"Einnahmenänderung" },
   "financed":  { icon:"≡", color:"#38bdf8", label:"Finanziert" },
 };
 
@@ -25,7 +25,10 @@ const getDesc = (b, currentAge, s) => {
   }
   if (b.type === "Sparrate") {
     const sign = (+b.delta||0) >= 0 ? "+" : "";
-    return `${sign}${full(+b.delta||0)}/Mo.${b.startsAt?" ab "+b.startsAt:""}${b.endsAt?" bis "+b.endsAt:" dauerhaft"}`;
+    const topf = b.spartopfMode === "manuell"
+      ? " · Spartöpfe manuell"
+      : "";
+    return `${sign}${full(+b.delta||0)}/Mo.${b.startsAt?" ab "+b.startsAt:""}${b.endsAt?" bis "+b.endsAt:" dauerhaft"}${topf}`;
   }
   if (b.type === "Zufluss") return `${full(b.amount||0)} einmalig${ty?" in "+ty+(away!==null?" (in "+away+" J.)":""):""}`;
   return `${full(b.amount||0)}${b.type==="Monatlich"?"/Mo.":b.type==="Jährlich"?"/J.":""}${ty?" · "+ty+(away!==null?" (in "+away+" J.)":""):""}`;
@@ -172,7 +175,7 @@ export default function TabBuckets({ s, T, upd, updArr, setModal, agg, final, cu
             {[
               ["↓","Ausgabe","Autokauf, Renovierung, Schulgeld"],
               ["↑","Zufluss","Erbschaft, Bonus, Immobilienverkauf"],
-              ["⇄","Sparratenänderung","Gehaltserhöhung, Rente, Teilzeit"],
+              ["⇄","Einnahmenänderung","Gehaltserhöhung, Rente, Teilzeit"],
               ["≡","Finanziert","Kreditrate reduziert Sparrate"],
             ].map(([icon, label, ex]) => (
               <div key={label} style={{ display:"flex", gap:8, alignItems:"center" }}>

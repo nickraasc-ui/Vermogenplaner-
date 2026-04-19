@@ -165,14 +165,38 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
       .filter(st => CY >= (st.startsAt||CY) && (!st.endsAt || CY <= st.endsAt))
       .reduce((t, st) => t+(st.amount||0), 0);
 
+    // Active scenario effects for current year
+    const activeB = (s.buckets||[]).filter(b => b.active !== false);
+    const scnFinanced = activeB.reduce((t, b) => {
+      if (b.fundingMode !== "financed") return t;
+      const sy = +(b.financingStart||b.year||CY);
+      return CY >= sy && CY < sy + Math.ceil((+b.financingMonths||12)/12) ? t + (+b.monthlyPayment||0) : t;
+    }, 0);
+    const scnSpDelta = activeB.filter(b => b.type === "Sparrate").reduce((t, b) => {
+      const from = +(b.startsAt||CY), to = b.endsAt ? +b.endsAt : Infinity;
+      return CY >= from && CY <= to ? t + (b.delta||0) : t;
+    }, 0);
+    // Active finanziert scenarios (for display)
+    const scnFinancedItems = activeB.filter(b => {
+      if (b.fundingMode !== "financed") return false;
+      const sy = +(b.financingStart||b.year||CY);
+      return CY >= sy && CY < sy + Math.ceil((+b.financingMonths||12)/12);
+    });
+    // Active Einnahmenänderung scenarios (for display)
+    const scnSpItems = activeB.filter(b => {
+      if (b.type !== "Sparrate") return false;
+      const from = +(b.startsAt||CY), to = b.endsAt ? +b.endsAt : Infinity;
+      return CY >= from && CY <= to;
+    });
+
     const avail = streamIncome + immoNetCF + forderungIncome + assetYieldIncome;
-    const bound = streamExpense + otherAnnuitat + assetRunningCosts;
+    const bound = streamExpense + otherAnnuitat + assetRunningCosts + scnFinanced;
     const rest  = avail - bound;
-    const eff   = s.autoSpar ? Math.max(0, rest) : (s.manuellSparrate||0);
+    const eff   = s.autoSpar ? Math.max(0, rest + scnSpDelta) : Math.max(0, (s.manuellSparrate||0) + scnSpDelta);
     const saldo = avail - bound - eff;
     const quote = avail > 0 ? (eff / avail) * 100 : 0;
-    return { avail, bound, rest, eff, saldo, quote, immoNetCF, immoGross, immoRunning, immoAnnuitat, otherAnnuitat, forderungIncome, assetRunningCosts, streamIncome, streamExpense, assetYieldIncome };
-  }, [filteredAssets, filteredIncomeStreams, s.expenseStreams, s.autoSpar, s.manuellSparrate, ownerFilter]);
+    return { avail, bound, rest, eff, saldo, quote, immoNetCF, immoGross, immoRunning, immoAnnuitat, otherAnnuitat, forderungIncome, assetRunningCosts, streamIncome, streamExpense, assetYieldIncome, scnFinanced, scnSpDelta, scnFinancedItems, scnSpItems };
+  }, [filteredAssets, filteredIncomeStreams, s.expenseStreams, s.autoSpar, s.manuellSparrate, s.buckets, ownerFilter]);
 
   const agg = useMemo(() => {
     let gross = 0, debt = 0;
@@ -193,18 +217,53 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
   }, [filteredAssets, s.classReturns, ownerFilter]);
 
   const sparDist = useMemo(() => {
-    if (s.sparDistMode === "manual") {
-      return Object.entries(s.manualSparDist)
-        .filter(([, amt]) => (amt||0) > 0)
-        .map(([cls, monthly]) => ({ cls, share: cf.eff > 0 ? monthly/cf.eff : 0, monthly }));
-    }
     const shS = (a) => ownerShare(a, ownerFilter);
     const investable = filteredAssets.filter(a => !a.locked && a.class!=="Cash" && a.class!=="Immobilien" && a.class!=="Forderung" && a.class!=="Sonstiges");
     const total = investable.reduce((t, a) => t+(a.value||0)*shS(a), 0) || 1;
+
+    // Active Einnahmenänderung scenarios for current year
+    const activeSparScn = (s.buckets||[]).filter(b => {
+      if (b.active === false || b.type !== "Sparrate") return false;
+      const from = +(b.startsAt||CY), to = b.endsAt ? +b.endsAt : Infinity;
+      return CY >= from && CY <= to;
+    });
+
+    // Base sparrate before scenario deltas
+    const baseEff = cf.eff - (cf.scnSpDelta||0);
+
+    // Base allocation by class
     const byClass = {};
-    investable.forEach(a => { byClass[a.class] = (byClass[a.class]||0)+(a.value||0)*shS(a); });
-    return Object.entries(byClass).map(([cls, val]) => ({ cls, share:val/total, monthly:cf.eff*(val/total) }));
-  }, [filteredAssets, s.sparDistMode, s.manualSparDist, cf.eff, ownerFilter]);
+    if (s.sparDistMode === "manual") {
+      Object.entries(s.manualSparDist||{}).forEach(([cls, amt]) => {
+        if ((amt||0) > 0) byClass[cls] = (byClass[cls]||0) + (+amt||0);
+      });
+    } else {
+      investable.forEach(a => {
+        const wt = (a.value||0)*shS(a)/total;
+        byClass[a.class] = (byClass[a.class]||0) + baseEff * wt;
+      });
+    }
+
+    // Add scenario deltas by their own spartopf settings
+    activeSparScn.forEach(b => {
+      const delta = +b.delta||0;
+      if (b.spartopfMode === "manuell" && b.spartopfAmounts) {
+        Object.entries(b.spartopfAmounts).forEach(([cls, amt]) => {
+          byClass[cls] = (byClass[cls]||0) + (+amt||0);
+        });
+      } else {
+        investable.forEach(a => {
+          const wt = (a.value||0)*shS(a)/total;
+          byClass[a.class] = (byClass[a.class]||0) + delta * wt;
+        });
+      }
+    });
+
+    const totalEff = cf.eff || 1;
+    return Object.entries(byClass)
+      .filter(([, v]) => (v||0) > 0)
+      .map(([cls, monthly]) => ({ cls, share: monthly/totalEff, monthly }));
+  }, [filteredAssets, s.sparDistMode, s.manualSparDist, s.buckets, cf.eff, cf.scnSpDelta, ownerFilter]);
 
   const { projection, cashflowProjection } = useMemo(() => {
     const rentGrowth = s.immoRentGrowthPct || 0;
