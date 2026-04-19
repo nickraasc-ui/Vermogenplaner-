@@ -23,7 +23,7 @@ const TABS = [
   { k:"haushalt",   lbl:"Haushalt"   },
   { k:"vermogen",   lbl:"Vermögen"   },
   { k:"projektion", lbl:"Projektion" },
-  { k:"buckets",    lbl:"Ausgaben"   },
+  { k:"buckets",    lbl:"Szenarien"  },
 ];
 
 // Default KeSt rate by asset class (after Teilfreistellung where applicable)
@@ -225,10 +225,15 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
       });
 
     const computeSp = (y) => {
+      const absYearSp = CY + y;
+      const spDeltaManual = (s.buckets||[]).filter(b => b.active !== false && b.type === "Sparrate").reduce((t, b) => {
+        const from = +(b.startsAt||CY), to = b.endsAt ? +b.endsAt : Infinity;
+        return absYearSp >= from && absYearSp <= to ? t + (b.delta||0) : t;
+      }, 0);
       if (!s.autoSpar) {
         const freed = nonImmoLoans.filter(l => l.yrsLeft !== null && y >= l.yrsLeft).reduce((t, l) => t+l.annuitat, 0);
-        const base  = (s.manuellSparrate||0) + freed;
-        return s.sparRateGrowth ? base*Math.pow(1+(s.sparGrowthPct||0)/100, y) : base;
+        const base  = (s.manuellSparrate||0) + freed + spDeltaManual;
+        return Math.max(0, s.sparRateGrowth ? base*Math.pow(1+(s.sparGrowthPct||0)/100, y) : base);
       }
       const absYear = CY + y;
       const inc = filteredIncomeStreams
@@ -237,10 +242,16 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
       const exp = (s.expenseStreams||[])
         .filter(st => absYear >= (st.startsAt||CY) && (!st.endsAt || absYear <= st.endsAt))
         .reduce((t, st) => t+(st.amount||0), 0);
-      const financed = (s.buckets||[]).reduce((t, b) => {
+      const activeB = (s.buckets||[]).filter(b => b.active !== false);
+      const financed = activeB.reduce((t, b) => {
         if (b.fundingMode !== "financed") return t;
         const sy = +(b.financingStart||b.year||CY);
         return absYear >= sy && absYear < sy+Math.ceil((+b.financingMonths||12)/12) ? t+(+b.monthlyPayment||0) : t;
+      }, 0);
+      // Sparratenänderung-Szenarien
+      const spDelta = activeB.filter(b => b.type === "Sparrate").reduce((t, b) => {
+        const from = +(b.startsAt||CY), to = b.endsAt ? +b.endsAt : Infinity;
+        return absYear >= from && absYear <= to ? t + (b.delta||0) : t;
       }, 0);
       const immoAssets   = projAssets.filter(a => a.class==="Immobilien");
       const yImmoGross   = immoAssets.reduce((t, a) => t+(a.monthlyRent||IMMO_CF_GROSS)*Math.pow(1+rentGrowth/100, y), 0);
@@ -256,7 +267,7 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
       const assetYield = projAssets
         .filter(a => (a.yieldPct||0) > 0 && a.class !== "Immobilien" && a.class !== "Forderung")
         .reduce((t, a) => t + (a.value||0) * (a.yieldPct||0) / 100 / 12 * (s.taxOnReturns ? (1 - kestRate(a)) : 1), 0);
-      return Math.max(0, (inc + yImmoNetCF + fordInc + assetYield) - (exp + runCosts + otherAnnu + financed));
+      return Math.max(0, (inc + yImmoNetCF + fordInc + assetYield + spDelta) - (exp + runCosts + otherAnnu + financed));
     };
 
     const getAdd = (asset, sp) => {
@@ -270,13 +281,15 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
 
     const bucketDrain = (year) => {
       let d = 0;
-      (s.buckets||[]).forEach(b => {
+      (s.buckets||[]).filter(b => b.active !== false).forEach(b => {
         if (b.fundingMode === "financed") return;
+        if (b.type === "Sparrate") return; // handled via spDelta in computeSp
         const ty = b.year ? +b.year : b.age ? CY+(+b.age-currentAge) : null;
         if (!ty) return;
-        if (b.type==="Einmalig"  && year===ty) d += b.amount||0;
-        if ((b.type==="Jährlich" || b.type==="Jahrlich") && year>=ty) d += b.amount||0;
-        if (b.type==="Monatlich" && year>=ty)  d += (b.amount||0)*12;
+        const sign = b.type === "Zufluss" ? -1 : 1; // Zufluss = negative drain (adds to wealth)
+        if (b.type==="Einmalig" || b.type==="Zufluss") { if (year===ty) d += sign*(b.amount||0); return; }
+        if (b.type==="Jährlich" || b.type==="Jahrlich") { if (year>=ty) d += b.amount||0; return; }
+        if (b.type==="Monatlich" && year>=ty) d += (b.amount||0)*12;
       });
       return d;
     };
@@ -385,7 +398,7 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
         {tab==="haushalt"   && <TabHaushalt   s={s} T={T} upd={upd} updArr={updArr} setModal={setModal} cf={cf} sparDist={sparDist} ownerFilter={ownerFilter} filteredAssets={filteredAssets} />}
         {tab==="vermogen"   && <TabVermogen   s={s} T={T} updClass={updClass} updArr={updArr} setModal={setModal} agg={agg} filteredAssets={filteredAssets} ownerFilter={ownerFilter} />}
         {tab==="projektion" && <TabProjektion s={s} T={T} upd={upd} cf={cf} agg={agg} projection={projection} final={final} loanSummary={loanSummary} setModal={setModal} projClassFilter={projClassFilter} toggleProjClass={toggleProjClass} resetProjClass={() => setProjClassFilter([])} availClasses={[...new Set(filteredAssets.map(a => a.class))]} currentAge={currentAge} />}
-        {tab==="buckets"    && <TabBuckets    s={s} T={T} updArr={updArr} setModal={setModal} />}
+        {tab==="buckets"    && <TabBuckets    s={s} T={T} upd={upd} updArr={updArr} setModal={setModal} agg={agg} final={final} currentAge={currentAge} />}
       </div>
 
       <div style={{ position:"fixed", bottom:0, left:0, right:0, background:T.tabBar, borderTop:"1px solid "+T.tabBorder, display:"flex", zIndex:50, paddingBottom:"env(safe-area-inset-bottom,0px)" }}>
