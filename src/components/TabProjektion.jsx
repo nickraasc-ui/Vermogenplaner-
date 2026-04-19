@@ -11,6 +11,17 @@ export default function TabProjektion({ s, T, upd, cf, agg, projection, final, l
     return thresholds.filter(t => t > agg.net * 0.9).slice(0, 4);
   })();
 
+  // Lifecycle maturity events from assets (Anleihen, PE)
+  const maturityEvents = (s.assets||[])
+    .filter(a => a.lifecycle?.maturity)
+    .map(a => {
+      const yr = parseInt((a.lifecycle.maturity||"").slice(0,4), 10);
+      return isNaN(yr) ? null : { name: a.name, year: yr, class: a.class, value: a.value || 0 };
+    })
+    .filter(Boolean)
+    .filter(e => e.year >= CY && e.year <= CY + (s.horizon||35))
+    .sort((a,b) => a.year - b.year);
+
   const chipStyle = (active, color) => ({
     fontSize:8, padding:"2px 9px", borderRadius:10,
     border:"1px solid "+(active ? (color||T.accent) : T.border),
@@ -161,6 +172,18 @@ export default function TabProjektion({ s, T, upd, cf, agg, projection, final, l
             <div style={{ textAlign:"right" }}>
               <div style={{ fontSize:12, fontWeight:700, color:T.purple }}>{CY+l.yrsLeft}</div>
               <div style={{ fontSize:9, color:T.textDim }}>Alter {currentAge+l.yrsLeft}</div>
+            </div>
+          </div>
+        ))}
+        {maturityEvents.map(e => (
+          <div key={e.name+e.year} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", borderBottom:"1px solid "+T.border, paddingBottom:8, marginBottom:8 }}>
+            <div>
+              <div style={{ fontSize:12, fontWeight:700, color:T.amber }}>{e.name} fällig</div>
+              <div style={{ fontSize:9, color:T.textDim }}>{e.class} · {fmtE(e.value)} Rückfluss</div>
+            </div>
+            <div style={{ textAlign:"right" }}>
+              <div style={{ fontSize:12, fontWeight:700, color:T.amber }}>{e.year}</div>
+              <div style={{ fontSize:9, color:T.textDim }}>Alter {currentAge + (e.year - CY)}</div>
             </div>
           </div>
         ))}

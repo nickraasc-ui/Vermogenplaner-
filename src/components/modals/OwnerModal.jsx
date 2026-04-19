@@ -42,8 +42,11 @@ export default function OwnerModal({ s, T, setModal, upd }) {
     <Sheet title="Eigentümer verwalten" onClose={() => setModal(null)} T={T}>
 
       {/* Profile-level: Güterstand & Veranlagung */}
-      <div style={sectionBox}>
-        <div style={sectionLabel}>Familienrecht & Steuerveranlagung</div>
+      <div style={{ ...sectionBox, opacity: 0.6 }}>
+        <div style={{ ...sectionLabel, display:"flex", justifyContent:"space-between" }}>
+          <span>Familienrecht & Steuerveranlagung</span>
+          <span style={{ fontSize:8, color:T.amber, fontWeight:700, textTransform:"none", letterSpacing:0 }}>Gespeichert · noch nicht in Rechnung aktiv</span>
+        </div>
         <SelEl label="Güterstand" value={s.maritalProperty || "zugewinn"} onChange={v => upd({ maritalProperty: v })}
           options={MARITAL_PROPERTY_OPTIONS.map(m => ({ value: m.value, label: m.label }))} T={T} />
         <div style={{ display: "flex", gap: 8, marginBottom: 4 }}>
@@ -91,8 +94,9 @@ export default function OwnerModal({ s, T, setModal, upd }) {
                   options={OWNER_TYPES} T={T} />
 
                 {/* Steuerprofil */}
-                <div style={{ marginBottom: 12 }}>
-                  <div style={{ fontSize: 9, color: T.textMid, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Steuerprofil</div>
+                <div style={{ marginBottom: 12, opacity: 0.6 }}>
+                  <div style={{ fontSize: 9, color: T.textMid, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Steuerprofil</div>
+                  <div style={{ fontSize:9, color:T.amber, marginBottom:8 }}>Gespeichert · noch nicht in Berechnungen aktiv</div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                     <Inp label="Grenzsteuersatz %" value={o.tax?.personalTaxRate ?? 42}
                       onChange={v => updOwner(o.id, { tax: { ...o.tax, personalTaxRate: +v || 0 } })} type="number" T={T} />

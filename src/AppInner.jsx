@@ -26,7 +26,7 @@ const TABS = [
   { k:"buckets",    lbl:"Ausgaben"   },
 ];
 
-// Effective KeSt rate per asset class (after Teilfreistellung where applicable)
+// Default KeSt rate by asset class (after Teilfreistellung where applicable)
 const KEST_RATES = {
   "Aktien":         0.2638, // 26.375% voll
   "Aktien-ETF":     0.1846, // 30% Teilfreistellung → 26.375% × 0.7
@@ -39,6 +39,21 @@ const KEST_RATES = {
   "Private Equity": 0.1583, // Teileinkünfteverfahren: 60% × 26.375%
   "Forderung":      0.2638,
   "Sonstiges":      0.2638,
+};
+
+// tax.taxType per asset overrides the class default when set explicitly
+const KEST_BY_TAX_TYPE = {
+  "abgeltung":      null,   // → use class default
+  "teileinkuenfte": 0.1583, // Teileinkünfteverfahren: 60% × 26.375%
+  "immobilien":     0.0,
+  "steuerfrei":     0.0,
+};
+
+// Effective KeSt rate for one asset: taxType overrides class default
+const kestRate = (a) => {
+  const byType = KEST_BY_TAX_TYPE[a.tax?.taxType];
+  if (byType !== null && byType !== undefined) return byType;
+  return KEST_RATES[a.class] ?? 0.2638;
 };
 
 // Remaining debt at year y, using exact amortization schedule per loan type
@@ -139,10 +154,9 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
     const immoNetCF = immoGross - immoAnnuitat - immoRunning;
 
     // Ausschüttungsrenditen: Dividenden, Kupons, Distributions (nicht Immo/Forderung — die haben eigene CF-Felder)
-    const kestFactor = (cls) => s.taxOnReturns ? (1 - (KEST_RATES[cls] ?? 0.2638)) : 1;
     const assetYieldIncome = filteredAssets
       .filter(a => (a.yieldPct||0) > 0 && a.class !== "Immobilien" && a.class !== "Forderung")
-      .reduce((t, a) => t + (a.value||0) * (a.yieldPct||0) / 100 / 12 * kestFactor(a.class) * sh(a), 0);
+      .reduce((t, a) => t + (a.value||0) * (a.yieldPct||0) / 100 / 12 * (s.taxOnReturns ? (1 - kestRate(a)) : 1) * sh(a), 0);
 
     const streamIncome = filteredIncomeStreams
       .filter(st => CY >= (st.startsAt||CY) && (!st.endsAt || CY <= st.endsAt))
@@ -239,10 +253,9 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
       const otherAnnu = projAssets.filter(a => a.class!=="Immobilien" && a.class!=="Forderung" && (a.debt||0)>0).reduce((t, a) =>
         t + (computeRemDebt(a, y) > 0 ? (a.loanAnnuitat||0) : 0), 0);
       // Ausschüttungsrenditen aus Finanzassets (Dividenden, Kupons) — ggf. nach KeSt
-      const kf = (cls) => s.taxOnReturns ? (1 - (KEST_RATES[cls] ?? 0.2638)) : 1;
       const assetYield = projAssets
         .filter(a => (a.yieldPct||0) > 0 && a.class !== "Immobilien" && a.class !== "Forderung")
-        .reduce((t, a) => t + (a.value||0) * (a.yieldPct||0) / 100 / 12 * kf(a.class), 0);
+        .reduce((t, a) => t + (a.value||0) * (a.yieldPct||0) / 100 / 12 * (s.taxOnReturns ? (1 - kestRate(a)) : 1), 0);
       return Math.max(0, (inc + yImmoNetCF + fordInc + assetYield) - (exp + runCosts + otherAnnu + financed));
     };
 
@@ -278,7 +291,7 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
           const yieldPct = a.yieldPct || 0;
           // Capital appreciation = total return minus distributed yield (yield flows via sparrate/cashflow)
           const capApprR = pretaxR - yieldPct;
-          const kest     = s.taxOnReturns ? (KEST_RATES[a.class] ?? 0.2638) : 0;
+          const kest     = s.taxOnReturns ? kestRate(a) : 0;
           const baseR    = capApprR * (1 - kest);
           const r = Math.max(0, baseR/100), rm = r/12, mo = y*12;
           if (a.class==="Forderung") {

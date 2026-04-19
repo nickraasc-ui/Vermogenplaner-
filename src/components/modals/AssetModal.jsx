@@ -269,8 +269,11 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
 
       {/* Private Equity */}
       {isPE && (
-        <div style={sectionBox}>
-          <div style={sectionLabel}>Private Equity — Kapitalstruktur</div>
+        <div style={{ ...sectionBox, opacity: 0.7 }}>
+          <div style={{ ...sectionLabel, display:"flex", justifyContent:"space-between" }}>
+            <span>Private Equity — Kapitalstruktur</span>
+            <span style={{ fontSize:8, color:T.amber, fontWeight:700, textTransform:"none", letterSpacing:0 }}>Anzeige · nicht in Projektion</span>
+          </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
             <Inp label="Commitment" value={f.commitment || ""} onChange={v => set({ commitment: v })} type="number" placeholder="0" T={T} />
             <Inp label="Abgerufen" value={f.called || ""} onChange={v => set({ called: v })} type="number" placeholder="0" T={T} />
@@ -295,9 +298,23 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
       {/* Steuerliche Basis */}
       <div style={sectionBox}>
         <div style={sectionLabel}>Steuerliche Basis</div>
-        <SelEl label="Steuertyp" value={f.tax?.taxType || "abgeltung"}
+        <SelEl label="Steuertyp (wirkt auf KeSt in Projektion & Haushalt)" value={f.tax?.taxType || "abgeltung"}
           onChange={v => set({ tax: { ...f.tax, taxType: v } })}
           options={ASSET_TAX_TYPES.map(t => ({ value: t.value, label: t.label }))} T={T} />
+        {(() => {
+          const KEST_BY_TYPE = { "abgeltung": null, "teileinkuenfte": 15.83, "immobilien": 0, "steuerfrei": 0 };
+          const CLASS_KEST = { "Aktien":26.38,"Aktien-ETF":18.46,"Anleihen":26.38,"Anleihen-ETF":18.46,"Immobilien":0,"Cash":26.38,"Rohstoffe":26.38,"Krypto":26.38,"Private Equity":15.83,"Forderung":26.38,"Sonstiges":26.38 };
+          const byType = KEST_BY_TYPE[f.tax?.taxType];
+          const rate = byType !== null && byType !== undefined ? byType : (CLASS_KEST[f.class] ?? 26.38);
+          const isOverride = byType !== null && byType !== undefined && byType !== CLASS_KEST[f.class];
+          return (
+            <div style={{ fontSize:9, color: rate===0 ? T.green : isOverride ? T.amber : T.textDim, marginBottom:8 }}>
+              Effektive KeSt: <strong>{rate.toFixed(2)}%</strong>
+              {isOverride && " (überschreibt Klassenstandard)"}
+              {rate === 0 && " — keine Steuer auf Erträge und Zuwachs"}
+            </div>
+          );
+        })()}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <Inp label="Anschaffungspreis" value={f.tax?.acquisitionPrice || ""}
             onChange={v => set({ tax: { ...f.tax, acquisitionPrice: v } })} type="number" placeholder="0" T={T} />
