@@ -205,7 +205,7 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
     return Object.entries(byClass).map(([cls, val]) => ({ cls, share:val/total, monthly:cf.eff*(val/total) }));
   }, [filteredAssets, s.sparDistMode, s.manualSparDist, cf.eff]);
 
-  const projection = useMemo(() => {
+  const { projection, cashflowProjection } = useMemo(() => {
     const rentGrowth = s.immoRentGrowthPct || 0;
 
     const nonImmoLoans = projAssets
@@ -218,25 +218,17 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
         return { a, annuitat:a.loanAnnuitat, yrsLeft };
       });
 
-    const computeSp = (y) => {
-      const absYearSp = CY + y;
-      const spDeltaManual = (s.buckets||[]).filter(b => b.active !== false && b.type === "Sparrate").reduce((t, b) => {
-        const from = +(b.startsAt||CY), to = b.endsAt ? +b.endsAt : Infinity;
-        return absYearSp >= from && absYearSp <= to ? t + (b.delta||0) : t;
-      }, 0);
-      if (!s.autoSpar) {
-        const freed = nonImmoLoans.filter(l => l.yrsLeft !== null && y >= l.yrsLeft).reduce((t, l) => t+l.annuitat, 0);
-        const base  = (s.manuellSparrate||0) + freed + spDeltaManual;
-        return Math.max(0, s.sparRateGrowth ? base*Math.pow(1+(s.sparGrowthPct||0)/100, y) : base);
-      }
+    // Returns all cashflow components for year y — single source of truth for both projection and export
+    const computeCF = (y) => {
       const absYear = CY + y;
+      const activeB = (s.buckets||[]).filter(b => b.active !== false);
+
       const inc = filteredIncomeStreams
         .filter(st => absYear >= (st.startsAt||CY) && (!st.endsAt || absYear <= st.endsAt))
         .reduce((t, st) => t + (st.amount||0)*Math.pow(1+(st.growthPct||0)/100, Math.max(0, absYear-(st.startsAt||CY))), 0);
-      const exp = (s.expenseStreams||[])
+      const streamExp = (s.expenseStreams||[])
         .filter(st => absYear >= (st.startsAt||CY) && (!st.endsAt || absYear <= st.endsAt))
         .reduce((t, st) => t+(st.amount||0), 0);
-      const activeB = (s.buckets||[]).filter(b => b.active !== false);
       const financed = activeB.reduce((t, b) => {
         if (b.fundingMode !== "financed") return t;
         const sy = +(b.financingStart||b.year||CY);
@@ -246,21 +238,37 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
         const from = +(b.startsAt||CY), to = b.endsAt ? +b.endsAt : Infinity;
         return absYear >= from && absYear <= to ? t + (b.delta||0) : t;
       }, 0);
+
       const immoAssets   = projAssets.filter(a => a.class==="Immobilien");
-      const yImmoGross   = immoAssets.reduce((t, a) => t+(a.monthlyRent||IMMO_CF_GROSS)*Math.pow(1+rentGrowth/100, y), 0);
-      const yImmoRunning = immoAssets.reduce((t, a) => t+(a.hausgeld||IMMO_HAUSGELD)+(a.grundsteuer||IMMO_GRUNDSTEUER), 0);
-      const yImmoAnnu    = immoAssets.filter(a => (a.debt||0)>0).reduce((t, a) =>
+      const immoGross    = immoAssets.reduce((t, a) => t+(a.monthlyRent||IMMO_CF_GROSS)*Math.pow(1+rentGrowth/100, y), 0);
+      const immoRunning  = immoAssets.reduce((t, a) => t+(a.hausgeld||IMMO_HAUSGELD)+(a.grundsteuer||IMMO_GRUNDSTEUER), 0);
+      const immoAnnu     = immoAssets.filter(a => (a.debt||0)>0).reduce((t, a) =>
         t + (computeRemDebt(a, y) > 0 ? (a.loanAnnuitat||0) : 0), 0);
-      const yImmoNetCF = yImmoGross - yImmoRunning - yImmoAnnu;
-      const fordInc  = projAssets.filter(a => a.class==="Forderung").reduce((t, a) => t+(a.monthlyRepayment||0), 0);
-      const runCosts = projAssets.filter(a => a.class!=="Immobilien" && (a.monthlyRunningCost||0)>0).reduce((t, a) => t+(a.monthlyRunningCost||0), 0);
-      const otherAnnu = projAssets.filter(a => a.class!=="Immobilien" && a.class!=="Forderung" && (a.debt||0)>0).reduce((t, a) =>
+      const immoNetCF    = immoGross - immoRunning - immoAnnu;
+      const fordInc      = projAssets.filter(a => a.class==="Forderung").reduce((t, a) => t+(a.monthlyRepayment||0), 0);
+      const runCosts     = projAssets.filter(a => a.class!=="Immobilien" && (a.monthlyRunningCost||0)>0).reduce((t, a) => t+(a.monthlyRunningCost||0), 0);
+      const otherAnnu    = projAssets.filter(a => a.class!=="Immobilien" && a.class!=="Forderung" && (a.debt||0)>0).reduce((t, a) =>
         t + (computeRemDebt(a, y) > 0 ? (a.loanAnnuitat||0) : 0), 0);
-      const assetYield = projAssets
+      const assetYield   = projAssets
         .filter(a => (a.yieldPct||0) > 0 && a.class !== "Immobilien" && a.class !== "Forderung")
         .reduce((t, a) => t + (a.value||0) * (a.yieldPct||0) / 100 / 12 * (s.taxOnReturns ? (1 - kestRate(a)) : 1), 0);
-      return Math.max(0, (inc + yImmoNetCF + fordInc + assetYield + spDelta) - (exp + runCosts + otherAnnu + financed));
+
+      const avail = inc + immoNetCF + fordInc + assetYield;
+      const bound = streamExp + runCosts + otherAnnu + financed;
+
+      let sp;
+      if (!s.autoSpar) {
+        const freed = nonImmoLoans.filter(l => l.yrsLeft !== null && y >= l.yrsLeft).reduce((t, l) => t+l.annuitat, 0);
+        const base  = (s.manuellSparrate||0) + freed + spDelta;
+        sp = Math.max(0, s.sparRateGrowth ? base*Math.pow(1+(s.sparGrowthPct||0)/100, y) : base);
+      } else {
+        sp = Math.max(0, avail + spDelta - bound);
+      }
+
+      return { inc, streamExp, immoGross, immoRunning, immoAnnu, immoNetCF, fordInc, runCosts, otherAnnu, assetYield, financed, spDelta, avail, bound, sp };
     };
+
+    const computeSp = (y) => computeCF(y).sp;
 
     // Fixed: default ty to CY so buckets without year/age still fire; respect endsAt for recurring types
     const bucketDrain = (year) => {
@@ -289,13 +297,13 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
     const computeBlendedRM = (adj) => {
       let totalV = 0, wtdR = 0;
       projAssets.forEach(a => {
-        if (a.class === "Forderung") return; // repayments flow through sp
+        if (a.class === "Forderung") return;
         const netV = a.class === "Immobilien"
           ? Math.max(0, (a.value||0) - (a.debt||0))
           : (a.value||0);
         if (netV <= 0) return;
         const pretaxR  = (s.classReturns[a.class]||5) + adj;
-        const capApprR = pretaxR - (a.yieldPct||0); // yield flows separately through sp
+        const capApprR = pretaxR - (a.yieldPct||0);
         const kest     = s.taxOnReturns ? kestRate(a) : 0;
         const netAnnR  = Math.max(0, capApprR * (1 - kest));
         totalV += netV;
@@ -308,17 +316,15 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
       return Math.max(0, wtdR / totalV) / 100 / 12;
     };
 
-    // Incremental year-by-year simulation — correctly handles depletion and compounding on drains
     const runScenario = (adj) => {
       const rm  = computeBlendedRM(adj);
-      const g12 = Math.pow(1 + rm, 12);             // 1-year portfolio growth factor
-      const spF = rm > 0 ? (g12 - 1) / rm : 12;    // FV factor for monthly savings over 12 months
+      const g12 = Math.pow(1 + rm, 12);
+      const spF = rm > 0 ? (g12 - 1) / rm : 12;
       let V = V0;
       const vals = [V0];
       for (let y = 1; y <= s.horizon; y++) {
         const sp    = computeSp(y);
         const drain = bucketDrain(CY + y);
-        // If V reaches 0, savings can still rebuild it; max(0) prevents negative wealth
         V = Math.max(0, V * g12 + sp * spF - drain);
         vals.push(V);
       }
@@ -329,8 +335,8 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
     const baseVals = runScenario(0);
     const optVals  = runScenario(2);
 
-    return Array.from({ length: s.horizon+1 }, (_, y) => {
-      const sp = computeSp(y);
+    const projection = Array.from({ length: s.horizon+1 }, (_, y) => {
+      const { sp } = computeCF(y);
       let cons = consVals[y], base = baseVals[y], opt = optVals[y];
       if (s.inflationAdj) {
         const inf = Math.pow(1 + s.inflation/100, y);
@@ -338,6 +344,13 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
       }
       return { age: currentAge + y, sp: Math.round(sp), cons: Math.round(cons), base: Math.round(base), opt: Math.round(opt) };
     });
+
+    const cashflowProjection = Array.from({ length: s.horizon+1 }, (_, y) => {
+      const row = computeCF(y);
+      return { year: CY + y, age: currentAge + y, ...row };
+    });
+
+    return { projection, cashflowProjection };
   }, [s, projAssets, filteredIncomeStreams, cf.eff, currentAge]);
 
   const final  = projection[projection.length-1] || {};
@@ -397,9 +410,9 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
 
       <div style={{ padding:"14px 14px 4px", maxWidth:600, margin:"0 auto" }}>
         {tab==="dashboard"  && <TabDashboard  s={s} T={T} setModal={setModal} agg={agg} cf={cf} loanSummary={loanSummary} lastCI={lastCI} snaps={snaps} totalMonthlyLoanPayment={totalMonthlyLoanPayment} projection={projection} final={final} currentAge={currentAge} />}
-        {tab==="haushalt"   && <TabHaushalt   s={s} T={T} upd={upd} updArr={updArr} setModal={setModal} cf={cf} sparDist={sparDist} ownerFilter={ownerFilter} filteredAssets={filteredAssets} />}
+        {tab==="haushalt"   && <TabHaushalt   s={s} T={T} upd={upd} updArr={updArr} setModal={setModal} cf={cf} sparDist={sparDist} ownerFilter={ownerFilter} filteredAssets={filteredAssets} cashflowProjection={cashflowProjection} />}
         {tab==="vermogen"   && <TabVermogen   s={s} T={T} updClass={updClass} updArr={updArr} setModal={setModal} agg={agg} filteredAssets={filteredAssets} ownerFilter={ownerFilter} />}
-        {tab==="projektion" && <TabProjektion s={s} T={T} upd={upd} cf={cf} agg={agg} projection={projection} final={final} loanSummary={loanSummary} setModal={setModal} projClassFilter={projClassFilter} toggleProjClass={toggleProjClass} resetProjClass={() => setProjClassFilter([])} availClasses={[...new Set(filteredAssets.map(a => a.class))]} currentAge={currentAge} />}
+        {tab==="projektion" && <TabProjektion s={s} T={T} upd={upd} cf={cf} agg={agg} projection={projection} final={final} loanSummary={loanSummary} setModal={setModal} projClassFilter={projClassFilter} toggleProjClass={toggleProjClass} resetProjClass={() => setProjClassFilter([])} availClasses={[...new Set(filteredAssets.map(a => a.class))]} currentAge={currentAge} cashflowProjection={cashflowProjection} />}
         {tab==="buckets"    && <TabBuckets    s={s} T={T} upd={upd} updArr={updArr} setModal={setModal} agg={agg} final={final} currentAge={currentAge} />}
       </div>
 

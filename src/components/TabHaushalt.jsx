@@ -1,9 +1,10 @@
-import { Sl, Tile, Row, Btn, full, mlbl } from "./ui.jsx";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { Sl, Tile, Row, Btn, full, mlbl, ChTip } from "./ui.jsx";
 import { ASSET_CLASS_DEFAULTS, ASSET_CLASSES, CY } from "../constants.js";
 
 const ALL_INVEST_CLASSES = ASSET_CLASSES.filter(cls => cls !== "Cash" && cls !== "Immobilien" && cls !== "Forderung");
 
-export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist, ownerFilter, filteredAssets }) {
+export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist, ownerFilter, filteredAssets, cashflowProjection }) {
   const totalManual = ALL_INVEST_CLASSES.reduce((t, cls) => t + (s.manualSparDist[cls]||0), 0);
   const manualDiff  = cf.eff - totalManual;
   const hasImmo       = filteredAssets.some(a => a.class === "Immobilien");
@@ -280,6 +281,64 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
         <Row label="Sparrate" value={"-" + full(cf.eff)} type="out" T={T} />
         <Row label="Monatssaldo" value={(cf.saldo>=0?"+":"")+full(cf.saldo)} type={cf.saldo>=0?"in":"warn"} bold T={T} />
       </div>
+
+      {/* Cashflow-Vorschau */}
+      {cashflowProjection?.length > 1 && (
+        <div style={{ background:T.surface, border:"1px solid "+T.border, borderRadius:10, padding:14 }}>
+          <div style={{ fontSize:9, color:T.textLow, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:4 }}>Cashflow-Vorschau</div>
+          <div style={{ fontSize:9, color:T.textDim, marginBottom:12 }}>Einnahmen, Ausgaben und Sparrate über den Planungshorizont</div>
+
+          <ResponsiveContainer width="100%" height={180}>
+            <AreaChart data={cashflowProjection} margin={{ top:4, right:8, left:0, bottom:0 }}>
+              <defs>
+                <linearGradient id="cfInc" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={T.green} stopOpacity={0.3} />
+                  <stop offset="95%" stopColor={T.green} stopOpacity={0.02} />
+                </linearGradient>
+                <linearGradient id="cfBound" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={T.red} stopOpacity={0.25} />
+                  <stop offset="95%" stopColor={T.red} stopOpacity={0.02} />
+                </linearGradient>
+                <linearGradient id="cfSp" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={T.accent} stopOpacity={0.3} />
+                  <stop offset="95%" stopColor={T.accent} stopOpacity={0.02} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke={T.border} />
+              <XAxis dataKey="age" tick={{ fill:T.textLow, fontSize:9 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill:T.textLow, fontSize:9 }} tickFormatter={v => full(v)} width={52} axisLine={false} tickLine={false} />
+              <Tooltip content={(props) => <ChTip {...props} T={T} />} />
+              <Area type="monotone" dataKey="avail"  name="Einnahmen" stroke={T.green}  fill="url(#cfInc)"   strokeWidth={2} dot={false} />
+              <Area type="monotone" dataKey="bound"  name="Ausgaben"  stroke={T.red}    fill="url(#cfBound)" strokeWidth={1.5} dot={false} />
+              <Area type="monotone" dataKey="sp"     name="Sparrate"  stroke={T.accent} fill="url(#cfSp)"    strokeWidth={2} dot={false} />
+            </AreaChart>
+          </ResponsiveContainer>
+
+          {/* 5-yearly table */}
+          <div style={{ marginTop:14, overflowX:"auto" }}>
+            <table style={{ width:"100%", borderCollapse:"collapse", fontSize:9 }}>
+              <thead>
+                <tr style={{ borderBottom:"1px solid "+T.border }}>
+                  {["Jahr","Alter","Einnahmen","Ausgaben","Sparrate"].map(h => (
+                    <th key={h} style={{ padding:"3px 6px", color:T.textLow, fontWeight:700, textAlign:h==="Jahr"||h==="Alter"?"left":"right", whiteSpace:"nowrap" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {cashflowProjection.filter((_, i) => i % 5 === 0).map(row => (
+                  <tr key={row.year} style={{ borderBottom:"1px solid "+T.border+"66" }}>
+                    <td style={{ padding:"4px 6px", color:T.text, fontWeight:600 }}>{row.year}</td>
+                    <td style={{ padding:"4px 6px", color:T.textDim }}>{row.age}</td>
+                    <td style={{ padding:"4px 6px", color:T.green, textAlign:"right", fontWeight:700 }}>{full(row.avail)}</td>
+                    <td style={{ padding:"4px 6px", color:T.red, textAlign:"right" }}>{full(row.bound)}</td>
+                    <td style={{ padding:"4px 6px", color:T.accent, textAlign:"right", fontWeight:700 }}>{full(row.sp)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Check-in history */}
       {s.checkins?.length > 0 && (

@@ -2,9 +2,8 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { Sl, ChTip, fmtE, full } from "./ui.jsx";
 import { CY, ASSET_CLASS_DEFAULTS } from "../constants.js";
 
-const exportCSV = (projection, s, currentAge) => {
+const exportCSV = (projection, cashflowProjection, s) => {
   const assets = s.assets || [];
-  // Initial net value per asset class
   const classNet = {}, ownerNet = {};
   let totalV0 = 0;
   assets.forEach(a => {
@@ -18,20 +17,28 @@ const exportCSV = (projection, s, currentAge) => {
   const owners  = s.owners || [];
 
   const hdr = [
-    "Jahr","Datum","Alter","Sparrate_monatl_EUR",
+    "Jahr","Datum","Alter",
+    "Einnahmen_monatl_EUR","Ausgaben_monatl_EUR","Sparrate_monatl_EUR",
+    "Immo_NetCF_monatl_EUR","Kapitalertraege_monatl_EUR","Kreditraten_monatl_EUR",
     "Portfolio_Basis_EUR","Portfolio_Konservativ_EUR","Portfolio_Optimistisch_EUR",
-    ...classes.map(c => `Klasse_${c}_EUR`),
-    ...owners.map(o => `Eigentümer_${o.label}_EUR`),
+    ...classes.map(c => `Klasse_${c.replace(/ /g,"_")}_EUR`),
+    ...owners.map(o => `Eigentümer_${o.label.replace(/ /g,"_")}_EUR`),
   ];
 
   const rows = projection.map((row, y) => {
+    const cf    = cashflowProjection?.[y] || {};
     const year  = CY + y;
     const scale = totalV0 > 0 ? row.base / totalV0 : 0;
     return [
       year,
       `31.12.${year}`,
       row.age,
-      row.sp ?? "",
+      Math.round(cf.avail   ?? 0),
+      Math.round(cf.bound   ?? 0),
+      Math.round(cf.sp      ?? row.sp ?? 0),
+      Math.round(cf.immoNetCF  ?? 0),
+      Math.round(cf.assetYield ?? 0),
+      Math.round(cf.otherAnnu  ?? 0),
       row.base, row.cons, row.opt,
       ...classes.map(c => Math.round((classNet[c]||0) * scale)),
       ...owners.map(o => Math.round((ownerNet[o.id]||0) * scale)),
@@ -46,7 +53,7 @@ const exportCSV = (projection, s, currentAge) => {
   URL.revokeObjectURL(url);
 };
 
-export default function TabProjektion({ s, T, upd, cf, agg, projection, final, loanSummary, setModal, projClassFilter, toggleProjClass, resetProjClass, availClasses, currentAge }) {
+export default function TabProjektion({ s, T, upd, cf, agg, projection, final, loanSummary, setModal, projClassFilter, toggleProjClass, resetProjClass, availClasses, currentAge, cashflowProjection }) {
   const isFiltered = projClassFilter.length > 0;
 
   // Dynamic milestones based on current net worth
@@ -87,7 +94,7 @@ export default function TabProjektion({ s, T, upd, cf, agg, projection, final, l
 
       {/* Export */}
       <div style={{ display:"flex", justifyContent:"flex-end" }}>
-        <button onClick={() => exportCSV(projection, s, currentAge)}
+        <button onClick={() => exportCSV(projection, cashflowProjection, s)}
           style={{ padding:"6px 14px", borderRadius:7, border:"1px solid "+T.border, background:T.surfaceHigh, color:T.textMid, cursor:"pointer", fontSize:11, fontWeight:700, WebkitTapHighlightColor:"transparent" }}>
           ↓ Excel-Export (CSV)
         </button>
