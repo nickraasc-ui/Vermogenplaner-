@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import AppInner from "./AppInner.jsx";
+import GuideModal from "./components/GuideModal.jsx";
 
 // ----------------------------------------------------------------- utils ---
 const uid = () => Math.random().toString(36).slice(2, 9);
@@ -83,7 +84,7 @@ export default function App() {
   const [darkMode,   setDarkMode]   = useState(() => {
     try { return JSON.parse(localStorage.getItem("wealth-dark") ?? "true"); } catch { return true; }
   });
-  const [modal, setModal] = useState(null); // "new" | "edit:{id}" | "delete:{id}"
+  const [modal, setModal] = useState(null); // "new" | "edit:{id}" | "delete:{id}" | "guide"
 
   const T = darkMode ? DARK : LIGHT;
 
@@ -208,6 +209,7 @@ export default function App() {
       {modal==="new"    && <ProfileForm/>}
       {editTarget       && <ProfileForm existing={editTarget}/>}
       {delTarget        && <DeleteConfirm profile={delTarget}/>}
+      {modal==="guide"  && <GuideModal T={T} onClose={() => setModal(null)} onCreateProfile={() => setModal("new")} />}
 
       {/* Header */}
       <div style={{ background:T.surface, borderBottom:"1px solid "+T.border, padding:"16px 18px 14px", paddingTop:"calc(16px + env(safe-area-inset-top,0px))", position:"sticky", top:0, zIndex:50 }}>
@@ -217,6 +219,10 @@ export default function App() {
             <div style={{ fontSize:20, fontWeight:900, color:T.text, letterSpacing:"-0.02em", marginTop:2 }}>Profile</div>
           </div>
           <div style={{ display:"flex", gap:8 }}>
+            <button onClick={() => setModal("guide")}
+              style={{ background:T.accent+"15", border:"1px solid "+T.accent+"44", borderRadius:20, padding:"6px 14px", cursor:"pointer", fontSize:12, fontWeight:700, color:T.accent, WebkitTapHighlightColor:"transparent" }}>
+              ? Anleitung
+            </button>
             <button onClick={() => setDarkMode(d=>!d)}
               style={{ background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:20, padding:"6px 12px", cursor:"pointer", fontSize:13, color:T.textMid, WebkitTapHighlightColor:"transparent" }}>
               {darkMode ? "Light" : "Dark"}
@@ -229,13 +235,21 @@ export default function App() {
 
         {/* Profile grid */}
         {profiles.length === 0 && (
-          <div style={{ background:T.surface, border:"1px dashed "+T.border, borderRadius:14, padding:40, textAlign:"center", marginBottom:16 }}>
-            <div style={{ fontSize:32, marginBottom:12 }}>+</div>
-            <div style={{ fontSize:14, fontWeight:700, color:T.textMid, marginBottom:6 }}>Kein Profil vorhanden</div>
-            <div style={{ fontSize:11, color:T.textDim, marginBottom:20, lineHeight:1.6 }}>
-              Lege dein erstes Profil an. Jedes Profil hat eigene Vermogensdaten, Haushaltswerte und Projektionen.
+          <div style={{ background:T.surface, border:"1px solid "+T.accent+"33", borderRadius:14, padding:32, textAlign:"center", marginBottom:16 }}>
+            <div style={{ fontSize:40, marginBottom:12 }}>◈</div>
+            <div style={{ fontSize:16, fontWeight:900, color:T.text, marginBottom:6, letterSpacing:"-0.01em" }}>Willkommen im Vermögensplaner</div>
+            <div style={{ fontSize:11, color:T.textDim, marginBottom:20, lineHeight:1.7 }}>
+              Ein privates Tool für komplexe Vermögensstrukturen — Immobilien, ETFs, Beteiligungen, mehrere Eigentümer, 35-Jahres-Projektion.
             </div>
-            <Btn color={T.accent} T={T} onClick={() => setModal("new")}>Erstes Profil anlegen</Btn>
+            <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+              <Btn full color={T.accent} T={T} onClick={() => setModal("guide")}>
+                Anleitung ansehen (empfohlen)
+              </Btn>
+              <button onClick={() => setModal("new")}
+                style={{ background:"transparent", border:"1px solid "+T.border, borderRadius:8, padding:"10px 18px", cursor:"pointer", fontSize:13, fontWeight:600, color:T.textMid, fontFamily:"inherit" }}>
+                Direkt Profil anlegen
+              </button>
+            </div>
           </div>
         )}
 
