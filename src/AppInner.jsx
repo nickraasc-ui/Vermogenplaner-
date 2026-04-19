@@ -206,12 +206,6 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
   }, [filteredAssets, s.sparDistMode, s.manualSparDist, cf.eff]);
 
   const projection = useMemo(() => {
-    const investable  = projAssets.filter(a => !a.locked && a.class!=="Cash" && a.class!=="Immobilien" && a.class!=="Forderung" && a.class!=="Sonstiges");
-    const invTotal    = investable.reduce((t, a) => t+(a.value||0), 0) || 1;
-    const classTotals = {};
-    investable.forEach(a => { classTotals[a.class] = (classTotals[a.class]||0)+(a.value||0); });
-    const hasAnyInvestable = filteredAssets.some(a => !a.locked && a.class!=="Cash" && a.class!=="Immobilien" && a.class!=="Forderung" && a.class!=="Sonstiges");
-    const sp0 = cf.eff || 0;
     const rentGrowth = s.immoRentGrowthPct || 0;
 
     const nonImmoLoans = projAssets
@@ -248,7 +242,6 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
         const sy = +(b.financingStart||b.year||CY);
         return absYear >= sy && absYear < sy+Math.ceil((+b.financingMonths||12)/12) ? t+(+b.monthlyPayment||0) : t;
       }, 0);
-      // Sparratenänderung-Szenarien
       const spDelta = activeB.filter(b => b.type === "Sparrate").reduce((t, b) => {
         const from = +(b.startsAt||CY), to = b.endsAt ? +b.endsAt : Infinity;
         return absYear >= from && absYear <= to ? t + (b.delta||0) : t;
@@ -263,78 +256,87 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
       const runCosts = projAssets.filter(a => a.class!=="Immobilien" && (a.monthlyRunningCost||0)>0).reduce((t, a) => t+(a.monthlyRunningCost||0), 0);
       const otherAnnu = projAssets.filter(a => a.class!=="Immobilien" && a.class!=="Forderung" && (a.debt||0)>0).reduce((t, a) =>
         t + (computeRemDebt(a, y) > 0 ? (a.loanAnnuitat||0) : 0), 0);
-      // Ausschüttungsrenditen aus Finanzassets (Dividenden, Kupons) — ggf. nach KeSt
       const assetYield = projAssets
         .filter(a => (a.yieldPct||0) > 0 && a.class !== "Immobilien" && a.class !== "Forderung")
         .reduce((t, a) => t + (a.value||0) * (a.yieldPct||0) / 100 / 12 * (s.taxOnReturns ? (1 - kestRate(a)) : 1), 0);
       return Math.max(0, (inc + yImmoNetCF + fordInc + assetYield + spDelta) - (exp + runCosts + otherAnnu + financed));
     };
 
-    const getAdd = (asset, sp) => {
-      if (asset.locked || asset.class==="Cash" || asset.class==="Immobilien" || asset.class==="Forderung" || asset.class==="Sonstiges") return 0;
-      if (s.sparDistMode === "manual") {
-        const cm = (s.manualSparDist[asset.class]||0) * (sp0 > 0 ? sp/sp0 : 1);
-        return cm * ((asset.value||0)/(classTotals[asset.class]||1));
-      }
-      return sp * ((asset.value||0)/invTotal);
-    };
-
+    // Fixed: default ty to CY so buckets without year/age still fire; respect endsAt for recurring types
     const bucketDrain = (year) => {
       let d = 0;
       (s.buckets||[]).filter(b => b.active !== false).forEach(b => {
         if (b.fundingMode === "financed") return;
-        if (b.type === "Sparrate") return; // handled via spDelta in computeSp
-        const ty = b.year ? +b.year : b.age ? CY+(+b.age-currentAge) : null;
-        if (!ty) return;
-        const sign = b.type === "Zufluss" ? -1 : 1; // Zufluss = negative drain (adds to wealth)
+        if (b.type === "Sparrate") return;
+        const ty = b.year ? +b.year : b.age ? CY+(+b.age-currentAge) : CY;
+        const sign = b.type === "Zufluss" ? -1 : 1;
         if (b.type==="Einmalig" || b.type==="Zufluss") { if (year===ty) d += sign*(b.amount||0); return; }
-        if (b.type==="Jährlich" || b.type==="Jahrlich") { if (year>=ty) d += b.amount||0; return; }
-        if (b.type==="Monatlich" && year>=ty) d += (b.amount||0)*12;
+        if (b.type==="Jährlich" || b.type==="Jahrlich") {
+          if (year>=ty && (!b.endsAt || year<=+b.endsAt)) d += b.amount||0; return;
+        }
+        if (b.type==="Monatlich" && year>=ty && (!b.endsAt || year<=+b.endsAt)) d += (b.amount||0)*12;
       });
       return d;
     };
 
-    return Array.from({ length:s.horizon+1 }, (_, y) => {
-      const row = { age: currentAge + y };
-      const sp = computeSp(y);
-      [["cons",-2],["base",0],["opt",2]].forEach(([key, adj]) => {
-        let total = 0;
-        projAssets.forEach(a => {
-          const pretaxR  = (s.classReturns[a.class]||5) + adj;
-          const yieldPct = a.yieldPct || 0;
-          // Capital appreciation = total return minus distributed yield (yield flows via sparrate/cashflow)
-          const capApprR = pretaxR - yieldPct;
-          const kest     = s.taxOnReturns ? kestRate(a) : 0;
-          const baseR    = capApprR * (1 - kest);
-          const r = Math.max(0, baseR/100), rm = r/12, mo = y*12;
-          if (a.class==="Forderung") {
-            const rep = a.monthlyRepayment||0;
-            total += Math.max(0, rm>0 ? (a.value||0)*Math.pow(1+rm,mo)-rep*((Math.pow(1+rm,mo)-1)/rm) : (a.value||0)-rep*mo); return;
-          }
-          if (a.class==="Immobilien") {
-            const growR = Math.max(0, ((s.classReturns["Immobilien"]||3)+adj) / 100);
-            const remDebt = computeRemDebt(a, y);
-            total += (a.value||0)*Math.pow(1+growR/12,mo) - remDebt; return;
-          }
-          if (a.class==="Cash") { total += (a.value||0)*Math.pow(1+rm,mo); return; }
-          if (a.class==="Sonstiges") { total += Math.max(0,(a.value||0)*Math.pow(1+Math.min(0,baseR/100)/12,mo)); return; }
-          const add = getAdd(a, sp);
-          total += rm>0 ? (a.value||0)*Math.pow(1+rm,mo)+add*((Math.pow(1+rm,mo)-1)/rm) : (a.value||0)+add*mo;
-        });
-        if (!hasAnyInvestable && sp > 0) {
-          const pretaxDef = (s.classReturns?.["Aktien-ETF"]||8) + adj;
-          const kestDef   = s.taxOnReturns ? KEST_RATES["Aktien-ETF"] : 0;
-          const defR = Math.max(0, pretaxDef * (1 - kestDef) / 100);
-          const rm_def = defR/12, mo = y*12;
-          total += rm_def>0 ? sp*((Math.pow(1+rm_def,mo)-1)/rm_def) : sp*mo;
-        }
-        let drain = 0;
-        for (let i=0; i<=y; i++) drain += bucketDrain(CY+i);
-        total = Math.max(0, total-drain);
-        if (s.inflationAdj) total /= Math.pow(1+s.inflation/100,y);
-        row[key] = Math.round(total);
+    // Initial net portfolio value (Immo: net equity, others: gross value)
+    const V0 = projAssets.reduce((t, a) => {
+      if (a.class === "Immobilien") return t + Math.max(0, (a.value||0) - (a.debt||0));
+      return t + (a.value||0);
+    }, 0);
+
+    // Blended net annual return rate weighted by initial asset net values
+    const computeBlendedRM = (adj) => {
+      let totalV = 0, wtdR = 0;
+      projAssets.forEach(a => {
+        if (a.class === "Forderung") return; // repayments flow through sp
+        const netV = a.class === "Immobilien"
+          ? Math.max(0, (a.value||0) - (a.debt||0))
+          : (a.value||0);
+        if (netV <= 0) return;
+        const pretaxR  = (s.classReturns[a.class]||5) + adj;
+        const capApprR = pretaxR - (a.yieldPct||0); // yield flows separately through sp
+        const kest     = s.taxOnReturns ? kestRate(a) : 0;
+        const netAnnR  = Math.max(0, capApprR * (1 - kest));
+        totalV += netV;
+        wtdR   += netV * netAnnR;
       });
-      return row;
+      if (totalV === 0) {
+        const def = ((s.classReturns?.["Aktien-ETF"]||8) + adj) * (s.taxOnReturns ? (1-KEST_RATES["Aktien-ETF"]) : 1);
+        return Math.max(0, def) / 100 / 12;
+      }
+      return Math.max(0, wtdR / totalV) / 100 / 12;
+    };
+
+    // Incremental year-by-year simulation — correctly handles depletion and compounding on drains
+    const runScenario = (adj) => {
+      const rm  = computeBlendedRM(adj);
+      const g12 = Math.pow(1 + rm, 12);             // 1-year portfolio growth factor
+      const spF = rm > 0 ? (g12 - 1) / rm : 12;    // FV factor for monthly savings over 12 months
+      let V = V0;
+      const vals = [V0];
+      for (let y = 1; y <= s.horizon; y++) {
+        const sp    = computeSp(y);
+        const drain = bucketDrain(CY + y);
+        // If V reaches 0, savings can still rebuild it; max(0) prevents negative wealth
+        V = Math.max(0, V * g12 + sp * spF - drain);
+        vals.push(V);
+      }
+      return vals;
+    };
+
+    const consVals = runScenario(-2);
+    const baseVals = runScenario(0);
+    const optVals  = runScenario(2);
+
+    return Array.from({ length: s.horizon+1 }, (_, y) => {
+      const sp = computeSp(y);
+      let cons = consVals[y], base = baseVals[y], opt = optVals[y];
+      if (s.inflationAdj) {
+        const inf = Math.pow(1 + s.inflation/100, y);
+        cons /= inf; base /= inf; opt /= inf;
+      }
+      return { age: currentAge + y, sp: Math.round(sp), cons: Math.round(cons), base: Math.round(base), opt: Math.round(opt) };
     });
   }, [s, projAssets, filteredIncomeStreams, cf.eff, currentAge]);
 

@@ -107,9 +107,12 @@ export default function BucketModal({ data, s, T, setModal, updArr }) {
             <Inp label="Betrag (€)" value={f.amount} onChange={v => set("amount",v)} type="number" T={T} />
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
-            <Inp label="Zieljahr" value={f.year} onChange={v => set("year",v)} type="number" placeholder={String(CY+2)} T={T} />
+            <Inp label="Startet im Jahr" value={f.year} onChange={v => set("year",v)} type="number" placeholder={String(CY)} T={T} />
             <Inp label="oder Alter" value={f.age} onChange={v => set("age",v)} type="number" placeholder="45" T={T} />
           </div>
+          {(f.type==="Jährlich"||f.type==="Monatlich") && (
+            <Inp label="Endet im Jahr (opt.)" value={f.endsAt||""} onChange={v => set("endsAt", v ? +v : null)} type="number" placeholder="unbegrenzt" T={T} />
+          )}
         </div>
       )}
 

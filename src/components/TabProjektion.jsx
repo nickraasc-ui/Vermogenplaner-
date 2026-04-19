@@ -2,6 +2,50 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { Sl, ChTip, fmtE, full } from "./ui.jsx";
 import { CY, ASSET_CLASS_DEFAULTS } from "../constants.js";
 
+const exportCSV = (projection, s, currentAge) => {
+  const assets = s.assets || [];
+  // Initial net value per asset class
+  const classNet = {}, ownerNet = {};
+  let totalV0 = 0;
+  assets.forEach(a => {
+    const v = a.class === "Immobilien" ? Math.max(0, (a.value||0)-(a.debt||0)) : (a.value||0);
+    classNet[a.class] = (classNet[a.class]||0) + v;
+    totalV0 += v;
+    const ownership = a.ownership || (a.owner ? [{ownerId:a.owner, share:1}] : []);
+    ownership.forEach(o => { ownerNet[o.ownerId] = (ownerNet[o.ownerId]||0) + v*(o.share||0); });
+  });
+  const classes = Object.keys(classNet);
+  const owners  = s.owners || [];
+
+  const hdr = [
+    "Jahr","Datum","Alter","Sparrate_monatl_EUR",
+    "Portfolio_Basis_EUR","Portfolio_Konservativ_EUR","Portfolio_Optimistisch_EUR",
+    ...classes.map(c => `Klasse_${c}_EUR`),
+    ...owners.map(o => `Eigentümer_${o.label}_EUR`),
+  ];
+
+  const rows = projection.map((row, y) => {
+    const year  = CY + y;
+    const scale = totalV0 > 0 ? row.base / totalV0 : 0;
+    return [
+      year,
+      `31.12.${year}`,
+      row.age,
+      row.sp ?? "",
+      row.base, row.cons, row.opt,
+      ...classes.map(c => Math.round((classNet[c]||0) * scale)),
+      ...owners.map(o => Math.round((ownerNet[o.id]||0) * scale)),
+    ];
+  });
+
+  const csv = [hdr, ...rows].map(r => r.join(";")).join("\r\n");
+  const blob = new Blob(["\uFEFF"+csv], { type:"text/csv;charset=utf-8;" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href = url; a.download = `Vermogenplaner_${CY}.csv`; a.click();
+  URL.revokeObjectURL(url);
+};
+
 export default function TabProjektion({ s, T, upd, cf, agg, projection, final, loanSummary, setModal, projClassFilter, toggleProjClass, resetProjClass, availClasses, currentAge }) {
   const isFiltered = projClassFilter.length > 0;
 
@@ -40,6 +84,14 @@ export default function TabProjektion({ s, T, upd, cf, agg, projection, final, l
 
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+
+      {/* Export */}
+      <div style={{ display:"flex", justifyContent:"flex-end" }}>
+        <button onClick={() => exportCSV(projection, s, currentAge)}
+          style={{ padding:"6px 14px", borderRadius:7, border:"1px solid "+T.border, background:T.surfaceHigh, color:T.textMid, cursor:"pointer", fontSize:11, fontWeight:700, WebkitTapHighlightColor:"transparent" }}>
+          ↓ Excel-Export (CSV)
+        </button>
+      </div>
 
       {/* Asset class filter */}
       {availClasses.length > 1 && (
