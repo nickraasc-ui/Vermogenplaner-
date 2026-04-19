@@ -2,16 +2,17 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "rec
 import { Tile, fmtE, full, mlbl } from "./ui.jsx";
 import { LIQUIDITY_CATS, LIQ_CLR, CY } from "../constants.js";
 
-export default function TabDashboard({ s, T, setModal, agg, cf, loanSummary, lastCI, snaps, totalMonthlyLoanPayment, projection, final, currentAge }) {
+export default function TabDashboard({ s, T, setModal, setTab, agg, cf, loanSummary, lastCI, snaps, totalMonthlyLoanPayment, projection, final, currentAge }) {
+  const activeBuckets = (s.buckets||[]).filter(b => b.active !== false).length;
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8 }}>
         {[
-          { lbl:"Check-in", sub:lastCI ? mlbl(lastCI.month) : "Noch keiner", type:"checkin", color:T.accent },
-          { lbl:"Snapshot", sub:(s.snapshots?.length||0)+" gespeichert", type:"snapshot", color:T.green },
-          { lbl:"Leisten?", sub:"Affordability", type:"afford", color:T.purple },
-        ].map(({ lbl, sub, type, color }) => (
-          <button key={type} onClick={() => setModal({ type })}
+          { lbl:"Check-in", sub:lastCI ? mlbl(lastCI.month) : "Noch keiner", onClick:() => setModal({ type:"checkin" }), color:T.accent },
+          { lbl:"Snapshot", sub:(s.snapshots?.length||0)+" gespeichert", onClick:() => setModal({ type:"snapshot" }), color:T.green },
+          { lbl:"Szenarien", sub:activeBuckets ? activeBuckets+" aktive" : "Keine aktiven", onClick:() => setTab("buckets"), color:T.purple },
+        ].map(({ lbl, sub, onClick, color }) => (
+          <button key={lbl} onClick={onClick}
             style={{ background:T.surface, border:"1px solid "+color+"22", borderRadius:12, padding:"13px 6px", cursor:"pointer", textAlign:"center", WebkitTapHighlightColor:"transparent" }}>
             <div style={{ fontSize:11, fontWeight:700, color }}>{lbl}</div>
             <div style={{ fontSize:8, color:T.textLow, marginTop:3 }}>{sub}</div>
@@ -63,13 +64,25 @@ export default function TabDashboard({ s, T, setModal, agg, cf, loanSummary, las
       )}
 
       {lastCI && (() => {
-        const dA = (lastCI.ausgaben_ist||0) - cf.streamExpense;
+        const ausgaben = lastCI.streamExp_ist ?? lastCI.ausgaben_ist ?? 0;
+        const dA = ausgaben - cf.streamExpense;
         const dS = (lastCI.sparrate_ist||0) - cf.eff;
+        const hasInc = lastCI.inc_ist != null;
+        const dI = hasInc ? (lastCI.inc_ist||0) - cf.avail : null;
+        const cols = hasInc ? [
+          { lbl:"Einnahmen IST", val:full(lastCI.inc_ist), delta:dI, inv:false },
+          { lbl:"Ausgaben IST", val:full(ausgaben), delta:dA, inv:true },
+          { lbl:"Investiert", val:full(lastCI.sparrate_ist), delta:dS, inv:false },
+        ] : [
+          { lbl:"Ausgaben IST", val:full(ausgaben), delta:dA, inv:true },
+          { lbl:"Investiert", val:full(lastCI.sparrate_ist), delta:dS, inv:false },
+          { lbl:"Reserven", val:full(lastCI.reserven_ist), delta:null },
+        ];
         return (
           <div style={{ background:T.surface, border:"1px solid "+T.border, borderRadius:10, padding:14 }}>
             <div style={{ fontSize:9, color:T.textLow, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:10 }}>Check-in {mlbl(lastCI.month)}</div>
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8 }}>
-              {[{ lbl:"Ausgaben IST", val:full(lastCI.ausgaben_ist), delta:dA, inv:true }, { lbl:"Investiert", val:full(lastCI.sparrate_ist), delta:dS, inv:false }, { lbl:"Reserven", val:full(lastCI.reserven_ist), delta:null }].map(({ lbl, val, delta, inv }) => (
+              {cols.map(({ lbl, val, delta, inv }) => (
                 <div key={lbl}>
                   <div style={{ fontSize:9, color:T.textDim }}>{lbl}</div>
                   <div style={{ fontSize:13, fontWeight:800, color:T.text }}>{val}</div>
@@ -100,7 +113,7 @@ export default function TabDashboard({ s, T, setModal, agg, cf, loanSummary, las
         <Tile label="Basis-Projektion" value={fmtE(final.base)} sub={"Konservativ: "+fmtE(final.cons)} color={T.accent} T={T} />
         <Tile label="Eff. Sparrate" value={full(cf.eff)+"/Mo."} sub={"Sparquote "+cf.quote.toFixed(1)+"%"} color={T.green} T={T} />
         <Tile label="Gew. Avg-Rendite" value={agg.wavgReturn.toFixed(1)+"%"} sub={"auf Basis aktueller Allokation"} color={T.amber} T={T} />
-        <Tile label="Aktive Buckets" value={String(s.buckets?.length||0)} sub={s.buckets?.length?"Fließt in Projektion":"Noch keine"} color={T.purple} T={T} />
+        <Tile label="Szenarien" value={String(activeBuckets)} sub={activeBuckets?"Fließen in Projektion":"Noch keine"} color={T.purple} T={T} />
       </div>
     </div>
   );

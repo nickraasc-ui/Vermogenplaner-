@@ -41,7 +41,7 @@ const IllustrationOverview = ({ T }) => (
       { x:76,  label:"Haushalt",   icon:"⇄",  color:"#10b981" },
       { x:132, label:"Vermögen",   icon:"◉",  color:"#a78bfa" },
       { x:188, label:"Projektion", icon:"↗",  color:"#f59e0b" },
-      { x:244, label:"Ausgaben",   icon:"◎",  color:"#f472b6" },
+      { x:244, label:"Szenarien",  icon:"◎",  color:"#f472b6" },
     ].map(t => (
       <g key={t.x}>
         <rect x={t.x} y="20" width="52" height="52" rx="10" fill={t.color+"22"} stroke={t.color+"55"} strokeWidth="1" />
@@ -303,13 +303,14 @@ const StepContent = ({ step, T }) => {
     <div>
       <IllustrationHaushalt T={T} />
       <div style={{ ...box, marginTop:12 }}>
-        Der Tab <strong style={{ color:T.text }}>Haushalt</strong> zeigt deinen monatlichen Geldfluss. Das Ergebnis — die <strong style={{ color:"#f59e0b" }}>Sparrate</strong> — fließt direkt in die Projektion.
+        Der Tab <strong style={{ color:T.text }}>Haushalt</strong> zeigt deinen monatlichen Geldfluss — heute und in der Zukunft. Die <strong style={{ color:"#f59e0b" }}>Cashflow-Vorschau</strong> rechnet Einnahmen und Ausgaben über den gesamten Zeithorizont fort.
       </div>
       <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
         {[
           { icon:"↑", color:"#10b981", title:"Einnahmen (Zuflüsse)", items:["Einkommensströme (Gehalt, Freelance, Rente)", "Immo-Netto-CF (Miete − Hausgeld − Annuität)", "Ausschüttungsrenditen (Dividenden, Kupons)", "Forderungs-Rückflüsse"] },
-          { icon:"↓", color:"#ef4444", title:"Ausgaben (Abflüsse)", items:["Lebenshaltung, Versicherung, Bildung", "Darlehensannuitäten (Nicht-Immo)", "Laufende Asset-Kosten (Liegeplatz etc.)"] },
+          { icon:"↓", color:"#ef4444", title:"Ausgaben (Abflüsse)", items:["Lebenshaltung, Versicherung, Bildung", "Darlehensannuitäten (fallen weg wenn abbezahlt)", "Laufende Asset-Kosten (Liegeplatz etc.)"] },
           { icon:"→", color:"#f59e0b", title:"Sparrate", items:["Auto-Modus: alles was übrig bleibt", "Manuell: fixer Betrag einstellbar", "Fließt proportional in investierbare Assets"] },
+          { icon:"📅", color:"#38bdf8", title:"Jahres-Regler & Check-in", items:["Regler in der Cashflow-Vorschau wählt beliebiges Jahr", "Monatsübersicht zeigt projizierte Werte für dieses Jahr", "IST-Daten erfassen und mit der Prognose vergleichen"] },
         ].map(s => (
           <div key={s.title} style={{ ...box, display:"flex", gap:10, marginBottom:0 }}>
             <div style={{ fontSize:18, color:s.color, flexShrink:0, lineHeight:1.2 }}>{s.icon}</div>
@@ -346,6 +347,14 @@ const StepContent = ({ step, T }) => {
       </div>
       <div style={{ ...box }}>
         <strong style={{ color:T.text }}>Milestones</strong> zeigen, in welchem Lebensjahr du 250k, 500k, 1M, 2M … erreichen wirst. Darlehens-Enddaten werden ebenfalls angezeigt.
+      </div>
+      <div style={{ ...box }}>
+        <strong style={{ color:T.text }}>Szenario-Planer</strong> (Tab "Szenarien"): Plane Einmalereignisse, Erbschaften, Gehaltssteigerungen oder finanzierte Käufe. Vier Typen:
+        <div style={{ marginTop:4 }}>
+          {[["↓ Ausgabe","Einmalig/Jährlich/Monatlich aus dem Portfolio"],["↑ Zufluss","Erbschaft, Bonus, Verkaufserlös"],["⇄ Sparratenänderung","Renteneintritt, Teilzeit, Gehaltserhöhung"],["≡ Finanziert","Kauf auf Kredit — Rate reduziert die Sparrate"]].map(([t,d]) => (
+            <div key={t} style={{ fontSize:9, color:T.textDim, marginBottom:2 }}>• <strong style={{ color:T.textMid }}>{t}</strong> — {d}</div>
+          ))}
+        </div>
       </div>
     </div>
   );

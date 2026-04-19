@@ -7,11 +7,11 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
   const defaultOwnership = owners[0] ? [{ ownerId: owners[0].id, share: 1.0 }] : [];
 
   const [f, setF] = useState(() => {
-    if (data) return { loanType: "annuitat", loanTermYears: data.loanTermYears || "", ...data };
+    if (data) return { loanType: "annuitat", loanTermYears: data.loanTermYears || "", manualAnnuitat: "", ...data };
     return {
       name: "", ownership: defaultOwnership, class: "Aktien-ETF", liquidity: "Liquide",
       value: "", debt: "", locked: false, note: "",
-      loanType: "annuitat", loanRate: "3.5", loanTermYears: "",
+      loanType: "annuitat", loanRate: "3.5", loanTermYears: "", manualAnnuitat: "",
       monthlyRent: "", hausgeld: "", grundsteuer: "",
       monthlyRepayment: "", monthlyRunningCost: "",
       yieldPct: "0",
@@ -205,12 +205,16 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
             <Inp label="Zinssatz % p.a." value={f.loanRate} onChange={v => set({ loanRate: v })} type="number" T={T} />
             <Inp label="Laufzeit (Jahre)" value={f.loanTermYears} onChange={v => set({ loanTermYears: v })} type="number" placeholder="z.B. 20" T={T} />
           </div>
+          {f.loanType === "annuitat" && (
+            <Inp label="Monatliche Rate manuell (€, opt.)" value={f.manualAnnuitat||""} onChange={v => set({ manualAnnuitat: v })} type="number"
+              placeholder={calcAnnuitat > 0 ? String(Math.round(calcAnnuitat)) : "Auto-Berechnung"} T={T} />
+          )}
           {/* Calculated results */}
-          {calcAnnuitat > 0 && (
+          {(+f.manualAnnuitat || calcAnnuitat) > 0 && (
             <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:6, marginTop:4 }}>
               <div style={{ background:T.bg, borderRadius:6, padding:"7px 8px" }}>
-                <div style={{ fontSize:8, color:T.textDim, marginBottom:2 }}>Annuität/Mo.</div>
-                <div style={{ fontSize:12, fontWeight:800, color:T.accent }}>{full(calcAnnuitat)}</div>
+                <div style={{ fontSize:8, color:T.textDim, marginBottom:2 }}>Annuität/Mo.{+f.manualAnnuitat > 0 ? " (manuell)" : ""}</div>
+                <div style={{ fontSize:12, fontWeight:800, color:T.accent }}>{full(+f.manualAnnuitat || calcAnnuitat)}</div>
               </div>
               <div style={{ background:T.bg, borderRadius:6, padding:"7px 8px" }}>
                 <div style={{ fontSize:8, color:T.textDim, marginBottom:2 }}>
@@ -341,13 +345,14 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
         const saveType = f.loanType || "annuitat";
         const saveMonthlyRate = saveRate / 1200;
         const saveMonths = saveTerm * 12;
-        const savedAnnuitat = (() => {
+        const calcedAnnuitat = (() => {
           if (!saveDebt || !saveMonthlyRate) return 0;
           if (saveType === "endfaellig") return saveDebt * saveMonthlyRate;
           if (!saveMonths) return 0;
           const r = saveMonthlyRate, n = saveMonths;
           return saveDebt * r * Math.pow(1+r,n) / (Math.pow(1+r,n)-1);
         })();
+        const savedAnnuitat = (saveType === "annuitat" && +f.manualAnnuitat > 0) ? +f.manualAnnuitat : calcedAnnuitat;
         const savedMonthlyInterest = saveDebt * saveMonthlyRate;
         const savedTilgung = saveType === "endfaellig" ? 0 : Math.max(0, savedAnnuitat - savedMonthlyInterest);
 

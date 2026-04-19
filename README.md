@@ -464,6 +464,28 @@ Dynamisch: Aus einem Satz vordefinierter Schwellen (250k, 500k, 750k, 1M, 1.5M, 
 
 ## Versionshistorie
 
+### v1.9 — Dashboard-Aufräumung & Darlehen-Annuität manuell (April 2026)
+- Dashboard-Schnellbutton "Leisten?" umbenannt zu **"Szenarien"** mit direktem Link zum Szenarien-Tab
+- "Aktive Buckets"-Kachel zeigt nur aktive Szenarien (Szenarien können deaktiviert werden)
+- Check-in-Anzeige auf Dashboard: nutzt `streamExp_ist` (neues Feld) statt `ausgaben_ist`; zeigt `inc_ist` wenn vorhanden
+- **AssetModal**: Für Annuitätendarlehen kann die monatliche Rate jetzt manuell eingegeben werden — überschreibt die Auto-Berechnung aus Zins + Laufzeit (nützlich wenn Bank-Rate bekannt ist)
+
+### v1.8 — Haushalt-Restrukturierung & erweiterter Check-in (April 2026)
+- Haushalt-Tab komplett neu geordnet: Auswertungen oben (Tiles, Cashflow-Vorschau, Monatsübersicht), Konfiguration unten
+- **Cashflow-Vorschau**: Jahres-Regler wählt beliebiges Jahr im Horizont; Monatsübersicht zeigt projizierte Werte für dieses Jahr (inkl. Darlehensfreifällen)
+- Schieberegler und Chart-Klick synchron: Klick auf Balken im Chart wählt das Jahr, Regler zeigt Position
+- **Erweiterter Check-in**: IST-Daten für jeden Zeitpunkt erfassen — Einnahmen, Ausgaben, Sparrate, Immo-CF; Live-Delta vs. Projektion; projizierte Werte als Referenz vorausgefüllt
+- Bestehende Check-ins werden in der Chart-Vorschau als Markierungen angezeigt
+- "+ IST erfassen"-Button im Tab kontextbezogen für das ausgewählte Jahr
+
+### v1.7 — Inkrementelle Projektion, CSV-Export & Szenario-Planer (April 2026)
+- **Projektions-Fix**: Umstellung von geschlossener Formel auf inkrementelle Jahres-Simulation — Portfolio fällt korrekt auf 0, negative Szenarien werden sauber abgebildet
+- Buckets: `endsAt`-Feld für wiederkehrende Ausgaben (Jährlich/Monatlich) — Szenario endet in definiertem Jahr
+- Buckets: Zieljahr-Bug behoben (kein Bucket-Jahr → defaultet auf aktuelles Jahr statt null)
+- **CSV-Export** der Projektion: pro Jahr mit Zeitstempel, Cashflow-Spalten (Einnahmen, Ausgaben, Sparrate, Immo-CF, Kapitalerträge, Kreditraten), proportionale Aufschlüsselung nach Asset-Klasse und Eigentümer
+- **Szenario-Planer** (Tab "Szenarien" umbenannt): 4 Typen — Ausgabe, Zufluss, Sparratenänderung, Finanziert; `active`-Toggle zum Ein-/Ausschalten ohne Löschen
+- `cashflowProjection`-Array als zentrale Datenquelle: versorgt Haushalt-Tab, Projektion-Tab und Check-in-Modal
+
 ### v1.6 — Darlehenstypen & exakte Tilgungsberechnung (April 2026)
 - Drei Darlehenstypen pro Asset: **Annuität** (gleichbleibende Rate), **Volltilger** (vollständige Tilgung in der Laufzeit), **Endfällig** (nur Zinsen, Kapital am Ende)
 - Annuität und Tilgung werden automatisch aus Zinssatz + Laufzeit + Restschuld berechnet (kein manuelles Einpflegen mehr)
