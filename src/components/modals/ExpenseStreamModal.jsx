@@ -5,15 +5,19 @@ import { EXPENSE_CATEGORIES, CY } from "../../constants.js";
 export default function ExpenseStreamModal({ data, s, T, setModal, updArr }) {
   const [f, setF] = useState(data
     ? { ...data, endsAt: data.endsAt ?? "" }
-    : { label:"", category:"Lebenshaltung", amount:"", startsAt:CY, endsAt:"" }
+    : { label:"", category:"Lebenshaltung", amount:"", startsAt:CY, endsAt:"", owner:"" }
   );
   const set = (k, v) => setF(p => ({ ...p, [k]: v }));
   const amt = +f.amount || 0;
+  const ownerOpts = [{ value:"", label:"Kein Eigentümer" }, ...(s.owners||[]).map(o => ({ value:o.id, label:o.label }))];
 
   return (
     <Sheet title={data?.id ? "Ausgabenstrom bearbeiten" : "Ausgabenstrom anlegen"} onClose={() => setModal(null)} T={T}>
       <Inp label="Bezeichnung" value={f.label} onChange={v => set("label",v)} placeholder="z.B. Kindergarten, Miete..." T={T} />
       <SelEl label="Kategorie" value={f.category} onChange={v => set("category",v)} options={EXPENSE_CATEGORIES} T={T} />
+      {(s.owners||[]).length > 0 && (
+        <SelEl label="Eigentümer" value={f.owner||""} onChange={v => set("owner",v)} options={ownerOpts} T={T} />
+      )}
       <Inp label="Betrag/Mo. (€)" value={f.amount} onChange={v => set("amount",v)} type="number" placeholder="0" T={T} />
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
         <Inp label="Startjahr" value={f.startsAt} onChange={v => set("startsAt",v)} type="number" placeholder={String(CY)} T={T} />
@@ -34,7 +38,7 @@ export default function ExpenseStreamModal({ data, s, T, setModal, updArr }) {
         </div>
       )}
       <Btn full color={T.red} T={T} onClick={() => {
-        const st = { ...f, id:f.id||uid(), amount:+f.amount||0, startsAt:+f.startsAt||CY, endsAt:f.endsAt?+f.endsAt:null };
+        const st = { ...f, id:f.id||uid(), amount:+f.amount||0, startsAt:+f.startsAt||CY, endsAt:f.endsAt?+f.endsAt:null, owner:f.owner||null };
         if (data?.id) updArr("expenseStreams", (s.expenseStreams||[]).map(x => x.id===st.id ? st : x));
         else updArr("expenseStreams", [...(s.expenseStreams||[]), st]);
         setModal(null);

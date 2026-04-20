@@ -163,6 +163,7 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
       .reduce((t, st) => t + (st.amount||0)*Math.pow(1+(st.growthPct||0)/100, Math.max(0, CY-(st.startsAt||CY))), 0);
     const streamExpense = (s.expenseStreams||[])
       .filter(st => CY >= (st.startsAt||CY) && (!st.endsAt || CY <= st.endsAt))
+      .filter(st => ownerFilter.length === 0 || !st.owner || ownerFilter.includes(st.owner))
       .reduce((t, st) => t+(st.amount||0), 0);
 
     // Active scenario effects for current year
@@ -195,7 +196,8 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
     const eff   = s.autoSpar ? Math.max(0, rest + scnSpDelta) : Math.max(0, (s.manuellSparrate||0) + scnSpDelta);
     const saldo = avail - bound - eff;
     const quote = avail > 0 ? (eff / avail) * 100 : 0;
-    return { avail, bound, rest, eff, saldo, quote, immoNetCF, immoGross, immoRunning, immoAnnuitat, otherAnnuitat, forderungIncome, assetRunningCosts, streamIncome, streamExpense, assetYieldIncome, scnFinanced, scnSpDelta, scnFinancedItems, scnSpItems };
+    const deficitMonthly = Math.max(0, bound - avail); // income < expenses → portfolio drain
+    return { avail, bound, rest, eff, saldo, quote, deficitMonthly, immoNetCF, immoGross, immoRunning, immoAnnuitat, otherAnnuitat, forderungIncome, assetRunningCosts, streamIncome, streamExpense, assetYieldIncome, scnFinanced, scnSpDelta, scnFinancedItems, scnSpItems };
   }, [filteredAssets, filteredIncomeStreams, s.expenseStreams, s.autoSpar, s.manuellSparrate, s.buckets, ownerFilter]);
 
   const agg = useMemo(() => {
@@ -301,6 +303,7 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
         .reduce((t, st) => t + (st.amount||0)*Math.pow(1+(st.growthPct||0)/100, Math.max(0, absYear-(st.startsAt||CY))), 0);
       const streamExp = (s.expenseStreams||[])
         .filter(st => absYear >= (st.startsAt||CY) && (!st.endsAt || absYear <= st.endsAt))
+        .filter(st => ownerFilter.length === 0 || !st.owner || ownerFilter.includes(st.owner))
         .reduce((t, st) => t+(st.amount||0), 0);
       const financed = activeB.reduce((t, b) => {
         if (b.fundingMode !== "financed") return t;
@@ -343,10 +346,9 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
         sp = Math.max(0, avail + spDelta - bound);
       }
 
-      return { inc, streamExp, immoGross, immoRunning, immoAnnu, immoNetCF, fordInc, runCosts, otherAnnu, assetYield, financed, spDelta, avail, bound, sp };
+      const deficitMonthly = Math.max(0, bound - avail);
+      return { inc, streamExp, immoGross, immoRunning, immoAnnu, immoNetCF, fordInc, runCosts, otherAnnu, assetYield, financed, spDelta, avail, bound, sp, deficitMonthly };
     };
-
-    const computeSp = (y) => computeCF(y).sp;
 
     // Fixed: default ty to CY so buckets without year/age still fire; respect endsAt for recurring types
     const bucketDrain = (year) => {
@@ -401,12 +403,12 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
     const runScenario = (adj) => {
       const rm  = computeBlendedRM(adj);
       const g12 = Math.pow(1 + rm, 12);
-      const spF = rm !== 0 ? (g12 - 1) / rm : 12; // correct for rm < 0 too
+      const spF = rm !== 0 ? (g12 - 1) / rm : 12;
       let V_invest = V0_invest;
       const vals = [V0];
       for (let y = 1; y <= s.horizon; y++) {
-        const sp    = computeSp(y);
-        const drain = bucketDrain(CY + y);
+        const { sp, deficitMonthly } = computeCF(y);
+        const drain = bucketDrain(CY + y) + deficitMonthly * 12;
         V_invest = Math.max(0, V_invest * g12 + sp * spF - drain);
         vals.push(V_invest + totalFordBal(y));
       }

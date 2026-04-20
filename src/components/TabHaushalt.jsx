@@ -8,6 +8,8 @@ const ALL_INVEST_CLASSES = ASSET_CLASSES.filter(cls => cls !== "Cash" && cls !==
 export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist, ownerFilter, filteredAssets, cashflowProjection }) {
   const [selectedYear, setSelectedYear] = useState(0);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [annualView, setAnnualView] = useState(false);
+  const vm = annualView ? 12 : 1;
 
   const totalManual = ALL_INVEST_CLASSES.reduce((t, cls) => t + (s.manualSparDist[cls]||0), 0);
   const manualDiff  = cf.eff - totalManual;
@@ -50,12 +52,12 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
       {/* Warnings */}
       {isFiltered && (
         <div style={{ background:T.accent+"12", border:"1px solid "+T.accent+"33", borderRadius:8, padding:"7px 12px", fontSize:10, color:T.accent }}>
-          Gefiltert: {ownerFilter.map(id => (s.owners||[]).find(o => o.id===id)?.label||id).join(", ")} — Einkommensströme des Eigentümers, Ausgaben global
+          Gefiltert: {ownerFilter.map(id => (s.owners||[]).find(o => o.id===id)?.label||id).join(", ")} — Einnahmen- und Ausgabenströme des Eigentümers
         </div>
       )}
       {cf.rest < 0 && isCurrent && (
         <div style={{ background:T.red+"15", border:"1px solid "+T.red+"44", borderRadius:8, padding:"9px 13px", fontSize:11, color:T.red }}>
-          Ausgaben übersteigen Einkommen um {full(Math.abs(cf.rest))}/Mo.
+          Ausgaben übersteigen Einkommen um {full(Math.abs(cf.rest) * vm)}/{annualView?"J.":"Mo."} — Portfolioentnahme nötig
         </div>
       )}
 
@@ -63,10 +65,10 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
 
       {/* Tiles */}
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
-        <Tile label="Gesamtzufluss" value={full(val(cf.avail, selCF.avail||0))}
-          sub={isCurrent ? "Heute" : `${selAbsYear} · Alter ${selAge}`} color={T.green} T={T} />
-        <Tile label="Sparrate" value={full(val(cf.eff, selCF.sp||0))}
-          sub={s.autoSpar ? "Auto" : "Manuell"} color={T.accent} T={T} />
+        <Tile label="Gesamtzufluss" value={full(val(cf.avail, selCF.avail||0) * vm)}
+          sub={(isCurrent ? "Heute" : `${selAbsYear} · Alter ${selAge}`)+(annualView?" · p.a.":"/Mo.")} color={T.green} T={T} />
+        <Tile label="Sparrate" value={full(val(cf.eff, selCF.sp||0) * vm)}
+          sub={(s.autoSpar ? "Auto" : "Manuell")+(annualView?" · p.a.":"/Mo.")} color={T.accent} T={T} />
       </div>
 
       {/* Cashflow-Vorschau chart */}
@@ -118,7 +120,13 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
       <div style={{ background:T.surface, border:"1px solid "+(isCurrent ? T.border : T.accent+"55"), borderRadius:10, padding:14 }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:10 }}>
           <div>
-            <div style={{ fontSize:9, color:T.textLow, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em" }}>Monatsübersicht</div>
+            <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+              <div style={{ fontSize:9, color:T.textLow, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em" }}>{annualView ? "Jahresübersicht" : "Monatsübersicht"}</div>
+              <button onClick={() => setAnnualView(v => !v)}
+                style={{ fontSize:8, padding:"2px 8px", borderRadius:5, border:"1px solid "+(annualView?T.amber:T.border), background:annualView?T.amber+"18":"transparent", color:annualView?T.amber:T.textMid, cursor:"pointer", fontWeight:700, WebkitTapHighlightColor:"transparent" }}>
+                {annualView ? "p.a." : "pro Monat"}
+              </button>
+            </div>
             {!isCurrent && (
               <div style={{ fontSize:9, color:T.accent, marginTop:2, fontWeight:700 }}>
                 Prognose {selAbsYear} · Alter {selAge}
@@ -137,7 +145,7 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
         {/* Income streams */}
         {(isCurrent ? (s.incomeStreams||[]).filter(isActiveNow) : selIncStreams.filter(st => st.active)).map(st => (
           <Row key={st.id} label={st.label}
-            value={"+" + full(isCurrent ? st.amount : st.amt)}
+            value={"+" + full((isCurrent ? st.amount : st.amt) * vm)}
             type="in"
             sub={[(s.owners||[]).find(o => o.id===st.owner)?.label, !isCurrent && (st.growthPct||0)>0 ? `+${st.growthPct}%/J.` : ""].filter(Boolean).join(" · ")}
             T={T} />
@@ -146,52 +154,58 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
         {/* Immo */}
         {val(hasImmo, (selCF.immoGross||0) > 0) && (
           <Row label="Netto-Immo-CF"
-            value={(val(cf.immoNetCF, selCF.immoNetCF)>=0?"+":"")+full(val(cf.immoNetCF, selCF.immoNetCF))}
+            value={(val(cf.immoNetCF, selCF.immoNetCF)>=0?"+":"")+full(val(cf.immoNetCF, selCF.immoNetCF)*vm)}
             type={val(cf.immoNetCF, selCF.immoNetCF)>=0?"in":"warn"}
-            sub={full(val(cf.immoGross, selCF.immoGross))+" Miete − "+full(val(cf.immoAnnuitat, selCF.immoAnnu))+" Annuität"+((!isCurrent && selCF.immoAnnu===0&&cf.immoAnnuitat>0)?" (abbezahlt)":"")}
+            sub={full(val(cf.immoGross, selCF.immoGross)*vm)+" Miete − "+full(val(cf.immoAnnuitat, selCF.immoAnnu)*vm)+" Annuität"+((!isCurrent && selCF.immoAnnu===0&&cf.immoAnnuitat>0)?" (abbezahlt)":"")}
             T={T} />
         )}
 
         {/* Forderungen */}
         {val(hasForderung, (selCF.fordInc||0) > 0) && (
-          <Row label="Forderungszuflüsse" value={"+" + full(val(cf.forderungIncome, selCF.fordInc))} type="in" T={T} />
+          <Row label="Forderungszuflüsse" value={"+" + full(val(cf.forderungIncome, selCF.fordInc)*vm)} type="in" T={T} />
         )}
 
         {/* Asset yield */}
         {val(hasYield, (selCF.assetYield||0) > 0) && (
-          <Row label="Kapitalerträge" value={"+" + full(val(cf.assetYieldIncome, selCF.assetYield))} type="in" sub="Dividenden, Kupons" T={T} />
+          <Row label="Kapitalerträge" value={"+" + full(val(cf.assetYieldIncome, selCF.assetYield)*vm)} type="in" sub="Dividenden, Kupons" T={T} />
         )}
 
-        <Row label="Gesamtzufluss" value={"+" + full(val(cf.avail, selCF.avail))} type="in" bold T={T} />
+        <Row label="Gesamtzufluss" value={"+" + full(val(cf.avail, selCF.avail)*vm)} type="in" bold T={T} />
 
         {/* Expense streams */}
         {(isCurrent ? (s.expenseStreams||[]).filter(isActiveNow) : selExpStreams.filter(st => st.active)).map(st => (
-          <Row key={st.id} label={st.label} value={"-" + full(st.amount)} type="out" sub={st.category} T={T} />
+          <Row key={st.id} label={st.label} value={"-" + full(st.amount*vm)} type="out"
+            sub={[st.category, (s.owners||[]).find(o => o.id===st.owner)?.label].filter(Boolean).join(" · ")} T={T} />
         ))}
 
         {/* Loan payments */}
         {val(hasOtherLoans, (selCF.otherAnnu||0) > 0) && (
-          <Row label="Kreditraten" value={"-" + full(val(cf.otherAnnuitat, selCF.otherAnnu))} type="out" sub="Non-Immo Annuitäten" T={T} />
+          <Row label="Kreditraten" value={"-" + full(val(cf.otherAnnuitat, selCF.otherAnnu)*vm)} type="out" sub="Non-Immo Annuitäten" T={T} />
         )}
 
         {/* Running costs */}
         {val(hasRunCosts, (selCF.runCosts||0) > 0) && (
-          <Row label="Vermögenskosten" value={"-" + full(val(cf.assetRunningCosts, selCF.runCosts))} type="out" sub="Laufende Kosten" T={T} />
+          <Row label="Vermögenskosten" value={"-" + full(val(cf.assetRunningCosts, selCF.runCosts)*vm)} type="out" sub="Laufende Kosten" T={T} />
         )}
 
-        {/* Active finanziert scenario payments (reduce sparrate) */}
+        {/* Active finanziert scenario payments */}
         {isCurrent && (cf.scnFinancedItems||[]).map(b => (
-          <Row key={b.id} label={b.name||"Finanziert"} value={"-" + full(+b.monthlyPayment||0)} type="out" sub="Szenario · Finanzierung" T={T} />
+          <Row key={b.id} label={b.name||"Finanziert"} value={"-" + full((+b.monthlyPayment||0)*vm)} type="out" sub="Szenario · Finanzierung" T={T} />
         ))}
 
-        <Row label="Sparrate" value={"-" + full(val(cf.eff, selCF.sp))} type="out"
+        <Row label="Sparrate" value={"-" + full(val(cf.eff, selCF.sp)*vm)} type="out"
           sub={isCurrent && (cf.scnSpItems||[]).length > 0
-            ? (cf.scnSpItems||[]).map(b => `${(+b.delta||0)>=0?"+":""}${full(+b.delta||0)} ${b.name||""}`).join(" · ")
+            ? (cf.scnSpItems||[]).map(b => `${(+b.delta||0)>=0?"+":""}${full((+b.delta||0)*vm)} ${b.name||""}`).join(" · ")
             : undefined}
           T={T} />
 
+        {isCurrent && cf.deficitMonthly > 0 && (
+          <Row label="Portfolioentnahme" value={"-" + full(cf.deficitMonthly*vm)} type="warn"
+            sub="Ausgaben übersteigen Einkommen — Vermögen wird belastet" T={T} />
+        )}
+
         {isCurrent && (
-          <Row label="Monatssaldo" value={(cf.saldo>=0?"+":"")+full(cf.saldo)} type={cf.saldo>=0?"in":"warn"} bold T={T} />
+          <Row label={annualView?"Jahressaldo":"Monatssaldo"} value={(cf.saldo>=0?"+":"")+full(cf.saldo*vm)} type={cf.saldo>=0?"in":"warn"} bold T={T} />
         )}
 
         {/* IST-Daten overlay if check-in exists for selected year */}
@@ -209,9 +223,9 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
                 <div key={label} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:5 }}>
                   <span style={{ fontSize:10, color:T.textMid }}>{label} IST</span>
                   <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-                    <span style={{ fontSize:12, fontWeight:800, color }}>{full(+ist||0)}</span>
+                    <span style={{ fontSize:12, fontWeight:800, color }}>{full((+ist||0)*vm)}</span>
                     {Math.abs(delta) > 1 && (
-                      <span style={{ fontSize:9, color:good?T.green:T.red }}>{delta>0?"+":""}{full(delta)}</span>
+                      <span style={{ fontSize:9, color:good?T.green:T.red }}>{delta>0?"+":""}{full(delta*vm)}</span>
                     )}
                   </div>
                 </div>
