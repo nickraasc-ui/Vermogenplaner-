@@ -61,6 +61,29 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
         </div>
       )}
 
+      {/* Haushaltspuffer status */}
+      {cf.bufferBalance > 0 && isCurrent && (
+        <div style={{ background:T.surface, border:"1px solid "+T.green+"44", borderRadius:10, padding:"11px 14px" }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+            <div>
+              <div style={{ fontSize:9, color:T.green, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em" }}>Haushaltspuffer</div>
+              <div style={{ fontSize:15, fontWeight:900, color:T.text, marginTop:2 }}>{full(cf.bufferBalance * vm)}</div>
+              {cf.bound > 0 && (
+                <div style={{ fontSize:9, color:T.textDim, marginTop:1 }}>
+                  {(cf.bufferBalance / cf.bound).toFixed(1)} Monatsausgaben Deckung
+                </div>
+              )}
+            </div>
+            {cf.bufferContribMonthly > 0 && (
+              <div style={{ textAlign:"right" }}>
+                <div style={{ fontSize:9, color:T.textDim }}>Monatl. Zufluss</div>
+                <div style={{ fontSize:13, fontWeight:700, color:T.green }}>+{full(cf.bufferContribMonthly * vm)}</div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ── AUSWERTUNG ── */}
 
       {/* Tiles */}
@@ -174,8 +197,9 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
 
         {/* Expense streams */}
         {(isCurrent ? (s.expenseStreams||[]).filter(isActiveNow) : selExpStreams.filter(st => st.active)).map(st => (
-          <Row key={st.id} label={st.label} value={"-" + full(st.amount*vm)} type="out"
-            sub={[st.category, (s.owners||[]).find(o => o.id===st.owner)?.label].filter(Boolean).join(" · ")} T={T} />
+          <Row key={st.id} label={st.label} value={"-" + full(st.amount*vm)}
+            type={st.isBufferContribution ? "in" : "out"}
+            sub={[st.isBufferContribution ? "→ Puffer" : st.category, (s.owners||[]).find(o => o.id===st.owner)?.label].filter(Boolean).join(" · ")} T={T} />
         ))}
 
         {/* Loan payments */}

@@ -5,8 +5,9 @@ import { EXPENSE_CATEGORIES, CY } from "../../constants.js";
 export default function ExpenseStreamModal({ data, s, T, setModal, updArr }) {
   const [f, setF] = useState(data
     ? { ...data, endsAt: data.endsAt ?? "" }
-    : { label:"", category:"Lebenshaltung", amount:"", startsAt:CY, endsAt:"", owner:"" }
+    : { label:"", category:"Lebenshaltung", amount:"", startsAt:CY, endsAt:"", owner:"", isBufferContribution:false }
   );
+  const hasPuffer = (s.assets||[]).some(a => a.isHaushaltsPuffer && a.class === "Cash");
   const set = (k, v) => setF(p => ({ ...p, [k]: v }));
   const amt = +f.amount || 0;
   const ownerOpts = [{ value:"", label:"Kein Eigentümer" }, ...(s.owners||[]).map(o => ({ value:o.id, label:o.label }))];
@@ -37,8 +38,17 @@ export default function ExpenseStreamModal({ data, s, T, setModal, updArr }) {
           {f.endsAt && <div style={{ fontSize:9, color:T.green, marginTop:4 }}>Läuft aus: {f.endsAt} (zeitlich begrenzt)</div>}
         </div>
       )}
+      {hasPuffer && (
+        <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:14, padding:"10px 12px", background:T.surfaceHigh, borderRadius:8, border:"1px solid "+(f.isBufferContribution?T.green:T.border) }}>
+          <input type="checkbox" checked={!!f.isBufferContribution} onChange={e => set("isBufferContribution", e.target.checked)} id="buf" style={{ accentColor:T.green, width:18, height:18 }} />
+          <div>
+            <label htmlFor="buf" style={{ fontSize:13, color:T.textMid, cursor:"pointer" }}>Fließt in Haushaltspuffer</label>
+            <div style={{ fontSize:9, color:T.textDim, marginTop:1 }}>Betrag wird dem Pufferkonto gutgeschrieben statt konsumiert</div>
+          </div>
+        </div>
+      )}
       <Btn full color={T.red} T={T} onClick={() => {
-        const st = { ...f, id:f.id||uid(), amount:+f.amount||0, startsAt:+f.startsAt||CY, endsAt:f.endsAt?+f.endsAt:null, owner:f.owner||null };
+        const st = { ...f, id:f.id||uid(), amount:+f.amount||0, startsAt:+f.startsAt||CY, endsAt:f.endsAt?+f.endsAt:null, owner:f.owner||null, isBufferContribution:!!f.isBufferContribution };
         if (data?.id) updArr("expenseStreams", (s.expenseStreams||[]).map(x => x.id===st.id ? st : x));
         else updArr("expenseStreams", [...(s.expenseStreams||[]), st]);
         setModal(null);

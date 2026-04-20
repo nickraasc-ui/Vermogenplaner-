@@ -337,6 +337,15 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
         <input type="checkbox" checked={!!f.locked} onChange={e => set({ locked: e.target.checked })} id="lck" style={{ accentColor: T.amber, width: 18, height: 18 }} />
         <label htmlFor="lck" style={{ fontSize: 13, color: T.textMid, cursor: "pointer" }}>Gesperrt / unumschichtbar</label>
       </div>
+      {f.class === "Cash" && (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, padding: "10px 12px", background: T.surfaceHigh, borderRadius: 8, border: "1px solid " + (f.isHaushaltsPuffer ? T.green : T.border) }}>
+          <input type="checkbox" checked={!!f.isHaushaltsPuffer} onChange={e => set({ isHaushaltsPuffer: e.target.checked })} id="puf" style={{ accentColor: T.green, width: 18, height: 18 }} />
+          <div>
+            <label htmlFor="puf" style={{ fontSize: 13, color: T.textMid, cursor: "pointer" }}>Als Haushaltspuffer verwenden</label>
+            <div style={{ fontSize: 9, color: T.textDim, marginTop: 1 }}>Negative Haushaltssalden werden zuerst aus diesem Konto gedeckt</div>
+          </div>
+        </div>
+      )}
 
       <Btn full color={T.green} T={T} onClick={() => {
         const saveDebt = +f.debt || 0;

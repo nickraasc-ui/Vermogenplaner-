@@ -190,14 +190,26 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
       return CY >= from && CY <= to;
     });
 
+    // Buffer contributions: expense streams that flow into the Haushaltspuffer instead of being consumed
+    const bufferContribMonthly = (s.expenseStreams||[])
+      .filter(st => st.isBufferContribution && CY >= (st.startsAt||CY) && (!st.endsAt || CY <= st.endsAt))
+      .filter(st => ownerFilter.length === 0 || !st.owner || ownerFilter.includes(st.owner))
+      .reduce((t, st) => t + (st.amount||0), 0);
+
     const avail = streamIncome + immoNetCF + forderungIncome + assetYieldIncome;
     const bound = streamExpense + otherAnnuitat + assetRunningCosts + scnFinanced;
     const rest  = avail - bound;
     const eff   = s.autoSpar ? Math.max(0, rest + scnSpDelta) : Math.max(0, (s.manuellSparrate||0) + scnSpDelta);
     const saldo = avail - bound - eff;
     const quote = avail > 0 ? (eff / avail) * 100 : 0;
-    const deficitMonthly = Math.max(0, bound - avail); // income < expenses → portfolio drain
-    return { avail, bound, rest, eff, saldo, quote, deficitMonthly, immoNetCF, immoGross, immoRunning, immoAnnuitat, otherAnnuitat, forderungIncome, assetRunningCosts, streamIncome, streamExpense, assetYieldIncome, scnFinanced, scnSpDelta, scnFinancedItems, scnSpItems };
+    // Deficit: only fires for real expense shortfall, not for buffer contributions (those go to buffer)
+    const nonBufferBound = bound - bufferContribMonthly;
+    const deficitMonthly = Math.max(0, nonBufferBound - avail);
+    // Buffer balance from flagged Cash assets
+    const bufferBalance = filteredAssets
+      .filter(a => a.isHaushaltsPuffer && a.class === "Cash")
+      .reduce((t, a) => t + (a.value||0), 0);
+    return { avail, bound, rest, eff, saldo, quote, deficitMonthly, bufferContribMonthly, bufferBalance, immoNetCF, immoGross, immoRunning, immoAnnuitat, otherAnnuitat, forderungIncome, assetRunningCosts, streamIncome, streamExpense, assetYieldIncome, scnFinanced, scnSpDelta, scnFinancedItems, scnSpItems };
   }, [filteredAssets, filteredIncomeStreams, s.expenseStreams, s.autoSpar, s.manuellSparrate, s.buckets, ownerFilter]);
 
   const agg = useMemo(() => {
@@ -346,8 +358,15 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
         sp = Math.max(0, avail + spDelta - bound);
       }
 
-      const deficitMonthly = Math.max(0, bound - avail);
-      return { inc, streamExp, immoGross, immoRunning, immoAnnu, immoNetCF, fordInc, runCosts, otherAnnu, assetYield, financed, spDelta, avail, bound, sp, deficitMonthly };
+      const bufferContribMonthly = (s.expenseStreams||[])
+        .filter(st => st.isBufferContribution && absYear >= (st.startsAt||CY) && (!st.endsAt || absYear <= st.endsAt))
+        .filter(st => ownerFilter.length === 0 || !st.owner || ownerFilter.includes(st.owner))
+        .reduce((t, st) => t + (st.amount||0), 0);
+      const nonBufferBound = bound - bufferContribMonthly;
+      // Effective buffer contribution: capped by income surplus over non-buffer expenses
+      const effectiveBufferContrib = Math.min(bufferContribMonthly, Math.max(0, avail - nonBufferBound));
+      const deficitMonthly = Math.max(0, nonBufferBound - avail);
+      return { inc, streamExp, immoGross, immoRunning, immoAnnu, immoNetCF, fordInc, runCosts, otherAnnu, assetYield, financed, spDelta, avail, bound, sp, deficitMonthly, bufferContribMonthly: effectiveBufferContrib };
     };
 
     // Fixed: default ty to CY so buckets without year/age still fire; respect endsAt for recurring types
@@ -367,20 +386,26 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
       return d;
     };
 
-    // V0: investable assets only — Forderung tracked separately via totalFordBal to prevent double-counting
+    // Haushaltspuffer: tracked separately (Cash asset flagged isHaushaltsPuffer)
+    const bufferAssets = projAssets.filter(a => a.isHaushaltsPuffer && a.class === "Cash");
+    const bufferV0 = bufferAssets.reduce((t, a) => t + (a.value||0)*sh(a), 0);
+
+    // V0: investable assets only — Forderung + buffer tracked separately
     const V0_invest = projAssets.reduce((t, a) => {
       if (a.class === "Forderung") return t;
+      if (a.isHaushaltsPuffer) return t; // buffer tracked separately
       const share = sh(a);
       if (a.class === "Immobilien") return t + Math.max(0, (a.value||0) - (a.debt||0)) * share;
       return t + (a.value||0) * share;
     }, 0);
-    const V0 = V0_invest + totalFordBal(0);
+    const V0 = V0_invest + bufferV0 + totalFordBal(0);
 
-    // Blended net annual return rate — negative contributions allowed for depreciating asset classes
+    // Blended net annual return rate — buffer excluded (earns Cash rate separately)
     const computeBlendedRM = (adj) => {
       let totalV = 0, wtdR = 0;
       projAssets.forEach(a => {
         if (a.class === "Forderung") return;
+        if (a.isHaushaltsPuffer) return;
         const share = sh(a);
         const netV = (a.class === "Immobilien"
           ? Math.max(0, (a.value||0) - (a.debt||0))
@@ -400,17 +425,29 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
       return (wtdR / totalV) / 100 / 12;
     };
 
+    const cashRm  = (s.classReturns?.["Cash"] ?? 2) / 100 / 12;
+    const cashG12 = Math.pow(1 + cashRm, 12);
+
     const runScenario = (adj) => {
       const rm  = computeBlendedRM(adj);
       const g12 = Math.pow(1 + rm, 12);
       const spF = rm !== 0 ? (g12 - 1) / rm : 12;
       let V_invest = V0_invest;
+      let bufferV  = bufferV0;
       const vals = [V0];
       for (let y = 1; y <= s.horizon; y++) {
-        const { sp, deficitMonthly } = computeCF(y);
-        const drain = bucketDrain(CY + y) + deficitMonthly * 12;
-        V_invest = Math.max(0, V_invest * g12 + sp * spF - drain);
-        vals.push(V_invest + totalFordBal(y));
+        const { sp, deficitMonthly, bufferContribMonthly } = computeCF(y);
+        const bucketD = bucketDrain(CY + y);
+        const annualDeficit = deficitMonthly * 12;
+
+        // Buffer grows with Cash return + contributions; covers deficit before V_invest
+        bufferV = bufferV * cashG12 + bufferContribMonthly * 12;
+        const bufferDrain = Math.min(bufferV, annualDeficit);
+        const investDrain = annualDeficit - bufferDrain;
+        bufferV = Math.max(0, bufferV - bufferDrain);
+
+        V_invest = Math.max(0, V_invest * g12 + sp * spF - investDrain - bucketD);
+        vals.push(V_invest + bufferV + totalFordBal(y));
       }
       return vals;
     };
