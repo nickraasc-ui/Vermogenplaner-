@@ -18,8 +18,8 @@ const exportCSV = (projection, cashflowProjection, s) => {
 
   const hdr = [
     "Jahr","Datum","Alter",
-    "Einnahmen_monatl_EUR","Ausgaben_monatl_EUR","Sparrate_monatl_EUR",
-    "Immo_NetCF_monatl_EUR","Kapitalertraege_monatl_EUR","Kreditraten_monatl_EUR",
+    "Einnahmen_jährl_EUR","Ausgaben_jährl_EUR","Sparrate_jährl_EUR",
+    "Immo_NetCF_jährl_EUR","Kapitalertraege_jährl_EUR","Kreditraten_jährl_EUR",
     "Portfolio_Basis_EUR","Portfolio_Konservativ_EUR","Portfolio_Optimistisch_EUR",
     ...classes.map(c => `Klasse_${c.replace(/ /g,"_")}_EUR`),
     ...owners.map(o => `Eigentümer_${o.label.replace(/ /g,"_")}_EUR`),
@@ -33,12 +33,12 @@ const exportCSV = (projection, cashflowProjection, s) => {
       year,
       `31.12.${year}`,
       row.age,
-      Math.round(cf.avail   ?? 0),
-      Math.round(cf.bound   ?? 0),
-      Math.round(cf.sp      ?? row.sp ?? 0),
-      Math.round(cf.immoNetCF  ?? 0),
-      Math.round(cf.assetYield ?? 0),
-      Math.round(cf.otherAnnu  ?? 0),
+      Math.round((cf.avail   ?? 0) * 12),
+      Math.round((cf.bound   ?? 0) * 12),
+      Math.round((cf.sp      ?? row.sp ?? 0) * 12),
+      Math.round((cf.immoNetCF  ?? 0) * 12),
+      Math.round((cf.assetYield ?? 0) * 12),
+      Math.round((cf.otherAnnu  ?? 0) * 12),
       row.base, row.cons, row.opt,
       ...classes.map(c => Math.round((classNet[c]||0) * scale)),
       ...owners.map(o => Math.round((ownerNet[o.id]||0) * scale)),
@@ -146,6 +146,10 @@ export default function TabProjektion({ s, T, upd, cf, agg, projection, final, l
         <Sl label="Zeithorizont" value={s.horizon} min={10} max={45} step={5} onChange={v => upd({ horizon:v })} fmt={v => v+"J (bis Alter "+(currentAge+v)+")"} color={T.purple} T={T} />
         <Sl label="Mietpreissteigerung p.a." value={s.immoRentGrowthPct??2} min={0} max={5} step={0.25} onChange={v => upd({ immoRentGrowthPct:v })} fmt={v => v+"%"} color={T.green}
           note="Jährliches Mietwachstum aller Immobilien in der Projektion" T={T} />
+        <Sl label="Konservativ-Abschlag" value={s.projSpreadCons??2} min={0.5} max={8} step={0.5} onChange={v => upd({ projSpreadCons:v })} fmt={v => "−"+v+"%"} color={T.textMid}
+          note="Rendite-Abschlag für das konservative Szenario" T={T} />
+        <Sl label="Optimistisch-Aufschlag" value={s.projSpreadOpt??2} min={0.5} max={8} step={0.5} onChange={v => upd({ projSpreadOpt:v })} fmt={v => "+"+v+"%"} color={T.green}
+          note="Rendite-Aufschlag für das optimistische Szenario" T={T} />
       </div>
 
       {/* Info box */}
@@ -153,7 +157,7 @@ export default function TabProjektion({ s, T, upd, cf, agg, projection, final, l
         <strong style={{ color:T.text }}>Berechnungslogik:</strong> Jede Position wächst mit der Rendite ihrer Asset-Klasse. Sparrate ({full(cf.eff)}/Mo.) fließt proportional in nicht-gesperrte, investierbare Positionen.
         {s.taxOnReturns && <span style={{ color:T.red }}> Renditen nach Abgeltungsteuer (KeSt 26,4% / ETF-Teilfreistellung 30% / PE-Teileinkünfte / Immo steuerfrei).</span>}
         {s.inflationAdj && <span> Alle Werte real (inflationsbereinigt).</span>}
-        {" "}Szenarien: ±2% auf alle Klassenrenditen.
+        {" "}Szenarien: −{s.projSpreadCons??2}%/+{s.projSpreadOpt??2}% auf alle Klassenrenditen.
       </div>
 
       {/* Starting value */}
@@ -166,11 +170,16 @@ export default function TabProjektion({ s, T, upd, cf, agg, projection, final, l
 
       {/* Scenario tiles */}
       <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8 }}>
-        {[{ k:"cons", l:"Konservativ", c:T.textMid }, { k:"base", l:"Basis", c:T.accent }, { k:"opt", l:"Optimistisch", c:T.green }].map(({ k, l, c }) => (
+        {[
+          { k:"cons", l:"Konservativ", c:T.textMid, spread:"−"+(s.projSpreadCons??2)+"%" },
+          { k:"base", l:"Basis",       c:T.accent,  spread:"Basisrendite" },
+          { k:"opt",  l:"Optimistisch",c:T.green,   spread:"+"+(s.projSpreadOpt??2)+"%" },
+        ].map(({ k, l, c, spread }) => (
           <div key={k} style={{ background:T.surface, border:"1px solid "+c+"33", borderRadius:9, padding:11 }}>
             <div style={{ fontSize:8, color:c, fontWeight:700, letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:2 }}>{l}</div>
             <div style={{ fontSize:18, fontWeight:900, color:T.text }}>{fmtE(final[k])}</div>
-            <div style={{ fontSize:8, color:T.textDim, marginTop:2 }}>{s.inflationAdj?"real":"nominal"}{s.taxOnReturns?" · n.St.":""}</div>
+            <div style={{ fontSize:8, color:T.textDim, marginTop:1 }}>{spread}</div>
+            <div style={{ fontSize:8, color:T.textDim }}>{s.inflationAdj?"real":"nominal"}{s.taxOnReturns?" · n.St.":""}</div>
           </div>
         ))}
       </div>

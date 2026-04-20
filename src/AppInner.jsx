@@ -324,7 +324,12 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
         t + (computeRemDebt(a, y) > 0 ? (a.loanAnnuitat||0)*sh(a) : 0), 0);
       const assetYield   = projAssets
         .filter(a => (a.yieldPct||0) > 0 && a.class !== "Immobilien" && a.class !== "Forderung")
-        .reduce((t, a) => t + (a.value||0) * (a.yieldPct||0) / 100 / 12 * (s.taxOnReturns ? (1 - kestRate(a)) : 1) * sh(a), 0);
+        .reduce((t, a) => {
+          // Asset grows at capital-appreciation rate (total return minus distributed yield)
+          const capR = (s.classReturns[a.class] ?? 5) - (a.yieldPct||0);
+          const projValue = (a.value||0) * sh(a) * Math.pow(1 + capR / 100, y);
+          return t + projValue * (a.yieldPct||0) / 100 / 12 * (s.taxOnReturns ? (1 - kestRate(a)) : 1);
+        }, 0);
 
       const avail = inc + immoNetCF + fordInc + assetYield;
       const bound = streamExp + runCosts + otherAnnu + financed;
@@ -379,7 +384,7 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
           ? Math.max(0, (a.value||0) - (a.debt||0))
           : (a.value||0)) * share;
         if (netV <= 0) return;
-        const pretaxR  = (s.classReturns[a.class]||5) + adj;
+        const pretaxR  = (s.classReturns[a.class] ?? 5) + adj;
         const capApprR = pretaxR - (a.yieldPct||0);
         const kest     = s.taxOnReturns ? kestRate(a) : 0;
         const netAnnR  = capApprR * (1 - kest);
@@ -387,7 +392,7 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
         wtdR   += netV * netAnnR;
       });
       if (totalV === 0) {
-        const def = ((s.classReturns?.["Aktien-ETF"]||8) + adj) * (s.taxOnReturns ? (1-KEST_RATES["Aktien-ETF"]) : 1);
+        const def = ((s.classReturns?.["Aktien-ETF"] ?? 8) + adj) * (s.taxOnReturns ? (1-KEST_RATES["Aktien-ETF"]) : 1);
         return def / 100 / 12;
       }
       return (wtdR / totalV) / 100 / 12;
@@ -408,9 +413,9 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
       return vals;
     };
 
-    const consVals = runScenario(-2);
+    const consVals = runScenario(-(s.projSpreadCons ?? 2));
     const baseVals = runScenario(0);
-    const optVals  = runScenario(2);
+    const optVals  = runScenario(+(s.projSpreadOpt  ?? 2));
 
     const projection = Array.from({ length: s.horizon+1 }, (_, y) => {
       const { sp } = computeCF(y);
