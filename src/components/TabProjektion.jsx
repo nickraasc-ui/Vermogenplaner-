@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Sl, ChTip, fmtE, full } from "./ui.jsx";
 import { CY, ASSET_CLASS_DEFAULTS } from "../constants.js";
@@ -55,6 +56,8 @@ const exportCSV = (projection, cashflowProjection, s) => {
 
 export default function TabProjektion({ s, T, upd, cf, agg, projection, final, loanSummary, setModal, projClassFilter, toggleProjClass, resetProjClass, availClasses, currentAge, cashflowProjection }) {
   const isFiltered = projClassFilter.length > 0;
+  const [activePane, setActivePane] = useState(null);
+  const togglePane = (k) => setActivePane(p => p === k ? null : k);
 
   // Dynamic milestones based on current net worth
   const milestones = (() => {
@@ -124,17 +127,12 @@ export default function TabProjektion({ s, T, upd, cf, agg, projection, final, l
       {/* Planning parameters */}
       <div style={{ background:T.surface, border:"1px solid "+T.border, borderRadius:10, padding:14, display:"flex", flexDirection:"column", gap:14 }}>
         <div style={{ display:"flex", gap:8, flexWrap:"wrap", alignItems:"center" }}>
-          {toggleBtn(s.inflationAdj, T.amber, "Inflation "+(s.inflationAdj?s.inflation+"% ein":"aus"), () => upd({ inflationAdj:!s.inflationAdj }))}
           {s.autoSpar
             ? <span style={{ fontSize:10, color:T.textDim, fontStyle:"italic" }}>Sparrate wächst mit Einkommensströmen</span>
             : toggleBtn(s.sparRateGrowth, T.green, "Sparrate wächst "+(s.sparRateGrowth?s.sparGrowthPct+"%/J. ein":"aus"), () => upd({ sparRateGrowth:!s.sparRateGrowth }))
           }
           {toggleBtn(s.taxOnReturns, T.red, s.taxOnReturns?"nach Steuern":"vor Steuern", () => upd({ taxOnReturns:!s.taxOnReturns }))}
         </div>
-
-        {s.inflationAdj && (
-          <Sl label="Inflationsrate" value={s.inflation} min={0.5} max={6} step={0.25} onChange={v => upd({ inflation:v })} fmt={v => v+"%"} color={T.amber} T={T} />
-        )}
         {!s.autoSpar && s.sparRateGrowth && (
           <Sl label="Sparraten-Wachstum p.a." value={s.sparGrowthPct||2} min={0.5} max={10} step={0.5} onChange={v => upd({ sparGrowthPct:v })} fmt={v => v+"%"} color={T.green}
             note="Sparrate steigt jährlich (z.B. mit Gehaltserhöhungen)"
@@ -146,18 +144,13 @@ export default function TabProjektion({ s, T, upd, cf, agg, projection, final, l
         <Sl label="Zeithorizont" value={s.horizon} min={10} max={45} step={5} onChange={v => upd({ horizon:v })} fmt={v => v+"J (bis Alter "+(currentAge+v)+")"} color={T.purple} T={T} />
         <Sl label="Mietpreissteigerung p.a." value={s.immoRentGrowthPct??2} min={0} max={5} step={0.25} onChange={v => upd({ immoRentGrowthPct:v })} fmt={v => v+"%"} color={T.green}
           note="Jährliches Mietwachstum aller Immobilien in der Projektion" T={T} />
-        <Sl label="Konservativ-Abschlag" value={s.projSpreadCons??2} min={0.5} max={8} step={0.5} onChange={v => upd({ projSpreadCons:v })} fmt={v => "−"+v+"%"} color={T.textMid}
-          note="Rendite-Abschlag für das konservative Szenario" T={T} />
-        <Sl label="Optimistisch-Aufschlag" value={s.projSpreadOpt??2} min={0.5} max={8} step={0.5} onChange={v => upd({ projSpreadOpt:v })} fmt={v => "+"+v+"%"} color={T.green}
-          note="Rendite-Aufschlag für das optimistische Szenario" T={T} />
       </div>
 
       {/* Info box */}
       <div style={{ background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:8, padding:"10px 13px", fontSize:10, color:T.textMid, lineHeight:1.7 }}>
-        <strong style={{ color:T.text }}>Berechnungslogik:</strong> Jede Position wächst mit der Rendite ihrer Asset-Klasse. Sparrate ({full(cf.eff)}/Mo.) fließt proportional in nicht-gesperrte, investierbare Positionen.
-        {s.taxOnReturns && <span style={{ color:T.red }}> Renditen nach Abgeltungsteuer (KeSt 26,4% / ETF-Teilfreistellung 30% / PE-Teileinkünfte / Immo steuerfrei).</span>}
-        {s.inflationAdj && <span> Alle Werte real (inflationsbereinigt).</span>}
-        {" "}Szenarien: −{s.projSpreadCons??2}%/+{s.projSpreadOpt??2}% auf alle Klassenrenditen.
+        <strong style={{ color:T.text }}>Berechnungslogik:</strong> Sparrate ({full(cf.eff)}/Mo.) fließt proportional in investierbare Positionen. Szenarien: −{s.projSpreadCons??2}%/+{s.projSpreadOpt??2}% auf alle Klassenrenditen.
+        {s.taxOnReturns && <span style={{ color:T.red }}> Nach Abgeltungsteuer (KeSt 26,4% / ETF-Teilfreistellung / Immo steuerfrei).</span>}
+        {s.inflationAdj && <span style={{ color:T.amber }}> Werte real ({s.inflation}% Inflation bereinigt).</span>}
       </div>
 
       {/* Starting value */}
@@ -168,21 +161,76 @@ export default function TabProjektion({ s, T, upd, cf, agg, projection, final, l
         </div>
       )}
 
-      {/* Scenario tiles */}
+      {/* Scenario tiles — click to configure */}
       <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8 }}>
         {[
           { k:"cons", l:"Konservativ", c:T.textMid, spread:"−"+(s.projSpreadCons??2)+"%" },
           { k:"base", l:"Basis",       c:T.accent,  spread:"Basisrendite" },
           { k:"opt",  l:"Optimistisch",c:T.green,   spread:"+"+(s.projSpreadOpt??2)+"%" },
-        ].map(({ k, l, c, spread }) => (
-          <div key={k} style={{ background:T.surface, border:"1px solid "+c+"33", borderRadius:9, padding:11 }}>
-            <div style={{ fontSize:8, color:c, fontWeight:700, letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:2 }}>{l}</div>
-            <div style={{ fontSize:18, fontWeight:900, color:T.text }}>{fmtE(final[k])}</div>
-            <div style={{ fontSize:8, color:T.textDim, marginTop:1 }}>{spread}</div>
-            <div style={{ fontSize:8, color:T.textDim }}>{s.inflationAdj?"real":"nominal"}{s.taxOnReturns?" · n.St.":""}</div>
-          </div>
-        ))}
+        ].map(({ k, l, c, spread }) => {
+          const active = activePane === k;
+          return (
+            <div key={k} onClick={() => togglePane(k)}
+              style={{ background:T.surface, border:"2px solid "+(active ? c : c+"33"), borderRadius:9, padding:11, cursor:"pointer", WebkitTapHighlightColor:"transparent" }}>
+              <div style={{ fontSize:8, color:c, fontWeight:700, letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:2 }}>{l}</div>
+              <div style={{ fontSize:18, fontWeight:900, color:T.text }}>{fmtE(final[k])}</div>
+              <div style={{ fontSize:8, color:active ? c : T.textDim, marginTop:1 }}>{spread} {active ? "▲" : "▼"}</div>
+              <div style={{ fontSize:8, color:T.textDim }}>{s.inflationAdj?"real":"nominal"}{s.taxOnReturns?" · n.St.":""}</div>
+            </div>
+          );
+        })}
       </div>
+
+      {/* Inline scenario settings pane */}
+      {(activePane === "cons" || activePane === "base" || activePane === "opt") && (
+        <div style={{ background:T.surface, border:"1px solid "+T.border, borderRadius:10, padding:14 }}>
+          {activePane === "cons" && (
+            <Sl label="Konservativ-Abschlag" value={s.projSpreadCons??2} min={0.5} max={8} step={0.5}
+              onChange={v => upd({ projSpreadCons:v })} fmt={v => "−"+v+"%"} color={T.textMid}
+              note="Rendite-Abschlag für das konservative Szenario" T={T} />
+          )}
+          {activePane === "base" && (
+            <div>
+              <div style={{ fontSize:9, color:T.textMid, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:8 }}>Basisrendite</div>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 }}>
+                <span style={{ fontSize:11, color:T.textMid }}>Gewichteter Ø aller Klassen</span>
+                <span style={{ fontSize:15, fontWeight:900, color:T.accent }}>{agg.wavgReturn.toFixed(1)}% p.a.</span>
+              </div>
+              <div style={{ fontSize:9, color:T.textDim }}>Renditeannahmen pro Asset-Klasse einstellbar im Tab Vermögen.</div>
+            </div>
+          )}
+          {activePane === "opt" && (
+            <Sl label="Optimistisch-Aufschlag" value={s.projSpreadOpt??2} min={0.5} max={8} step={0.5}
+              onChange={v => upd({ projSpreadOpt:v })} fmt={v => "+"+v+"%"} color={T.green}
+              note="Rendite-Aufschlag für das optimistische Szenario" T={T} />
+          )}
+        </div>
+      )}
+
+      {/* Inflation — click to expand */}
+      <div onClick={() => togglePane("inflation")}
+        style={{ background:T.surface, border:"1px solid "+(s.inflationAdj ? T.amber+"88" : T.border), borderRadius:10, padding:"10px 14px", cursor:"pointer", WebkitTapHighlightColor:"transparent", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+        <div>
+          <div style={{ fontSize:9, color:T.amber, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em" }}>Inflation</div>
+          <div style={{ fontSize:11, color:T.text, marginTop:2 }}>
+            {s.inflationAdj ? s.inflation+"% p.a. · Werte real bereinigt" : "Nicht berücksichtigt · nominal"}
+          </div>
+        </div>
+        <span style={{ fontSize:10, color:T.textMid }}>{activePane === "inflation" ? "▲" : "▼"}</span>
+      </div>
+      {activePane === "inflation" && (
+        <div style={{ background:T.surfaceHigh, border:"1px solid "+T.amber+"44", borderRadius:10, padding:14, display:"flex", flexDirection:"column", gap:14 }}>
+          <div style={{ display:"flex", gap:8 }}>
+            {toggleBtn(s.inflationAdj, T.amber,
+              s.inflationAdj ? "Inflationsbereinigung ein" : "Inflationsbereinigung aus",
+              () => upd({ inflationAdj: !s.inflationAdj }))}
+          </div>
+          {s.inflationAdj && (
+            <Sl label="Inflationsrate" value={s.inflation} min={0.5} max={6} step={0.25}
+              onChange={v => upd({ inflation:v })} fmt={v => v+"%"} color={T.amber} T={T} />
+          )}
+        </div>
+      )}
 
       {/* Chart */}
       <div style={{ background:T.surface, border:"1px solid "+T.border, borderRadius:10, padding:"13px 4px 8px" }}>
