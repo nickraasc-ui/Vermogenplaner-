@@ -223,7 +223,11 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
     const avail = streamIncome + immoNetCF + forderungIncome + assetYieldIncome;
     const bound = streamExpense + otherAnnuitat + assetRunningCosts + scnFinanced;
     const rest  = avail - bound;
-    const eff   = s.autoSpar ? Math.max(0, rest + scnSpDelta) : Math.max(0, (s.manuellSparrate||0) + scnSpDelta);
+    const effTarget = s.autoSpar ? null : Math.max(0, (s.manuellSparrate||0) + scnSpDelta);
+    // Cap manual sparrate at actual surplus — can't save money you don't have
+    const eff   = s.autoSpar
+      ? Math.max(0, rest + scnSpDelta)
+      : Math.min(effTarget, Math.max(0, rest));
     const saldo = avail - bound - eff;
     const quote = avail > 0 ? (eff / avail) * 100 : 0;
     // Deficit: only fires for real expense shortfall, not for buffer contributions (those go to buffer)
@@ -233,7 +237,7 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
     const bufferBalance = filteredAssets
       .filter(a => a.isHaushaltsPuffer && a.class === "Cash")
       .reduce((t, a) => t + (a.value||0), 0);
-    return { avail, bound, rest, eff, saldo, quote, deficitMonthly, bufferContribMonthly, bufferBalance, immoNetCF, immoGross, immoRunning, immoAnnuitat, otherAnnuitat, forderungIncome, assetRunningCosts, streamIncome, streamExpense, assetYieldIncome, scnFinanced, scnSpDelta, scnFinancedItems, scnSpItems };
+    return { avail, bound, rest, eff, effTarget, saldo, quote, deficitMonthly, bufferContribMonthly, bufferBalance, immoNetCF, immoGross, immoRunning, immoAnnuitat, otherAnnuitat, forderungIncome, assetRunningCosts, streamIncome, streamExpense, assetYieldIncome, scnFinanced, scnSpDelta, scnFinancedItems, scnSpItems };
   }, [filteredAssets, filteredIncomeStreams, s.expenseStreams, s.standaloneLoans, s.autoSpar, s.manuellSparrate, s.buckets, ownerFilter]);
 
   const agg = useMemo(() => {
@@ -391,9 +395,10 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
 
       let sp;
       if (!s.autoSpar) {
-        const freed = nonImmoLoans.filter(l => l.yrsLeft !== null && y >= l.yrsLeft).reduce((t, l) => t+l.annuitat, 0);
-        const base  = (s.manuellSparrate||0) + freed + spDelta;
-        sp = Math.max(0, s.sparRateGrowth ? base*Math.pow(1+(s.sparGrowthPct||0)/100, y) : base);
+        const base = (s.manuellSparrate||0) + spDelta;
+        const raw  = Math.max(0, s.sparRateGrowth ? base*Math.pow(1+(s.sparGrowthPct||0)/100, y) : base);
+        // Cap at actual surplus: freed annuitat is already in avail-bound (otherAnnu drops when loans paid off)
+        sp = Math.min(raw, Math.max(0, avail - bound));
       } else {
         sp = Math.max(0, avail + spDelta - bound);
       }

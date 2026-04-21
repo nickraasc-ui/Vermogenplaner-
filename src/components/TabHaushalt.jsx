@@ -60,6 +60,11 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
           Ausgaben übersteigen Einkommen um {full(Math.abs(cf.rest) * vm)}/{annualView?"J.":"Mo."} — Portfolioentnahme nötig
         </div>
       )}
+      {cf.effTarget != null && cf.effTarget > cf.rest && isCurrent && (
+        <div style={{ background:T.amber+"15", border:"1px solid "+T.amber+"44", borderRadius:8, padding:"9px 13px", fontSize:11, color:T.amber }}>
+          Sparziel {full(cf.effTarget * vm)}/{annualView?"J.":"Mo."} übersteigt verfügbaren Überschuss {full(Math.max(0, cf.rest) * vm)}/{annualView?"J.":"Mo."} — Projektion verwendet {full(Math.max(0, cf.rest) * vm)}/{annualView?"J.":"Mo."}
+        </div>
+      )}
 
       {/* Haushaltspuffer status */}
       {cf.bufferBalance > 0 && isCurrent && (
