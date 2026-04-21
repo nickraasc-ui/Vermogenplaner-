@@ -85,7 +85,8 @@ src/
 │       ├── AffordModal.jsx    # Leistbarkeitsrechner (Substanz vs. Wachstum)
 │       ├── ImportPreviewModal.jsx  # Excel-Import Vorschau und Bestätigung
 │       ├── IncomeStreamModal.jsx   # Einkommensstrom anlegen/bearbeiten
-│       └── ExpenseStreamModal.jsx  # Ausgabenstrom anlegen/bearbeiten
+│       ├── ExpenseStreamModal.jsx  # Ausgabenstrom anlegen/bearbeiten
+│       └── StandaloneLoanModal.jsx # Verbindlichkeit ohne Asset-Bindung
 │
 └── utils/
     └── excelIO.js             # exportAssetsToExcel, parseImportFile
@@ -98,14 +99,15 @@ Der gesamte App-State lebt in einem einzigen `useState`-Objekt (`s`) in `AppInne
 ```
 s (Profil-State)
 ├── assets[]          — Positionen mit Wert, Eigentümer, Steuer, Lifecycle
-├── owners[]          — Eigentümer mit Typ, Steuerprofile, Gesellschafter
+├── owners[]          — Eigentümer mit Typ, Steuerprofile, Gesellschafter, birthYear
 ├── incomeStreams[]    — zeitbegrenzte Einkommensströme pro Eigentümer
-├── expenseStreams[]   — zeitbegrenzte Ausgabenströme
+├── expenseStreams[]   — zeitbegrenzte Ausgabenströme (mit owner + isBufferContribution)
+├── standaloneLoans[] — Verbindlichkeiten ohne Asset-Bindung
 ├── buckets[]         — geplante Ausgaben (Einmalig/Jährlich/Monatlich)
 ├── checkins[]        — monatliche Haushalt-Check-ins
 ├── snapshots[]       — Nettowert-Zeitreihe mit Asset-Einzelwerten
 ├── classReturns{}    — überschriebene Renditen pro Asset-Klasse
-└── Konfiguration     — birthYear, maritalProperty, taxFiling, horizon, etc.
+└── Konfiguration     — birthYear, maritalProperty, taxFiling, horizon, projSpreadCons/Opt, etc.
 ```
 
 Änderungen werden über drei Callbacks propagiert:
@@ -259,6 +261,7 @@ Jedes Feld im System wird entweder in Berechnungen eingesetzt oder dient als Met
   id: string,
   label: string,
   type: "Person" | "GmbH" | "Stiftung" | "GbR" | "AG" | "Sonstiges",
+  birthYear: number | null,        // für personenbezogene Altersachse in Projektion
   ownedBy: [{ ownerId, share }],   // Gesellschafter (für GmbH, GbR, etc.)
   tax: {
     personalTaxRate: number,       // Grenzsteuersatz in %
@@ -266,6 +269,21 @@ Jedes Feld im System wird entweder in Berechnungen eingesetzt oder dient als Met
     sparerpauschbetrag: number,    // in €
     zusammenveranlagung: boolean,
   },
+}
+```
+
+### Standalone Loan (Verbindlichkeit ohne Asset)
+
+```js
+{
+  id: string,
+  name: string,
+  owner: string | null,            // ownerId
+  loanType: "annuitat" | "endfaellig",
+  debt: number,                    // Restschuld in €
+  loanRate: number,                // Nominalzins in % p.a.
+  loanAnnuitat: number,            // monatliche Rate in €
+  loanTermYears: number | null,    // Gesamtlaufzeit in Jahren
 }
 ```
 
@@ -328,9 +346,11 @@ bound = streamExpense + otherAnnuität (Nicht-Immo-Darlehen) + assetRunningCosts
 
 **Sparrate:**
 ```
-rest = avail - bound
-eff  = autoSpar ? max(0, rest) : manuellSparrate
+rest      = avail - bound
+effTarget = manuellSparrate  (nur manueller Modus, zur Anzeige)
+eff       = autoSpar ? max(0, rest) : min(manuellSparrate, max(0, rest))
 ```
+Die Sparrate kann nie den tatsächlichen Einkommensüberschuss übersteigen — keine Kapitalflüsse aus dem Nichts. Im manuellen Modus wird `effTarget` im Haushalt-Tab angezeigt; bei Unterschreitung erscheint eine Warnung.
 
 **Sparquote:** `eff / avail × 100`
 
@@ -463,6 +483,35 @@ Dynamisch: Aus einem Satz vordefinierter Schwellen (250k, 500k, 750k, 1M, 1.5M, 
 ---
 
 ## Versionshistorie
+
+### v1.13 — Projektion UX: Szenario-Tiles klickbar, Inflation hinter Expand (April 2026)
+- Rendite-Spreads für Konservativ/Optimistisch-Szenarien nur noch zugänglich via Klick auf das jeweilige Tile (kein immer-sichtbarer Slider)
+- Basis-Tile zeigt gewichtete Durchschnittsrendite und Link zu Vermögen-Tab
+- Inflation als eigenes klickbares Panel: zeigt Status (nominal/real + Rate), öffnet bei Klick Toggle + Rate-Slider
+- Planning-Parameter-Block bereinigt: nur noch Sparraten-Wachstum, Steuern, Alter, Zeithorizont, Mietpreissteigerung
+
+### v1.12 — Sparraten-Integrität: kein Kapitalfluss aus dem Nichts (April 2026)
+- Sparrate kann strukturell nie den tatsächlichen Einkommensüberschuss übersteigen — gilt für Haushalt-`cf.eff` und Projektions-`sp`
+- `freed`-Annuität aus manuellem Modus entfernt (war Doppelzählung: `otherAnnu` sinkt natürlich wenn Kredit abbezahlt)
+- Haushalt-Tab zeigt Warnung wenn manuelles Sparziel den verfügbaren Überschuss übersteigt
+- Zugehöriges `effTarget`-Feld in `cf` für Zielanzeige ohne Modell-Verfälschung
+
+### v1.11 — Standalone-Darlehen & Eigentümer-Geburtsjahr (April 2026)
+- **Standalone Loans** (`StandaloneLoanModal`): Verbindlichkeiten ohne Asset-Bindung (KFZ-Kredit, Privatdarlehen etc.)
+- TabVermogen: neue "Verbindlichkeiten"-Karte mit Add/Edit/Delete; Restschuld in Gesamtschulden und Nettowert eingerechnet
+- Standalone Loans vollständig in `loanSummary`, `cf.otherAnnuitat`, `agg.debt/net`, Projektions-`nonImmoLoans` + `computeCF.otherAnnu` verdrahtet; `computeRemDebt` korrekt angewendet
+- **Owner birthYear**: Geburtsjahr-Feld für Personen (Neu-Anlage + Bearbeitung)
+- `currentAge` in Projektion owner-aware: bei Einzeleigentümer-Filter wird dessen Geburtsjahr für die Altersachse verwendet
+
+### v1.10 — Haushaltspuffer, Sparraten-Szenarien & Projektion-Fixes (April 2026)
+- **Haushaltspuffer**: Cash-Asset mit `isHaushaltsPuffer`-Flag; negative Haushaltssalden werden zuerst daraus gedeckt; Puffer wächst mit Cash-Rendite; in Projektion separat von V_invest getrackt
+- Ausgabenströme: `isBufferContribution`-Flag leitet Beiträge an Pufferkonto weiter statt Konsum
+- Ausgabenströme: `owner`-Zuordnung; Haushalt-Tab filtert nach Eigentümer
+- **Fix 0%-Rendite-Bug**: `||` durch `??` (nullish coalescing) ersetzt — 0% Rendite wurde fälschlich auf 5% gesetzt
+- Konfigurierbare Szenario-Spreads (`projSpreadCons`, `projSpreadOpt`) statt fest verdrahteter ±2%
+- `assetYield` in Projektion: nutzt projected Asset-Value statt gefrorenem Startwert
+- CSV-Export: Jahreswerte korrekt (monatliche CF × 12 im annual-discrete Modell)
+- Haushalt: Monat/Jahr-Toggle, "Portfolioentnahme"-Zeile, Owner-Filter-Warnung
 
 ### v1.9 — Dashboard-Aufräumung & Darlehen-Annuität manuell (April 2026)
 - Dashboard-Schnellbutton "Leisten?" umbenannt zu **"Szenarien"** mit direktem Link zum Szenarien-Tab
