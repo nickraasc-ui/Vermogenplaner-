@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Sheet, Inp, SelEl, Btn, uid } from "../ui.jsx";
-import { OWNER_TYPES, MARITAL_PROPERTY_OPTIONS } from "../../constants.js";
+import { OWNER_TYPES, MARITAL_PROPERTY_OPTIONS, CY } from "../../constants.js";
 
 export default function OwnerModal({ s, T, setModal, upd }) {
   const [newName, setNewName] = useState("");
   const [newType, setNewType] = useState("Person");
+  const [newBirthYear, setNewBirthYear] = useState("");
   const [expanded, setExpanded] = useState(null);
   const owners = s.owners || [];
 
@@ -17,8 +18,10 @@ export default function OwnerModal({ s, T, setModal, upd }) {
     const tax = isEntity
       ? { personalTaxRate: 30, churchTax: false, sparerpauschbetrag: 0, zusammenveranlagung: false }
       : { personalTaxRate: 42, churchTax: false, sparerpauschbetrag: 1000, zusammenveranlagung: true };
-    upd({ owners: [...owners, { id, label, type: newType, ownedBy: [], tax }] });
+    const birthYear = !isEntity && newBirthYear ? (+newBirthYear || null) : null;
+    upd({ owners: [...owners, { id, label, type: newType, ownedBy: [], tax, ...(birthYear ? { birthYear } : {}) }] });
     setNewName("");
+    setNewBirthYear("");
   };
 
   const removeOwner = (ownerId) => {
@@ -93,6 +96,10 @@ export default function OwnerModal({ s, T, setModal, upd }) {
                 <SelEl label="Typ" value={o.type || "Person"} onChange={v => updOwner(o.id, { type: v })}
                   options={OWNER_TYPES} T={T} />
 
+                {!isEntity && (
+                  <Inp label="Geburtsjahr" value={o.birthYear || ""} onChange={v => updOwner(o.id, { birthYear: +v || null })} type="number" placeholder={String(CY - 35)} T={T} />
+                )}
+
                 {/* Steuerprofil */}
                 <div style={{ marginBottom: 12, opacity: 0.6 }}>
                   <div style={{ fontSize: 9, color: T.textMid, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Steuerprofil</div>
@@ -151,6 +158,9 @@ export default function OwnerModal({ s, T, setModal, upd }) {
         <div style={sectionLabel}>Neuer Eigentümer</div>
         <Inp label="" value={newName} onChange={setNewName} placeholder="z.B. Kind 1 oder Holding GmbH" T={T} />
         <SelEl label="Typ" value={newType} onChange={setNewType} options={OWNER_TYPES} T={T} />
+        {newType === "Person" && (
+          <Inp label="Geburtsjahr (optional)" value={newBirthYear} onChange={setNewBirthYear} type="number" placeholder={String(CY - 35)} T={T} />
+        )}
         <Btn full color={T.green} T={T} onClick={addOwner}>Hinzufügen</Btn>
       </div>
     </Sheet>

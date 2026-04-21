@@ -17,6 +17,7 @@ import OwnerModal       from "./components/modals/OwnerModal.jsx";
 import IncomeStreamModal    from "./components/modals/IncomeStreamModal.jsx";
 import ExpenseStreamModal   from "./components/modals/ExpenseStreamModal.jsx";
 import ImportPreviewModal   from "./components/modals/ImportPreviewModal.jsx";
+import StandaloneLoanModal  from "./components/modals/StandaloneLoanModal.jsx";
 
 const TABS = [
   { k:"dashboard",  lbl:"Übersicht"  },
@@ -94,7 +95,13 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
   const [ownerFilter, setOwnerFilter]         = useState([]);
   const [projClassFilter, setProjClassFilter] = useState([]);
   const T = s.dark ? DARK : LIGHT;
-  const currentAge = CY - (s.birthYear || CY - 35);
+  const currentAge = useMemo(() => {
+    if (ownerFilter.length === 1) {
+      const o = (s.owners||[]).find(o => o.id === ownerFilter[0]);
+      if (o?.birthYear) return CY - o.birthYear;
+    }
+    return CY - (s.birthYear || CY - 35);
+  }, [s.birthYear, s.owners, ownerFilter]);
 
   useEffect(() => { saveState(s, LS_KEY); }, [s, LS_KEY]);
 
@@ -124,8 +131,8 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
     [filteredAssets, projClassFilter]
   );
 
-  const loanSummary = useMemo(() =>
-    filteredAssets.filter(a => (a.debt||0) > 0).map(a => {
+  const loanSummary = useMemo(() => {
+    const fromAssets = filteredAssets.filter(a => (a.debt||0) > 0).map(a => {
       const sh = ownerShare(a, ownerFilter);
       const annuitat = (a.loanAnnuitat||0) * sh;
       const tilgung  = (a.loanTilgung||0)  * sh;
@@ -137,7 +144,23 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
           ? Math.ceil((a.debt||0) / ((a.loanTilgung||0)*12))
           : (a.loanTermYears || null);
       return { id:a.id, name:a.name, loanType, debt:(a.debt||0)*sh, annuitat, tilgung, zinsen, yrsLeft };
-    }), [filteredAssets, ownerFilter]);
+    });
+    const fromStandalone = (s.standaloneLoans||[])
+      .filter(l => ownerFilter.length === 0 || !l.owner || ownerFilter.includes(l.owner))
+      .map(l => {
+        const annuitat = l.loanAnnuitat || 0;
+        const zinsen   = (l.debt||0) * (l.loanRate||0) / 100 / 12;
+        const tilgung  = Math.max(0, annuitat - zinsen);
+        const loanType = l.loanType || "annuitat";
+        const yrsLeft  = loanType === "endfaellig"
+          ? (l.loanTermYears || null)
+          : tilgung > 0
+            ? Math.ceil((l.debt||0) / (tilgung * 12))
+            : (l.loanTermYears || null);
+        return { id:l.id, name:l.name, loanType, debt:l.debt||0, annuitat, tilgung, zinsen, yrsLeft, standalone:true };
+      });
+    return [...fromAssets, ...fromStandalone];
+  }, [filteredAssets, s.standaloneLoans, ownerFilter]);
 
   const totalMonthlyLoanPayment = useMemo(() =>
     loanSummary.reduce((t, l) => t + l.annuitat, 0), [loanSummary]);
@@ -148,7 +171,8 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
     const immoGross     = immoAssets.reduce((t, a) => t + (a.monthlyRent||IMMO_CF_GROSS)*sh(a), 0);
     const immoRunning   = immoAssets.reduce((t, a) => t + ((a.hausgeld||IMMO_HAUSGELD)+(a.grundsteuer||IMMO_GRUNDSTEUER))*sh(a), 0);
     const immoAnnuitat  = immoAssets.filter(a => (a.debt||0)>0).reduce((t, a) => t+(a.loanAnnuitat||0)*sh(a), 0);
-    const otherAnnuitat = filteredAssets.filter(a => a.class!=="Immobilien" && a.class!=="Forderung" && (a.debt||0)>0).reduce((t, a) => t+(a.loanAnnuitat||0)*sh(a), 0);
+    const otherAnnuitat = filteredAssets.filter(a => a.class!=="Immobilien" && a.class!=="Forderung" && (a.debt||0)>0).reduce((t, a) => t+(a.loanAnnuitat||0)*sh(a), 0)
+      + (s.standaloneLoans||[]).filter(l => ownerFilter.length === 0 || !l.owner || ownerFilter.includes(l.owner)).reduce((t, l) => t+(l.loanAnnuitat||0), 0);
     const forderungIncome   = filteredAssets.filter(a => a.class==="Forderung").reduce((t, a) => t+(a.monthlyRepayment||0)*sh(a), 0);
     const assetRunningCosts = filteredAssets.filter(a => a.class!=="Immobilien" && (a.monthlyRunningCost||0)>0).reduce((t, a) => t+(a.monthlyRunningCost||0)*sh(a), 0);
     const immoNetCF = immoGross - immoAnnuitat - immoRunning;
@@ -210,7 +234,7 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
       .filter(a => a.isHaushaltsPuffer && a.class === "Cash")
       .reduce((t, a) => t + (a.value||0), 0);
     return { avail, bound, rest, eff, saldo, quote, deficitMonthly, bufferContribMonthly, bufferBalance, immoNetCF, immoGross, immoRunning, immoAnnuitat, otherAnnuitat, forderungIncome, assetRunningCosts, streamIncome, streamExpense, assetYieldIncome, scnFinanced, scnSpDelta, scnFinancedItems, scnSpItems };
-  }, [filteredAssets, filteredIncomeStreams, s.expenseStreams, s.autoSpar, s.manuellSparrate, s.buckets, ownerFilter]);
+  }, [filteredAssets, filteredIncomeStreams, s.expenseStreams, s.standaloneLoans, s.autoSpar, s.manuellSparrate, s.buckets, ownerFilter]);
 
   const agg = useMemo(() => {
     let gross = 0, debt = 0;
@@ -224,11 +248,15 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
       const liq = a.liquidity || LIQUIDITY_DEFAULT[a.class] || "Semi-liquide";
       byLiquidity[liq] = (byLiquidity[liq]||0) + net;
     });
+    // Standalone loans reduce net worth (no corresponding asset value)
+    (s.standaloneLoans||[])
+      .filter(l => ownerFilter.length === 0 || !l.owner || ownerFilter.includes(l.owner))
+      .forEach(l => { debt += l.debt || 0; });
     const totalNet = gross - debt;
     let wavg = 0;
     if (totalNet > 0) Object.entries(byClass).forEach(([cls, val]) => { if (val > 0) wavg += (val/totalNet)*(s.classReturns[cls]||0); });
     return { gross, debt, net:totalNet, byClass, byLiquidity, wavgReturn:wavg };
-  }, [filteredAssets, s.classReturns, ownerFilter]);
+  }, [filteredAssets, s.standaloneLoans, s.classReturns, ownerFilter]);
 
   const sparDist = useMemo(() => {
     const shS = (a) => ownerShare(a, ownerFilter);
@@ -295,15 +323,25 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
     const fordAssets = projAssets.filter(a => a.class === "Forderung");
     const totalFordBal = (y) => fordAssets.reduce((t, a) => t + fordBalance(a, y), 0);
 
-    const nonImmoLoans = projAssets
-      .filter(a => a.class!=="Immobilien" && a.class!=="Forderung" && (a.debt||0)>0 && (a.loanAnnuitat||0)>0)
-      .map(a => {
-        const loanType = a.loanType || "annuitat";
-        const yrsLeft = loanType === "endfaellig"
-          ? (a.loanTermYears || null)
-          : (a.loanTilgung||0) > 0 ? (a.debt||0)/((a.loanTilgung||0)*12) : (a.loanTermYears || null);
-        return { a, annuitat:(a.loanAnnuitat||0)*sh(a), yrsLeft };
-      });
+    const nonImmoLoans = [
+      ...projAssets
+        .filter(a => a.class!=="Immobilien" && a.class!=="Forderung" && (a.debt||0)>0 && (a.loanAnnuitat||0)>0)
+        .map(a => {
+          const loanType = a.loanType || "annuitat";
+          const yrsLeft = loanType === "endfaellig"
+            ? (a.loanTermYears || null)
+            : (a.loanTilgung||0) > 0 ? (a.debt||0)/((a.loanTilgung||0)*12) : (a.loanTermYears || null);
+          return { a, annuitat:(a.loanAnnuitat||0)*sh(a), yrsLeft };
+        }),
+      ...(s.standaloneLoans||[])
+        .filter(l => ownerFilter.length === 0 || !l.owner || ownerFilter.includes(l.owner))
+        .filter(l => (l.debt||0)>0 && (l.loanAnnuitat||0)>0)
+        .map(l => ({
+          a: l,
+          annuitat: l.loanAnnuitat||0,
+          yrsLeft: l.loanTermYears || null,
+        })),
+    ];
 
     // Returns all cashflow components for year y — single source of truth for both projection and export
     const computeCF = (y) => {
@@ -336,7 +374,9 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
       const fordInc      = fordAssets.reduce((t, a) => t+(a.monthlyRepayment||0)*sh(a), 0);
       const runCosts     = projAssets.filter(a => a.class!=="Immobilien" && (a.monthlyRunningCost||0)>0).reduce((t, a) => t+(a.monthlyRunningCost||0)*sh(a), 0);
       const otherAnnu    = projAssets.filter(a => a.class!=="Immobilien" && a.class!=="Forderung" && (a.debt||0)>0).reduce((t, a) =>
-        t + (computeRemDebt(a, y) > 0 ? (a.loanAnnuitat||0)*sh(a) : 0), 0);
+        t + (computeRemDebt(a, y) > 0 ? (a.loanAnnuitat||0)*sh(a) : 0), 0)
+        + (s.standaloneLoans||[]).filter(l => ownerFilter.length === 0 || !l.owner || ownerFilter.includes(l.owner))
+          .reduce((t, l) => t + (computeRemDebt(l, y) > 0 ? (l.loanAnnuitat||0) : 0), 0);
       const assetYield   = projAssets
         .filter(a => (a.yieldPct||0) > 0 && a.class !== "Immobilien" && a.class !== "Forderung")
         .reduce((t, a) => {
@@ -499,7 +539,8 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
       {modal?.type==="owner"         && <OwnerModal         s={s} T={T} setModal={setModal} upd={upd} updArr={updArr} />}
       {modal?.type==="incomeStream"  && <IncomeStreamModal  data={modal.data} s={s} T={T} setModal={setModal} updArr={updArr} />}
       {modal?.type==="expenseStream"  && <ExpenseStreamModal  data={modal.data} s={s} T={T} setModal={setModal} updArr={updArr} />}
-      {modal?.type==="importPreview"  && <ImportPreviewModal  preview={modal.data} s={s} T={T} setModal={setModal} updArr={updArr} />}
+      {modal?.type==="importPreview"    && <ImportPreviewModal    preview={modal.data} s={s} T={T} setModal={setModal} updArr={updArr} />}
+      {modal?.type==="standaloneLoan"  && <StandaloneLoanModal   data={modal.data} s={s} T={T} setModal={setModal} updArr={updArr} />}
 
       <div style={{ background:T.header, borderBottom:"1px solid "+T.tabBorder, padding:"14px 16px 10px", paddingTop:"calc(14px + env(safe-area-inset-top,0px))", position:"sticky", top:0, zIndex:50 }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
@@ -532,7 +573,7 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
       <div style={{ padding:"14px 14px 4px", maxWidth:600, margin:"0 auto" }}>
         {tab==="dashboard"  && <TabDashboard  s={s} T={T} setModal={setModal} setTab={setTab} agg={agg} cf={cf} loanSummary={loanSummary} lastCI={lastCI} snaps={snaps} totalMonthlyLoanPayment={totalMonthlyLoanPayment} projection={projection} final={final} currentAge={currentAge} />}
         {tab==="haushalt"   && <TabHaushalt   s={s} T={T} upd={upd} updArr={updArr} setModal={setModal} cf={cf} sparDist={sparDist} ownerFilter={ownerFilter} filteredAssets={filteredAssets} cashflowProjection={cashflowProjection} />}
-        {tab==="vermogen"   && <TabVermogen   s={s} T={T} updClass={updClass} updArr={updArr} setModal={setModal} agg={agg} filteredAssets={filteredAssets} ownerFilter={ownerFilter} />}
+        {tab==="vermogen"   && <TabVermogen   s={s} T={T} updClass={updClass} updArr={updArr} setModal={setModal} agg={agg} filteredAssets={filteredAssets} loanSummary={loanSummary} ownerFilter={ownerFilter} />}
         {tab==="projektion" && <TabProjektion s={s} T={T} upd={upd} cf={cf} agg={agg} projection={projection} final={final} loanSummary={loanSummary} setModal={setModal} projClassFilter={projClassFilter} toggleProjClass={toggleProjClass} resetProjClass={() => setProjClassFilter([])} availClasses={[...new Set(filteredAssets.map(a => a.class))]} currentAge={currentAge} cashflowProjection={cashflowProjection} />}
         {tab==="buckets"    && <TabBuckets    s={s} T={T} upd={upd} updArr={updArr} setModal={setModal} agg={agg} final={final} currentAge={currentAge} />}
       </div>

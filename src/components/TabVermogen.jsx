@@ -4,7 +4,7 @@ import { Sl, Tile, Btn, Card, CardLabel, fmtE, full } from "./ui.jsx";
 import { ASSET_CLASSES, ASSET_CLASS_DEFAULTS, LIQUIDITY_CATS, LIQ_CLR } from "../constants.js";
 import { exportAssetsToExcel, parseImportFile } from "../utils/excelIO.js";
 
-export default function TabVermogen({ s, T, updClass, updArr, setModal, agg, filteredAssets }) {
+export default function TabVermogen({ s, T, updClass, updArr, setModal, agg, filteredAssets, loanSummary }) {
   const fileInputRef = useRef(null);
   const [expandedSnap, setExpandedSnap] = useState(null);
 
@@ -236,6 +236,52 @@ export default function TabVermogen({ s, T, updClass, updArr, setModal, agg, fil
           <span style={{ fontSize:10, color:T.textLow }}>Schulden <strong style={{ color:T.red }}>−{fmtE(agg.debt)}</strong></span>
           <span style={{ fontSize:10, color:T.textLow }}>Netto <strong style={{ color:T.accent }}>{fmtE(agg.net)}</strong></span>
         </div>
+      </Card>
+
+      {/* Verbindlichkeiten (standalone loans) */}
+      <Card T={T}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+          <CardLabel T={T} mb={0}>Verbindlichkeiten</CardLabel>
+          <Btn sm color={T.red} T={T} onClick={() => setModal({ type:"standaloneLoan", data:null })}>+ Darlehen</Btn>
+        </div>
+        {!(s.standaloneLoans||[]).length ? (
+          <div style={{ fontSize:11, color:T.textDim, textAlign:"center", padding:"12px 0" }}>
+            Keine separaten Verbindlichkeiten
+          </div>
+        ) : (
+          (s.standaloneLoans||[]).map(l => {
+            const ownerLabel = l.owner ? (s.owners||[]).find(o => o.id === l.owner)?.label : null;
+            return (
+              <div key={l.id} style={{
+                display:"flex", justifyContent:"space-between", alignItems:"flex-start",
+                borderBottom:"1px solid "+T.border, paddingBottom:10, marginBottom:10,
+                borderLeft:"3px solid "+T.red, paddingLeft:10, marginLeft:-14,
+              }}>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontSize:12, fontWeight:600, color:T.text }}>{l.name}</div>
+                  <div style={{ display:"flex", gap:5, marginTop:3, flexWrap:"wrap", alignItems:"center" }}>
+                    <span style={{ fontSize:8, color:T.red, fontWeight:600 }}>{l.loanType === "endfaellig" ? "Endfällig" : "Annuität"}</span>
+                    {ownerLabel && <span style={{ fontSize:8, color:T.textDim }}>· {ownerLabel}</span>}
+                    <span style={{ fontSize:8, color:T.textDim }}>{l.loanRate||0}% Zinssatz</span>
+                    {l.loanTermYears && <span style={{ fontSize:8, color:T.textDim }}>{l.loanTermYears} J. Laufzeit</span>}
+                  </div>
+                  <div style={{ fontSize:8, color:T.red, marginTop:3 }}>
+                    {full(l.loanAnnuitat||0)}/Mo. | Restschuld {fmtE(l.debt||0)}
+                  </div>
+                </div>
+                <div style={{ display:"flex", gap:6, alignItems:"center", flexShrink:0, marginLeft:8 }}>
+                  <Btn sm T={T} onClick={() => setModal({ type:"standaloneLoan", data:l })}>edit</Btn>
+                  <Btn sm danger T={T} onClick={() => updArr("standaloneLoans", (s.standaloneLoans||[]).filter(x => x.id !== l.id))}>×</Btn>
+                </div>
+              </div>
+            );
+          })
+        )}
+        {(s.standaloneLoans||[]).length > 0 && (
+          <div style={{ display:"flex", justifyContent:"flex-end", paddingTop:8, borderTop:"1px solid "+T.border }}>
+            <span style={{ fontSize:10, color:T.textLow }}>Gesamt Restschuld <strong style={{ color:T.red }}>−{fmtE((s.standaloneLoans||[]).reduce((t,l) => t+(l.debt||0), 0))}</strong></span>
+          </div>
+        )}
       </Card>
 
       {/* Snapshots */}
