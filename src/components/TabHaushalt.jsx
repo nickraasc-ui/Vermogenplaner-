@@ -56,8 +56,17 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
         </div>
       )}
       {cf.rest < 0 && isCurrent && (
-        <div style={{ background:T.red+"15", border:"1px solid "+T.red+"44", borderRadius:8, padding:"9px 13px", fontSize:11, color:T.red }}>
-          Ausgaben übersteigen Einkommen um {full(Math.abs(cf.rest) * vm)}/{annualView?"J.":"Mo."} — Portfolioentnahme nötig
+        <div style={{ background:T.red+"15", border:"1px solid "+T.red+"44", borderRadius:8, padding:"10px 13px" }}>
+          <div style={{ fontSize:11, color:T.red, fontWeight:700, marginBottom:5 }}>
+            Ausgaben übersteigen Einkommen um {full(Math.abs(cf.rest) * vm)}/{annualView?"J.":"Mo."}
+          </div>
+          <div style={{ fontSize:10, color:T.textMid, lineHeight:1.7 }}>
+            {cf.bufferBalance > 0 && cf.bound > 0 && (
+              <div>· Puffer deckt ca. <strong style={{ color:T.amber }}>{(cf.bufferBalance / Math.abs(cf.rest)).toFixed(0)} Monate</strong></div>
+            )}
+            <div>· Ausgaben um <strong>{full(Math.abs(cf.rest))}/Mo.</strong> reduzieren</div>
+            <div>· oder neue Einnahmequelle anlegen</div>
+          </div>
         </div>
       )}
       {cf.effTarget != null && cf.effTarget > cf.rest && isCurrent && (

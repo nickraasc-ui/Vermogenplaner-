@@ -155,6 +155,14 @@ export default function TabVermogen({ s, T, updClass, updArr, setModal, agg, fil
           <input ref={fileInputRef} type="file" accept=".xlsx,.xls" style={{ display:"none" }} onChange={handleImport} />
         </div>
 
+        {filteredAssets.length === 0 && (
+          <div style={{ textAlign:"center", padding:"24px 0 12px" }}>
+            <div style={{ fontSize:32, color:T.textDim, marginBottom:8 }}>◈</div>
+            <div style={{ fontSize:12, fontWeight:600, color:T.textMid, marginBottom:4 }}>Noch keine Positionen</div>
+            <div style={{ fontSize:10, color:T.textDim, marginBottom:14, lineHeight:1.6 }}>Füge Assets hinzu — ETFs, Immobilien, Cash, Beteiligungen</div>
+            <Btn sm color={T.green} T={T} onClick={() => setModal({ type:"asset", data:null })}>+ Erste Position anlegen</Btn>
+          </div>
+        )}
         {filteredAssets.map(a => {
           const clsColor = ASSET_CLASS_DEFAULTS[a.class]?.color || T.textMid;
           const ownershipLabels = (a.ownership || (a.owner ? [{ ownerId: a.owner, share: 1 }] : []))

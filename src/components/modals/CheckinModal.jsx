@@ -37,7 +37,7 @@ export default function CheckinModal({ s, cf, T, setModal, updArr, cashflowProje
 
   return (
     <Sheet title="Check-in erfassen" onClose={() => setModal(null)} T={T}>
-      <Inp label="Monat" value={f.month} onChange={v => set("month", v)} type="month" T={T} />
+      <Inp label="Monat" value={f.month} onChange={v => set("month", v)} type="month" max={CM} T={T} />
 
       {/* Prognose-Referenz für das gewählte Jahr */}
       {proj.avail !== undefined && (

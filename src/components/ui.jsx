@@ -68,11 +68,12 @@ export const Sheet = ({ title, onClose, children, T }) => (
   </div>
 );
 
-export const Inp = ({ label, value, onChange, type="text", placeholder="", T }) => (
+export const Inp = ({ label, value, onChange, type="text", placeholder="", T, ...rest }) => (
   <div style={{ marginBottom:12 }}>
     {label && <label style={{ fontSize:9, color:T.textMid, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", display:"block", marginBottom:4 }}>{label}</label>}
     <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
       inputMode={type==="number" ? "decimal" : undefined}
+      {...rest}
       style={{ width:"100%", background:T.bg, border:"1px solid "+T.border, borderRadius:8, padding:"11px 12px", color:T.text, fontSize:16, outline:"none", fontFamily:"inherit", WebkitAppearance:"none" }} />
   </div>
 );

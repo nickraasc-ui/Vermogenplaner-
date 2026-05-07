@@ -255,6 +255,113 @@ export default function TabProjektion({ s, T, upd, cf, agg, projection, final, l
         </ResponsiveContainer>
       </div>
 
+      {/* Rentenlücken-Analyse */}
+      {(() => {
+        const retAge     = s.retirementAge || Math.min(currentAge + 30, 67);
+        const retIdx     = Math.max(0, Math.min(retAge - currentAge, (cashflowProjection?.length || 1) - 1));
+        const retCF      = cashflowProjection?.[retIdx] || {};
+        const retProj    = projection?.[retIdx];
+        const monthlyGap = Math.max(0, (retCF.bound || 0) - (retCF.avail || 0));
+        const annualGap  = monthlyGap * 12;
+        const required25x = annualGap * 25;
+        const projBase   = retProj?.base || 0;
+        const covered    = annualGap > 0 ? projBase / annualGap : Infinity;
+        const surplus    = projBase - required25x;
+        const isOpen     = activePane === "rentenlucke";
+        return (
+          <div>
+            <div onClick={() => togglePane("rentenlucke")}
+              style={{ background:T.surface, border:"1px solid "+(isOpen ? T.purple+"88" : T.border), borderRadius:10, padding:"10px 14px", cursor:"pointer", WebkitTapHighlightColor:"transparent", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+              <div>
+                <div style={{ fontSize:9, color:T.purple, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em" }}>Rentenlückenanalyse</div>
+                <div style={{ fontSize:11, color:T.text, marginTop:2 }}>
+                  {monthlyGap > 0
+                    ? <span>Alter {retAge}: <strong style={{ color:T.red }}>{full(monthlyGap)}/Mo. Lücke</strong></span>
+                    : <span>Alter {retAge}: <strong style={{ color:T.green }}>kein Defizit</strong></span>
+                  }
+                </div>
+              </div>
+              <span style={{ fontSize:10, color:T.textMid }}>{isOpen ? "▲" : "▼"}</span>
+            </div>
+            {isOpen && (
+              <div style={{ background:T.surface, border:"1px solid "+T.purple+"44", borderRadius:10, padding:14, marginTop:4, display:"flex", flexDirection:"column", gap:14 }}>
+                <Sl label="Renteneintrittsalter" value={retAge} min={55} max={75} step={1}
+                  onChange={v => upd({ retirementAge: v })} fmt={v => v+" Jahre"} color={T.purple} T={T} />
+
+                <div style={{ background:T.surfaceHigh, borderRadius:8, padding:"12px 14px", display:"flex", flexDirection:"column", gap:10 }}>
+                  <div style={{ fontSize:9, color:T.textLow, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:2 }}>
+                    Prognose Alter {retAge} · Jahr {CY + retIdx}
+                  </div>
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+                    <div>
+                      <div style={{ fontSize:9, color:T.textDim }}>Einnahmen</div>
+                      <div style={{ fontSize:15, fontWeight:900, color:T.green }}>{full(retCF.avail || 0)}/Mo.</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize:9, color:T.textDim }}>Ausgaben</div>
+                      <div style={{ fontSize:15, fontWeight:900, color:T.red }}>{full(retCF.bound || 0)}/Mo.</div>
+                    </div>
+                  </div>
+
+                  {monthlyGap > 0 ? (
+                    <>
+                      <div style={{ borderTop:"1px solid "+T.border, paddingTop:10 }}>
+                        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+                          <div>
+                            <div style={{ fontSize:9, color:T.textDim }}>Monatliche Lücke</div>
+                            <div style={{ fontSize:16, fontWeight:900, color:T.red }}>{full(monthlyGap)}</div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize:9, color:T.textDim }}>Projektion Portfolio</div>
+                            <div style={{ fontSize:16, fontWeight:900, color:T.accent }}>{fmtE(projBase)}</div>
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ borderTop:"1px solid "+T.border, paddingTop:10 }}>
+                        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+                          <div>
+                            <div style={{ fontSize:9, color:T.textDim }}>Kapitalbedarf (25×)</div>
+                            <div style={{ fontSize:13, fontWeight:800, color:T.purple }}>{fmtE(required25x)}</div>
+                            <div style={{ fontSize:8, color:T.textDim }}>4%-Regel (SWR)</div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize:9, color:T.textDim }}>Reichweite</div>
+                            <div style={{ fontSize:13, fontWeight:800, color:covered >= 25 ? T.green : covered >= 15 ? T.amber : T.red }}>
+                              {isFinite(covered) ? covered.toFixed(0)+" Jahre" : "unbegrenzt"}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ background: surplus >= 0 ? T.green+"12" : T.red+"12", border:"1px solid "+(surplus>=0?T.green:T.red)+"44", borderRadius:7, padding:"9px 12px" }}>
+                        <div style={{ fontSize:9, color:surplus>=0?T.green:T.red, fontWeight:700, marginBottom:2 }}>
+                          {surplus >= 0 ? "Kapitalpuffer" : "Kapitallücke"}
+                        </div>
+                        <div style={{ fontSize:14, fontWeight:900, color:surplus>=0?T.green:T.red }}>
+                          {surplus >= 0 ? "+" : ""}{fmtE(surplus)}
+                        </div>
+                        <div style={{ fontSize:9, color:T.textDim, marginTop:2 }}>
+                          {surplus >= 0
+                            ? "Portfolio übersteigt 25× Jahresdefizit — Rente gut gedeckt"
+                            : `Noch ${fmtE(Math.abs(surplus))} Vermögen aufbauen für volle Deckung`}
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div style={{ background:T.green+"12", border:"1px solid "+T.green+"44", borderRadius:7, padding:"9px 12px" }}>
+                      <div style={{ fontSize:11, fontWeight:700, color:T.green, marginBottom:2 }}>Kein Defizit im Rentenalter</div>
+                      <div style={{ fontSize:10, color:T.textDim }}>Laufende Einnahmen decken alle Ausgaben — Portfolio bleibt vollständig erhalten.</div>
+                    </div>
+                  )}
+                </div>
+                <div style={{ fontSize:9, color:T.textDim, lineHeight:1.6 }}>
+                  Hinweis: Lücke = projizierte Ausgaben − Einnahmen (inkl. Rente, Miet-CF) im gewählten Alter. Einnahmen- und Ausgabenströme mit Start/Ende-Datum werden berücksichtigt.
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       {/* Affordability */}
       <button onClick={() => setModal({ type:"afford" })}
         style={{ background:T.surface, border:"1px solid "+T.purple+"33", borderRadius:10, padding:14, cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"center", WebkitTapHighlightColor:"transparent" }}>

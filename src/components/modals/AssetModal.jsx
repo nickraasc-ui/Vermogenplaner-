@@ -119,9 +119,22 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
             <button style={removeBtn} onClick={() => set({ ownership: ownership.filter((_, j) => j !== i) })}>x</button>
           </div>
         ))}
-        {!shareOk && (
-          <div style={{ fontSize: 9, color: T.red, marginBottom: 6 }}>
-            Anteile ergeben {Math.round(ownerShareTotal * 100)}% (Soll: 100%)
+        {ownership.length > 0 && (
+          <div style={{ marginBottom: 8 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:3 }}>
+              <span style={{ fontSize:9, color:T.textDim }}>Anteilsverteilung</span>
+              <span style={{ fontSize:9, fontWeight:700, color:shareOk ? T.green : T.red }}>
+                {Math.round(ownerShareTotal * 100)}% / 100%
+              </span>
+            </div>
+            <div style={{ background:T.border, borderRadius:3, height:5, overflow:"hidden" }}>
+              <div style={{ height:"100%", background:shareOk ? T.green : T.red, width:Math.min(ownerShareTotal*100,100)+"%" }} />
+            </div>
+            {!shareOk && (
+              <div style={{ fontSize:9, color:T.red, marginTop:3 }}>
+                {ownerShareTotal < 1 ? `+${Math.round((1-ownerShareTotal)*100)}% noch nicht vergeben` : `−${Math.round((ownerShareTotal-1)*100)}% zu viel`}
+              </div>
+            )}
           </div>
         )}
         <button style={addRowBtn} onClick={() => set({ ownership: [...ownership, { ownerId: owners[0]?.id || "", share: 0 }] })}>
