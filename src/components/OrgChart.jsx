@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { fmtE } from "./ui.jsx";
 import { RELATION_TYPES } from "../constants.js";
 
@@ -110,6 +110,63 @@ export default function OrgChart({ s, T, setModal }) {
   const owners = s.owners || [];
   const assets = s.assets || [];
   const [selectedId, setSelectedId] = useState(null);
+  const [exporting, setExporting] = useState(false);
+  const printRef = useRef(null);
+
+  const exportPDF = async () => {
+    if (!printRef.current) return;
+    setExporting(true);
+    try {
+      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+        import("html2canvas"),
+        import("jspdf"),
+      ]);
+
+      // Render at 2× resolution for crisp text and lines.
+      const canvas = await html2canvas(printRef.current, {
+        scale: 2,
+        backgroundColor: T.bg || (T.surface),
+        useCORS: true,
+        logging: false,
+      });
+
+      const MARGIN = 28;  // pt
+      const HEADER = 38; // pt – space for title + date
+
+      // PDF dimensions: native element size in pt (1px = 0.75pt at 96dpi),
+      // plus margins and header. This keeps the chart at readable 1:1 scale.
+      const elW = canvas.width  / 2; // element px (scale was 2)
+      const elH = canvas.height / 2;
+      const docW = elW * 0.75 + MARGIN * 2;
+      const docH = elH * 0.75 + MARGIN * 2 + HEADER;
+
+      const pdf = new jsPDF({ unit: "pt", format: [docW, docH], orientation: "portrait" });
+
+      // Header
+      pdf.setFontSize(15);
+      pdf.setTextColor(80, 80, 100);
+      pdf.text("Organogramm", MARGIN, MARGIN + 14);
+      pdf.setFontSize(9);
+      pdf.setTextColor(140, 140, 160);
+      pdf.text(new Date().toLocaleDateString("de-DE", { day:"2-digit", month:"long", year:"numeric" }), MARGIN, MARGIN + 28);
+
+      // Separator line
+      pdf.setDrawColor(200, 200, 215);
+      pdf.setLineWidth(0.5);
+      pdf.line(MARGIN, MARGIN + HEADER - 4, docW - MARGIN, MARGIN + HEADER - 4);
+
+      // Chart image
+      const drawW = docW - MARGIN * 2;
+      const drawH = elH / elW * drawW;
+      pdf.addImage(canvas.toDataURL("image/png"), "PNG", MARGIN, MARGIN + HEADER, drawW, drawH);
+
+      pdf.save("organogramm.pdf");
+    } catch (e) {
+      console.error("PDF-Export fehlgeschlagen:", e);
+    } finally {
+      setExporting(false);
+    }
+  };
 
   // --- Generation layout ---
   // Persons: BFS over relations (Option B), fallback to birthYear buckets (Option A).
@@ -221,20 +278,39 @@ export default function OrgChart({ s, T, setModal }) {
 
   return (
     <div>
-      {/* Legend */}
-      <div style={{ display:"flex", gap:16, marginBottom:8, flexWrap:"wrap" }}>
-        <span style={{ fontSize:8, color:T.textDim, display:"flex", alignItems:"center", gap:4 }}>
-          <svg width={20} height={8}><line x1={0} y1={4} x2={20} y2={4} stroke={T.accent} strokeWidth={2} /></svg>
-          Beteiligung
-        </span>
-        <span style={{ fontSize:8, color:T.textDim, display:"flex", alignItems:"center", gap:4 }}>
-          <svg width={20} height={8}><line x1={0} y1={4} x2={20} y2={4} stroke="#f472b6" strokeWidth={1.5} strokeDasharray="4 2" /></svg>
-          Familienbeziehung
-        </span>
-        <span style={{ fontSize:8, color:T.textDim }}>
-          {bfsUsed ? "Generationen aus Beziehungen" : "Generationen aus Geburtsjahr"} · Tippen = Assets
-        </span>
+      {/* Toolbar: legend + export button */}
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8, gap:8 }}>
+        <div style={{ display:"flex", gap:12, flexWrap:"wrap", alignItems:"center" }}>
+          <span style={{ fontSize:8, color:T.textDim, display:"flex", alignItems:"center", gap:4 }}>
+            <svg width={20} height={8}><line x1={0} y1={4} x2={20} y2={4} stroke={T.accent} strokeWidth={2} /></svg>
+            Beteiligung
+          </span>
+          <span style={{ fontSize:8, color:T.textDim, display:"flex", alignItems:"center", gap:4 }}>
+            <svg width={20} height={8}><line x1={0} y1={4} x2={20} y2={4} stroke="#f472b6" strokeWidth={1.5} strokeDasharray="4 2" /></svg>
+            Familienbeziehung
+          </span>
+          <span style={{ fontSize:8, color:T.textDim }}>
+            {bfsUsed ? "Generationen aus Beziehungen" : "Generationen aus Geburtsjahr"}
+          </span>
+        </div>
+        <button
+          onClick={exportPDF}
+          disabled={exporting}
+          style={{
+            flexShrink:0,
+            background: exporting ? T.surfaceHigh : T.purple + "22",
+            border:"1px solid " + T.purple + "55",
+            borderRadius:7, padding:"5px 11px",
+            fontSize:10, fontWeight:700, color: exporting ? T.textDim : T.purple,
+            cursor: exporting ? "default" : "pointer",
+            WebkitTapHighlightColor:"transparent",
+          }}>
+          {exporting ? "Exportiere…" : "↓ PDF"}
+        </button>
       </div>
+
+      {/* Printable area (legend + chart) */}
+      <div ref={printRef}>
 
       {/* Chart */}
       <div style={{ overflowX:"auto", paddingBottom:4 }}>
@@ -342,8 +418,9 @@ export default function OrgChart({ s, T, setModal }) {
           })}
         </div>
       </div>
+      </div>{/* end printRef */}
 
-      {/* Asset detail panel */}
+      {/* Asset detail panel (not included in PDF) */}
       {selectedOwner && (
         <div style={{ background:T.surfaceHigh, border:`1px solid ${T.border}`, borderRadius:10,
           padding:"11px 13px", marginTop:8 }}>
