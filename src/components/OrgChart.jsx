@@ -4,7 +4,7 @@ import { RELATION_TYPES } from "../constants.js";
 
 const NODE_W  = 114;
 const NODE_H  = 72;
-const TIER_H  = NODE_H + 76; // vertical distance between tier rows
+const TIER_H  = NODE_H + 76;
 const NODE_GAP = 14;
 
 const RCOLOR = Object.fromEntries(RELATION_TYPES.map(r => [r.value, r.color]));
@@ -20,15 +20,90 @@ const TYPE_ICON = {
   "Sonstiges":        "◆",
 };
 
-// Tier: depth in ownership chain. Persons = 0. Corporate = max(parentTiers)+1.
-const calcTier = (id, owners, seen = new Set()) => {
+// Corporate tier: depth in ownership chain (persons are not counted here).
+const calcCorpTier = (id, owners, seen = new Set()) => {
   if (seen.has(id)) return 0;
   seen.add(id);
   const o = owners.find(x => x.id === id);
   if (!o || o.type === "Person") return 0;
   const parents = (o.ownedBy || []).filter(ob => owners.some(x => x.id === ob.ownerId));
   if (!parents.length) return 0;
-  return Math.max(...parents.map(ob => calcTier(ob.ownerId, owners, new Set(seen)))) + 1;
+  return Math.max(...parents.map(ob => calcCorpTier(ob.ownerId, owners, new Set(seen)))) + 1;
+};
+
+// Option B: BFS over "Kind"/"Elternteil" relations to assign generation numbers.
+// Returns a map { personId → generation } with 0 = oldest, or null if no generational
+// relations are defined (caller should fall back to Option A).
+const getPersonGenBFS = (owners) => {
+  const persons = owners.filter(o => o.type === "Person");
+  if (!persons.length) return {};
+
+  // Build undirected graph with generation deltas.
+  const adj = {};
+  persons.forEach(p => { adj[p.id] = []; });
+
+  const addEdge = (aId, bId, deltaAtoB) => {
+    if (adj[aId]) adj[aId].push({ id: bId, delta: deltaAtoB });
+    if (adj[bId]) adj[bId].push({ id: aId, delta: -deltaAtoB });
+  };
+
+  const seenEdge = new Set();
+  persons.forEach(p => {
+    (p.relations || []).forEach(rel => {
+      if (!adj[rel.targetId]) return;
+      const key = [p.id, rel.targetId].sort().join("~") + rel.type;
+      if (seenEdge.has(key)) return;
+      seenEdge.add(key);
+      if (rel.type === "Kind")        addEdge(p.id, rel.targetId, +1);
+      else if (rel.type === "Elternteil") addEdge(p.id, rel.targetId, -1);
+      else                             addEdge(p.id, rel.targetId,  0);
+    });
+  });
+
+  const hasGenEdges = persons.some(p =>
+    (p.relations || []).some(r => r.type === "Kind" || r.type === "Elternteil")
+  );
+  if (!hasGenEdges) return null;
+
+  // BFS from first person, assign relative generation numbers.
+  const gen = {};
+  gen[persons[0].id] = 0;
+  const queue = [persons[0].id];
+  while (queue.length) {
+    const id = queue.shift();
+    for (const { id: nId, delta } of adj[id]) {
+      if (!(nId in gen)) {
+        gen[nId] = gen[id] + delta;
+        queue.push(nId);
+      }
+    }
+  }
+  // Unconnected persons (separate family groups) fall into generation 0.
+  persons.forEach(p => { if (!(p.id in gen)) gen[p.id] = 0; });
+
+  // Normalize so oldest generation = 0.
+  const minGen = Math.min(...Object.values(gen));
+  persons.forEach(p => { gen[p.id] -= minGen; });
+  return gen;
+};
+
+// Option A fallback: bucket persons into generations by birthYear gap (>20 years = new gen).
+const getPersonGenByBirthYear = (owners) => {
+  const persons = owners.filter(o => o.type === "Person");
+  const withYear = persons.filter(p => p.birthYear).sort((a, b) => a.birthYear - b.birthYear);
+  const gen = {};
+  if (withYear.length < 2) {
+    persons.forEach(p => { gen[p.id] = 0; });
+    return gen;
+  }
+  let curGen = 0;
+  gen[withYear[0].id] = 0;
+  for (let i = 1; i < withYear.length; i++) {
+    if (withYear[i].birthYear - withYear[i - 1].birthYear > 20) curGen++;
+    gen[withYear[i].id] = curGen;
+  }
+  persons.filter(p => !p.birthYear).forEach(p => { gen[p.id] = 0; });
+  return gen;
 };
 
 export default function OrgChart({ s, T, setModal }) {
@@ -36,9 +111,23 @@ export default function OrgChart({ s, T, setModal }) {
   const assets = s.assets || [];
   const [selectedId, setSelectedId] = useState(null);
 
-  // --- Layout ---
+  // --- Generation layout ---
+  // Persons: BFS over relations (Option B), fallback to birthYear buckets (Option A).
+  const personGen = getPersonGenBFS(owners) ?? getPersonGenByBirthYear(owners);
+  const maxPersonGen = owners.some(o => o.type === "Person")
+    ? Math.max(0, ...Object.values(personGen))
+    : -1;
+
+  // Build unified tier map: persons use generation, companies are placed below.
   const tierOf = {};
-  owners.forEach(o => { tierOf[o.id] = calcTier(o.id, owners); });
+  owners.forEach(o => {
+    if (o.type === "Person") {
+      tierOf[o.id] = personGen[o.id] ?? 0;
+    } else {
+      // Corporate raw tier (0 = owned directly by a person) + offset below persons.
+      tierOf[o.id] = (maxPersonGen + 1) + calcCorpTier(o.id, owners);
+    }
+  });
 
   const byTier = {};
   owners.forEach(o => {
@@ -46,7 +135,7 @@ export default function OrgChart({ s, T, setModal }) {
     (byTier[t] = byTier[t] || []).push(o);
   });
 
-  // Within tier 0: persons first, then entities, then alphabetical
+  // Within each tier: persons before companies, then alphabetical.
   Object.values(byTier).forEach(nodes => {
     nodes.sort((a, b) =>
       (a.type === "Person" ? 0 : 1) - (b.type === "Person" ? 0 : 1) ||
@@ -91,7 +180,6 @@ export default function OrgChart({ s, T, setModal }) {
   });
 
   // --- Edges ---
-  // Ownership (solid)
   const ownEdges = [];
   owners.forEach(o => {
     (o.ownedBy || []).forEach(ob => {
@@ -100,7 +188,6 @@ export default function OrgChart({ s, T, setModal }) {
     });
   });
 
-  // Family relations (dashed) — deduplicated
   const famEdges = [];
   const seenEdge = new Set();
   owners.forEach(o => {
@@ -123,6 +210,15 @@ export default function OrgChart({ s, T, setModal }) {
     </div>
   );
 
+  // Generation divider label: show which strategy was used and label each person tier.
+  const bfsUsed = getPersonGenBFS(owners) !== null;
+  const genLabel = (tier) => {
+    if (tier > maxPersonGen) return null; // company tier
+    if (maxPersonGen === 0) return null;  // everyone same gen
+    const labels = ["Großeltern", "Eltern", "Kinder", "Enkel"];
+    return labels[tier] || `Generation ${tier + 1}`;
+  };
+
   return (
     <div>
       {/* Legend */}
@@ -135,16 +231,31 @@ export default function OrgChart({ s, T, setModal }) {
           <svg width={20} height={8}><line x1={0} y1={4} x2={20} y2={4} stroke="#f472b6" strokeWidth={1.5} strokeDasharray="4 2" /></svg>
           Familienbeziehung
         </span>
-        <span style={{ fontSize:8, color:T.textDim }}>Tippen = Assets anzeigen · ✏ = Beziehungen</span>
+        <span style={{ fontSize:8, color:T.textDim }}>
+          {bfsUsed ? "Generationen aus Beziehungen" : "Generationen aus Geburtsjahr"} · Tippen = Assets
+        </span>
       </div>
 
       {/* Chart */}
       <div style={{ overflowX:"auto", paddingBottom:4 }}>
         <div style={{ position:"relative", width:chartW, height:chartH, margin:"0 auto" }}>
 
-          {/* SVG lines (below nodes) */}
+          {/* Generation row labels */}
+          {Object.keys(byTier).map(tier => {
+            const t = parseInt(tier);
+            const lbl = genLabel(t);
+            if (!lbl) return null;
+            return (
+              <div key={`lbl${t}`} style={{
+                position:"absolute", left:0, top: t * TIER_H - 14,
+                fontSize:7.5, color:T.purple, fontWeight:700,
+                textTransform:"uppercase", letterSpacing:"0.07em",
+              }}>{lbl}</div>
+            );
+          })}
+
+          {/* SVG lines */}
           <svg style={{ position:"absolute", top:0, left:0, width:chartW, height:chartH, pointerEvents:"none", overflow:"visible" }}>
-            {/* Ownership lines */}
             {ownEdges.map(({ from, to, share }, i) => {
               const p1 = pos[from], p2 = pos[to];
               const x1 = p1.x + NODE_W / 2, y1 = p1.y + NODE_H;
@@ -164,7 +275,6 @@ export default function OrgChart({ s, T, setModal }) {
               );
             })}
 
-            {/* Family relation lines */}
             {famEdges.map(({ from, to, type }, i) => {
               const p1 = pos[from], p2 = pos[to];
               const x1 = p1.x + NODE_W / 2, y1 = p1.y + NODE_H / 2;
@@ -189,11 +299,10 @@ export default function OrgChart({ s, T, setModal }) {
           {owners.map(o => {
             const p = pos[o.id];
             if (!p) return null;
-            const isSelected  = selectedId === o.id;
-            const isPerson    = o.type === "Person";
-            const borderClr   = isSelected ? T.green : isPerson ? T.accent : T.purple;
-            const net         = ownerNet[o.id] || 0;
-
+            const isSelected = selectedId === o.id;
+            const isPerson   = o.type === "Person";
+            const borderClr  = isSelected ? T.green : isPerson ? T.accent : T.purple;
+            const net        = ownerNet[o.id] || 0;
             return (
               <div key={o.id} style={{ position:"absolute", left:p.x, top:p.y, width:NODE_W }}>
                 <div
