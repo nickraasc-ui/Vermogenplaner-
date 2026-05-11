@@ -495,6 +495,17 @@ Dynamisch: Aus einem Satz vordefinierter Schwellen (250k, 500k, 750k, 1M, 1.5M, 
 
 ## Versionshistorie
 
+### v1.15 — Organogramm: Familien- & Beteiligungsstruktur (Mai 2026)
+- **OrgChart-Komponente** (`src/components/OrgChart.jsx`): interaktives SVG-Organogramm im Dashboard-Tab (collapsible)
+- **Vertikale Tier-Darstellung**: Personen in Tier 0, Gesellschaften nach Beteiligungstiefe (rekursiv, zyklusgeschützt via `Set`)
+- **Gesellschaftsformen**: `OWNER_TYPES` erweitert um KG, GmbH & Co. KG, GbR, Stiftung, AG — mit Typ-Icon je Entität
+- **Beteiligungskanten** (solid): Kurvenpfade zwischen Eigentümer und Gesellschaft mit %-Beschriftung
+- **Familienbeziehungskanten** (gestrichelt): farblich je Typ (Ehepartner, Kind, Elternteil, Geschwister, Treuhänder, Begünstigter)
+- **Datenmodell**: `owner.relations[]` — `{ targetId, type }` — neu; Migration in `storage.js` ergänzt; Duplikate beim Rendern dedupliziert
+- **RelationModal** (`src/components/modals/RelationModal.jsx`): separates Modal zum Pflegen von Familienbeziehungen (✏-Button je Knoten)
+- **Asset-Detailpanel**: Tippen auf Knoten öffnet zugeordnete Positionen mit anteiligem Nettowert unterhalb des Charts
+- **`RELATION_TYPES`** in `constants.js`: typsichere Werteliste mit Farben für UI und SVG-Rendering
+
 ### v1.14 — Steuergenauigkeit: Pauschbetrag, Vorabpauschale, Krypto-Langfrist (Mai 2026)
 - **Krypto > 1 Jahr**: neuer Steuertyp `krypto_langfristig` (0% KeSt, §23 EStG) im Asset-Modal auswählbar
 - **Sparer-Pauschbetrag**: erstes Ertrags-Kontingent je Eigentümer (`owner.tax.sparerpauschbetrag`) steuerfrei — Kapitalerträge werden erst darüber mit KeSt belastet; wirkt in Cashflow und Projektion
