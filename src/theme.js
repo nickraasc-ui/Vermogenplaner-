@@ -54,6 +54,7 @@ export const DEFAULT = {
   inflationAdj: false, inflation: 2.5,
   sparRateGrowth: false, sparGrowthPct: 2.0,
   sparDistMode: "auto", manualSparDist: {},
+  basiszins: 2.29,
   owners: DEFAULT_OWNERS,
 
   assets: [

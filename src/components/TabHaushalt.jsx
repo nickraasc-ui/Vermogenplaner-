@@ -410,6 +410,11 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
                   )}
                 </div>
               </div>
+              {totalManual > cf.eff + 1 && (
+                <div style={{ background:T.amber+"12", border:"1px solid "+T.amber+"44", borderRadius:6, padding:"8px 10px", fontSize:10, color:T.amber, lineHeight:1.5 }}>
+                  Zuviel verteilt ({full(totalManual - cf.eff)}/Mo. über Sparrate) — Projektion verwendet nur {full(cf.eff)}/Mo. Bitte Verteilung auf max. {full(cf.eff)}/Mo. reduzieren.
+                </div>
+              )}
             </>
           ) : sparDist.length > 0 ? (
             <>

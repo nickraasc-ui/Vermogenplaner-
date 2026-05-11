@@ -44,10 +44,11 @@ const KEST_RATES = {
 
 // tax.taxType per asset overrides the class default when set explicitly
 const KEST_BY_TAX_TYPE = {
-  "abgeltung":      null,   // → use class default
-  "teileinkuenfte": 0.1583, // Teileinkünfteverfahren: 60% × 26.375%
-  "immobilien":     0.0,
-  "steuerfrei":     0.0,
+  "abgeltung":          null,   // → use class default
+  "teileinkuenfte":     0.1583, // Teileinkünfteverfahren: 60% × 26.375%
+  "immobilien":         0.0,
+  "krypto_langfristig": 0.0,    // §23 EStG: steuerfrei nach > 1 Jahr Haltedauer
+  "steuerfrei":         0.0,
 };
 
 // Effective KeSt rate for one asset: taxType overrides class default
@@ -177,10 +178,18 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
     const assetRunningCosts = filteredAssets.filter(a => a.class!=="Immobilien" && (a.monthlyRunningCost||0)>0).reduce((t, a) => t+(a.monthlyRunningCost||0)*sh(a), 0);
     const immoNetCF = immoGross - immoAnnuitat - immoRunning;
 
-    // Ausschüttungsrenditen: Dividenden, Kupons, Distributions (nicht Immo/Forderung — die haben eigene CF-Felder)
-    const assetYieldIncome = filteredAssets
-      .filter(a => (a.yieldPct||0) > 0 && a.class !== "Immobilien" && a.class !== "Forderung")
-      .reduce((t, a) => t + (a.value||0) * (a.yieldPct||0) / 100 / 12 * (s.taxOnReturns ? (1 - kestRate(a)) : 1) * sh(a), 0);
+    // Ausschüttungsrenditen: Dividenden, Kupons, Distributions (nicht Immo/Forderung)
+    const yieldAssets = filteredAssets.filter(a => (a.yieldPct||0) > 0 && a.class !== "Immobilien" && a.class !== "Forderung");
+    const grossYieldMonthly = yieldAssets.reduce((t, a) => t + (a.value||0) * (a.yieldPct||0) / 100 / 12 * sh(a), 0);
+    let assetYieldIncome = grossYieldMonthly;
+    if (s.taxOnReturns && grossYieldMonthly > 0) {
+      const afterTaxMonthly = yieldAssets.reduce((t, a) => t + (a.value||0) * (a.yieldPct||0) / 100 / 12 * (1 - kestRate(a)) * sh(a), 0);
+      // Sparer-Pauschbetrag: Summe aller Eigentümer (Standard 1.000€/Person)
+      const totalPauschbetrag = (s.owners||[]).reduce((t, o) => t + (o.tax?.sparerpauschbetrag||0), 0);
+      const avgKest = (grossYieldMonthly - afterTaxMonthly) / grossYieldMonthly;
+      const pauschSavingMonthly = Math.min(grossYieldMonthly, totalPauschbetrag / 12) * avgKest;
+      assetYieldIncome = afterTaxMonthly + pauschSavingMonthly;
+    }
 
     const streamIncome = filteredIncomeStreams
       .filter(st => CY >= (st.startsAt||CY) && (!st.endsAt || CY <= st.endsAt))
@@ -381,14 +390,24 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
         t + (computeRemDebt(a, y) > 0 ? (a.loanAnnuitat||0)*sh(a) : 0), 0)
         + (s.standaloneLoans||[]).filter(l => ownerFilter.length === 0 || !l.owner || ownerFilter.includes(l.owner))
           .reduce((t, l) => t + (computeRemDebt(l, y) > 0 ? (l.loanAnnuitat||0) : 0), 0);
-      const assetYield   = projAssets
-        .filter(a => (a.yieldPct||0) > 0 && a.class !== "Immobilien" && a.class !== "Forderung")
-        .reduce((t, a) => {
-          // Asset grows at capital-appreciation rate (total return minus distributed yield)
+      const yieldAssetsP = projAssets.filter(a => (a.yieldPct||0) > 0 && a.class !== "Immobilien" && a.class !== "Forderung");
+      const grossYieldP  = yieldAssetsP.reduce((t, a) => {
+        const capR = (s.classReturns[a.class] ?? 5) - (a.yieldPct||0);
+        const projValue = (a.value||0) * sh(a) * Math.pow(1 + capR / 100, y);
+        return t + projValue * (a.yieldPct||0) / 100 / 12;
+      }, 0);
+      let assetYield = grossYieldP;
+      if (s.taxOnReturns && grossYieldP > 0) {
+        const afterTaxYieldP = yieldAssetsP.reduce((t, a) => {
           const capR = (s.classReturns[a.class] ?? 5) - (a.yieldPct||0);
           const projValue = (a.value||0) * sh(a) * Math.pow(1 + capR / 100, y);
-          return t + projValue * (a.yieldPct||0) / 100 / 12 * (s.taxOnReturns ? (1 - kestRate(a)) : 1);
+          return t + projValue * (a.yieldPct||0) / 100 / 12 * (1 - kestRate(a));
         }, 0);
+        const totalPauschbetrag = (s.owners||[]).reduce((t, o) => t + (o.tax?.sparerpauschbetrag||0), 0);
+        const avgKestP = (grossYieldP - afterTaxYieldP) / grossYieldP;
+        const pauschSavingP = Math.min(grossYieldP, totalPauschbetrag / 12) * avgKestP;
+        assetYield = afterTaxYieldP + pauschSavingP;
+      }
 
       const avail = inc + immoNetCF + fordInc + assetYield;
       const bound = streamExp + runCosts + otherAnnu + financed;
@@ -459,7 +478,14 @@ export default function AppInner({ profileId, darkMode: initialDark, onBack }) {
         const pretaxR  = (s.classReturns[a.class] ?? 5) + adj;
         const capApprR = pretaxR - (a.yieldPct||0);
         const kest     = s.taxOnReturns ? kestRate(a) : 0;
-        const netAnnR  = capApprR * (1 - kest);
+        // FIX: Verluste werden nicht steuerlich reduziert (keine KeSt auf negative KWS)
+        let netAnnR = capApprR > 0 ? capApprR * (1 - kest) : capApprR;
+        // Vorabpauschale-Drag für thesaurierende ETFs (yieldPct=0)
+        if (s.taxOnReturns && (a.yieldPct||0) === 0 && a.class.includes("ETF")) {
+          const bz = (s.basiszins ?? 2.29) / 100;
+          const tf = a.class === "Aktien-ETF" ? 0.7 : 1.0; // Teilfreistellung
+          netAnnR -= bz * 0.7 * tf * 0.26375 * 100; // jährl. %-Drag
+        }
         totalV += netV;
         wtdR   += netV * netAnnR;
       });

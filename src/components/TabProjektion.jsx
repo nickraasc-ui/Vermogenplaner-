@@ -133,6 +133,10 @@ export default function TabProjektion({ s, T, upd, cf, agg, projection, final, l
           }
           {toggleBtn(s.taxOnReturns, T.red, s.taxOnReturns?"nach Steuern":"vor Steuern", () => upd({ taxOnReturns:!s.taxOnReturns }))}
         </div>
+        {s.taxOnReturns && (
+          <Sl label="Basiszins (BMF)" value={s.basiszins??2.29} min={0.5} max={4} step={0.01} onChange={v => upd({ basiszins:v })} fmt={v => v.toFixed(2)+"%"}
+            color={T.red} note="Vorabpauschale-Berechnung für thesaurierende ETFs — aktuell 2,29% (2024)" T={T} />
+        )}
         {!s.autoSpar && s.sparRateGrowth && (
           <Sl label="Sparraten-Wachstum p.a." value={s.sparGrowthPct||2} min={0.5} max={10} step={0.5} onChange={v => upd({ sparGrowthPct:v })} fmt={v => v+"%"} color={T.green}
             note="Sparrate steigt jährlich (z.B. mit Gehaltserhöhungen)"
@@ -325,10 +329,11 @@ export default function TabProjektion({ s, T, upd, cf, agg, projection, final, l
                             <div style={{ fontSize:8, color:T.textDim }}>4%-Regel (SWR)</div>
                           </div>
                           <div>
-                            <div style={{ fontSize:9, color:T.textDim }}>Reichweite</div>
+                            <div style={{ fontSize:9, color:T.textDim }}>Tragfähigkeit (0% Rendite)</div>
                             <div style={{ fontSize:13, fontWeight:800, color:covered >= 25 ? T.green : covered >= 15 ? T.amber : T.red }}>
                               {isFinite(covered) ? covered.toFixed(0)+" Jahre" : "unbegrenzt"}
                             </div>
+                            <div style={{ fontSize:8, color:T.textDim }}>{covered >= 25 ? "4%-Regel erfüllt" : "< 25 = Lücke"}</div>
                           </div>
                         </div>
                       </div>
@@ -354,7 +359,7 @@ export default function TabProjektion({ s, T, upd, cf, agg, projection, final, l
                   )}
                 </div>
                 <div style={{ fontSize:9, color:T.textDim, lineHeight:1.6 }}>
-                  Hinweis: Lücke = projizierte Ausgaben − Einnahmen (inkl. Rente, Miet-CF) im gewählten Alter. Einnahmen- und Ausgabenströme mit Start/Ende-Datum werden berücksichtigt.
+                  <strong style={{ color:T.amber }}>Wichtig:</strong> Gesetzliche Rente, Betriebsrente etc. als Einkommensstrom mit Startdatum (z.B. Alter 67) im Haushalt-Tab eintragen — nur dann fließen sie hier in die Lückenberechnung ein. Lücke = projizierte Ausgaben − Einnahmen im gewählten Alter.
                 </div>
               </div>
             )}

@@ -51,6 +51,7 @@ export const loadProfileState = (profileId, initialDark) => {
       if (!p.birthYear) p.birthYear = CY - 35;
       if (!("taxOnReturns" in p)) p.taxOnReturns = false;
       if (!("immoRentGrowthPct" in p)) p.immoRentGrowthPct = 2;
+      if (!("basiszins" in p)) p.basiszins = 2.29;
 
       // Migrate bucket type spelling
       if (p.buckets) p.buckets = p.buckets.map(b => ({ ...b, type: b.type === "Jahrlich" ? "Jährlich" : b.type }));

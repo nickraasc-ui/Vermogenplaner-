@@ -37,10 +37,11 @@ export const EXPENSE_CATEGORIES = ["Lebenshaltung","Versicherung","Bildung","Woh
 
 export const OWNER_TYPES = ["Person","GmbH","Stiftung","GbR","AG","Sonstiges"];
 export const ASSET_TAX_TYPES = [
-  { value:"abgeltung",      label:"Abgeltungsteuer (Aktien/ETF/Zinsen)" },
-  { value:"teileinkuenfte", label:"Teileinkünfteverfahren (GmbH-Anteile)" },
-  { value:"immobilien",     label:"Immobilien (10-Jahres-Regel)" },
-  { value:"steuerfrei",     label:"Steuerfrei" },
+  { value:"abgeltung",          label:"Abgeltungsteuer (Aktien/ETF/Zinsen)" },
+  { value:"teileinkuenfte",     label:"Teileinkünfteverfahren (GmbH-Anteile)" },
+  { value:"immobilien",         label:"Immobilien (10-Jahres-Regel)" },
+  { value:"krypto_langfristig", label:"Krypto > 1 Jahr (steuerfrei §23 EStG)" },
+  { value:"steuerfrei",         label:"Steuerfrei" },
 ];
 export const VALUATION_METHODS = [
   { value:"market",         label:"Marktwert (Börse/Kurs)" },
