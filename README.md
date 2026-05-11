@@ -221,7 +221,7 @@ Jedes Feld im System wird entweder in Berechnungen eingesetzt oder dient als Met
 
   // Steuer
   tax: {
-    taxType: "abgeltung" | "teileinkuenfte" | "immobilien" | "steuerfrei",
+    taxType: "abgeltung" | "teileinkuenfte" | "immobilien" | "krypto_langfristig" | "steuerfrei",
     acquisitionPrice: number,      // für stille Reserven
     acquisitionDate: string,       // YYYY-MM-DD
   },
@@ -367,13 +367,24 @@ Die Kapitalertragsteuer wird per Asset-Klasse mit der effektiven Rate nach Teilf
 | Immobilien | 0% | 10-Jahres-Regel (vereinfacht) |
 | Cash | 26,375% | Volle Abgeltungsteuer |
 | Rohstoffe | 26,375% | Volle Abgeltungsteuer |
-| Krypto | 26,375% | Volle Abgeltungsteuer |
+| Krypto | 26,375% | Volle Abgeltungsteuer (Haltedauer < 1 Jahr) |
+| Krypto (>1 Jahr) | 0% | §23 EStG — Steuertyp `krypto_langfristig` setzen |
 | Private Equity | 15,825% | Teileinkünfteverfahren: 60% × 26,375% |
 | Forderung | 26,375% | Volle Abgeltungsteuer |
 
 KeSt wird angewendet auf:
 - **Ausschüttungsrenditen** im Cashflow: `yieldIncome × (1 - KeSt-Rate)`
-- **Kapitalzuwachs** in der Projektion: `capApprR × (1 - KeSt-Rate)`
+- **Kapitalzuwachs** in der Projektion: nur bei positiver Kurswertsteigerung (`capApprR > 0`); Verluste werden nicht steuerlich reduziert
+
+**Sparer-Pauschbetrag:** Das erste Kontingent an Kapitalerträgen (Summe aller `owner.tax.sparerpauschbetrag`, Standard 1.000 €/Person) ist steuerfrei. Übersteigendes wird mit der gewichteten KeSt-Rate belastet.
+
+**Vorabpauschale (thesaurierende ETFs):** Bei aktiviertem `taxOnReturns` und `yieldPct = 0` wird für ETFs ein jährlicher Rendite-Drag berechnet:
+```
+drag = Basiszins × 0,7 × Teilfreistellung × 26,375%
+     Aktien-ETF: Teilfreistellung = 0,7
+     Anleihen-ETF: Teilfreistellung = 1,0
+```
+Basiszins ist einstellbar im Projektions-Tab (Standard: 2,29% / 2024).
 
 ### 3. Kapitalwachstum in der Projektion
 
@@ -484,6 +495,16 @@ Dynamisch: Aus einem Satz vordefinierter Schwellen (250k, 500k, 750k, 1M, 1.5M, 
 
 ## Versionshistorie
 
+### v1.14 — Steuergenauigkeit: Pauschbetrag, Vorabpauschale, Krypto-Langfrist (Mai 2026)
+- **Krypto > 1 Jahr**: neuer Steuertyp `krypto_langfristig` (0% KeSt, §23 EStG) im Asset-Modal auswählbar
+- **Sparer-Pauschbetrag**: erstes Ertrags-Kontingent je Eigentümer (`owner.tax.sparerpauschbetrag`) steuerfrei — Kapitalerträge werden erst darüber mit KeSt belastet; wirkt in Cashflow und Projektion
+- **Vorabpauschale**: jährlicher Rendite-Drag für thesaurierende ETFs (`yieldPct = 0`) bei aktivierter Nachsteuer-Berechnung; Basiszins im Projektions-Tab einstellbar (Standard 2,29% / 2024)
+- **KeSt-Fix**: negative Kurswertsteigerung wird nicht steuerlich reduziert (vorher wurde KeSt-Multiplikator fälschlich auf Verluste angewendet)
+- **Rentenlücke**: Hinweistext macht explizit, dass gesetzliche Rente als Einkommensstrom mit Startdatum eingetragen werden muss
+- **Tragfähigkeit**: Reichweite-Metrik umbenannt zu "Tragfähigkeit (0% Rendite)" mit 4%-Regel-Indikator
+- **Sparraten-Verteilung**: sichtbare Warnung wenn manuelle Zuteilung die effektive Sparrate übersteigt
+- **Git**: doppelter `Src/`-Eintrag (Groß-/Kleinschreibungsfehler macOS) aus git-Index entfernt
+
 ### v1.13 — Projektion UX: Szenario-Tiles klickbar, Inflation hinter Expand (April 2026)
 - Rendite-Spreads für Konservativ/Optimistisch-Szenarien nur noch zugänglich via Klick auf das jeweilige Tile (kein immer-sichtbarer Slider)
 - Basis-Tile zeigt gewichtete Durchschnittsrendite und Link zu Vermögen-Tab
@@ -591,7 +612,7 @@ Dynamisch: Aus einem Satz vordefinierter Schwellen (250k, 500k, 750k, 1M, 1.5M, 
 ### Kurzfristig (nächste Iteration)
 
 **Steuerrechner pro Eigentümer**
-Tatsächliche KeSt-Berechnung mit Sparerpauschbetrag je natürlicher Person, Kirchensteuer, Güterstand-Effekte auf Zugewinnausgleich. Heute wird der Steuersatz einheitlich pro Klasse angewendet — künftig soll er je Eigentümer und Veranlagungsart differieren.
+Vollständige KeSt-Berechnung mit Kirchensteuer, Güterstand-Effekte auf Zugewinnausgleich, separate Steuerveranlagung pro Person. Sparer-Pauschbetrag und Vorabpauschale sind bereits implementiert; die Differenzierung nach Eigentümer-Grenzsteuersatz fehlt noch.
 
 **Rollierender Nettowert-Chart im Dashboard**
 Snapshots als Zeitreihe mit Linienchart (Recharts) statt nur tabellarischer Ansicht. Zeigt historische Entwicklung gegen Projektionspfad.
