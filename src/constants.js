@@ -35,7 +35,15 @@ export const CM = new Date().toISOString().slice(0, 7);
 export const INCOME_TYPES = ["Gehalt","Freelance","Selbstständig","Rente","Mieteinnahmen","Kapitalerträge","Sonstiges"];
 export const EXPENSE_CATEGORIES = ["Lebenshaltung","Versicherung","Bildung","Wohnen","Freizeit","Sonstiges"];
 
-export const OWNER_TYPES = ["Person","GmbH","Stiftung","GbR","AG","Sonstiges"];
+export const OWNER_TYPES = ["Person","GmbH","GmbH & Co. KG","KG","GbR","Stiftung","AG","Sonstiges"];
+export const RELATION_TYPES = [
+  { value:"Ehepartner",   label:"Ehepartner/in", color:"#f472b6" },
+  { value:"Kind",         label:"Kind",           color:"#38bdf8" },
+  { value:"Elternteil",   label:"Elternteil",     color:"#38bdf8" },
+  { value:"Geschwister",  label:"Geschwister",    color:"#a78bfa" },
+  { value:"Treuhänder",   label:"Treuhänder",     color:"#f59e0b" },
+  { value:"Begünstigter", label:"Begünstigter",   color:"#10b981" },
+];
 export const ASSET_TAX_TYPES = [
   { value:"abgeltung",          label:"Abgeltungsteuer (Aktien/ETF/Zinsen)" },
   { value:"teileinkuenfte",     label:"Teileinkünfteverfahren (GmbH-Anteile)" },

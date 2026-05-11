@@ -38,9 +38,9 @@ export const loadProfileState = (profileId, initialDark) => {
       if (!p.sparDistMode) p.sparDistMode = "auto";
       if (!p.manualSparDist) p.manualSparDist = {};
 
-      // Migrate owners: add type, tax profile, ownedBy
+      // Migrate owners: add type, tax profile, ownedBy, relations
       p.owners = (p.owners||[]).map(o => ({
-        type: "Person", ownedBy: [],
+        type: "Person", ownedBy: [], relations: [],
         tax: { personalTaxRate:42, churchTax:false, sparerpauschbetrag:1000, zusammenveranlagung:true },
         ...o,
       }));

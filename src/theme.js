@@ -23,9 +23,9 @@ const TAX_PERSON = { personalTaxRate:42, churchTax:false, sparerpauschbetrag:100
 const TAX_ENTITY = { personalTaxRate:30, churchTax:false, sparerpauschbetrag:0,    zusammenveranlagung:false };
 
 export const DEFAULT_OWNERS = [
-  { id:"ehemann",      label:"Ehemann",      type:"Person", ownedBy:[], tax:{ ...TAX_PERSON } },
-  { id:"ehefrau",      label:"Ehefrau",      type:"Person", ownedBy:[], tax:{ ...TAX_PERSON } },
-  { id:"gemeinschaft", label:"Gemeinschaft", type:"GbR",    ownedBy:[{ ownerId:"ehemann", share:0.5 }, { ownerId:"ehefrau", share:0.5 }], tax:{ ...TAX_ENTITY } },
+  { id:"ehemann",      label:"Ehemann",      type:"Person", ownedBy:[], relations:[{ targetId:"ehefrau", type:"Ehepartner" }], tax:{ ...TAX_PERSON } },
+  { id:"ehefrau",      label:"Ehefrau",      type:"Person", ownedBy:[], relations:[],                                          tax:{ ...TAX_PERSON } },
+  { id:"gemeinschaft", label:"Gemeinschaft", type:"GbR",    ownedBy:[{ ownerId:"ehemann", share:0.5 }, { ownerId:"ehefrau", share:0.5 }], relations:[], tax:{ ...TAX_ENTITY } },
 ];
 
 const ASSET_TAX_DEFAULT = (taxType = "abgeltung") => ({ acquisitionPrice:0, acquisitionDate:"", taxType });

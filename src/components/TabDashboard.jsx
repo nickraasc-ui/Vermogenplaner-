@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Tile, fmtE, full, mlbl } from "./ui.jsx";
 import { LIQUIDITY_CATS, LIQ_CLR, CY } from "../constants.js";
+import OrgChart from "./OrgChart.jsx";
 
 export default function TabDashboard({ s, T, setModal, setTab, agg, cf, loanSummary, lastCI, snaps, totalMonthlyLoanPayment, projection, final, currentAge }) {
   const activeBuckets = (s.buckets||[]).filter(b => b.active !== false).length;
+  const [orgOpen, setOrgOpen] = useState(false);
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8 }}>
@@ -114,6 +117,27 @@ export default function TabDashboard({ s, T, setModal, setTab, agg, cf, loanSumm
         <Tile label="Eff. Sparrate" value={full(cf.eff)+"/Mo."} sub={"Sparquote "+cf.quote.toFixed(1)+"%"} color={T.green} T={T} />
         <Tile label="Gew. Avg-Rendite" value={agg.wavgReturn.toFixed(1)+"%"} sub={"auf Basis aktueller Allokation"} color={T.amber} T={T} />
         <Tile label="Szenarien" value={String(activeBuckets)} sub={activeBuckets?"Fließen in Projektion":"Noch keine"} color={T.purple} T={T} />
+      </div>
+
+      {/* Organogramm */}
+      <div style={{ background:T.surface, border:"1px solid "+T.border, borderRadius:10, overflow:"hidden" }}>
+        <div onClick={() => setOrgOpen(o => !o)}
+          style={{ display:"flex", justifyContent:"space-between", alignItems:"center",
+            padding:"11px 14px", cursor:"pointer", WebkitTapHighlightColor:"transparent" }}>
+          <div>
+            <div style={{ fontSize:9, color:T.purple, fontWeight:700,
+              textTransform:"uppercase", letterSpacing:"0.08em" }}>Struktur & Organogramm</div>
+            <div style={{ fontSize:10, color:T.textMid, marginTop:1 }}>
+              {(s.owners||[]).length} Eigentümer · Beteiligungs- & Familienstruktur
+            </div>
+          </div>
+          <span style={{ fontSize:11, color:T.textMid }}>{orgOpen ? "▲" : "▼"}</span>
+        </div>
+        {orgOpen && (
+          <div style={{ padding:"0 14px 14px" }}>
+            <OrgChart s={s} T={T} setModal={setModal} />
+          </div>
+        )}
       </div>
     </div>
   );
