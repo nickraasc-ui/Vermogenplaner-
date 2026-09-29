@@ -262,7 +262,7 @@ export default function OrgChart({ s, T, setModal }) {
   const selectedAssets = selectedId ? (assetsByOwner[selectedId] || []) : [];
 
   if (!owners.length) return (
-    <div style={{ textAlign:"center", padding:"16px 0", fontSize:11, color:T.textDim }}>
+    <div style={{ textAlign:"center", padding:"16px 0", fontSize:12, color:T.textDim }}>
       Keine Eigentümer angelegt
     </div>
   );
@@ -281,15 +281,15 @@ export default function OrgChart({ s, T, setModal }) {
       {/* Toolbar: legend + export button */}
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8, gap:8 }}>
         <div style={{ display:"flex", gap:12, flexWrap:"wrap", alignItems:"center" }}>
-          <span style={{ fontSize:8, color:T.textDim, display:"flex", alignItems:"center", gap:4 }}>
+          <span style={{ fontSize:11, color:T.textDim, display:"flex", alignItems:"center", gap:4 }}>
             <svg width={20} height={8}><line x1={0} y1={4} x2={20} y2={4} stroke={T.accent} strokeWidth={2} /></svg>
             Beteiligung
           </span>
-          <span style={{ fontSize:8, color:T.textDim, display:"flex", alignItems:"center", gap:4 }}>
-            <svg width={20} height={8}><line x1={0} y1={4} x2={20} y2={4} stroke="#f472b6" strokeWidth={1.5} strokeDasharray="4 2" /></svg>
+          <span style={{ fontSize:11, color:T.textDim, display:"flex", alignItems:"center", gap:4 }}>
+            <svg width={20} height={8}><line x1={0} y1={4} x2={20} y2={4} stroke="#e27aa8" strokeWidth={1.5} strokeDasharray="4 2" /></svg>
             Familienbeziehung
           </span>
-          <span style={{ fontSize:8, color:T.textDim }}>
+          <span style={{ fontSize:11, color:T.textDim }}>
             {bfsUsed ? "Generationen aus Beziehungen" : "Generationen aus Geburtsjahr"}
           </span>
         </div>
@@ -301,7 +301,7 @@ export default function OrgChart({ s, T, setModal }) {
             background: exporting ? T.surfaceHigh : T.purple + "22",
             border:"1px solid " + T.purple + "55",
             borderRadius:7, padding:"5px 11px",
-            fontSize:10, fontWeight:700, color: exporting ? T.textDim : T.purple,
+            fontSize:12, fontWeight:600, color: exporting ? T.textDim : T.purple,
             cursor: exporting ? "default" : "pointer",
             WebkitTapHighlightColor:"transparent",
           }}>
@@ -324,8 +324,7 @@ export default function OrgChart({ s, T, setModal }) {
             return (
               <div key={`lbl${t}`} style={{
                 position:"absolute", left:0, top: t * TIER_H - 14,
-                fontSize:7.5, color:T.purple, fontWeight:700,
-                textTransform:"uppercase", letterSpacing:"0.07em",
+                fontSize:10, color:T.purple, fontWeight:600, letterSpacing:0,
               }}>{lbl}</div>
             );
           })}
@@ -395,21 +394,21 @@ export default function OrgChart({ s, T, setModal }) {
                     WebkitTapHighlightColor:"transparent",
                   }}>
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                    <div style={{ fontSize:8.5, color:borderClr, fontWeight:700, lineHeight:1 }}>
+                    <div style={{ fontSize:8.5, color:borderClr, fontWeight:600, lineHeight:1 }}>
                       {TYPE_ICON[o.type] || "◆"} {o.type}
                     </div>
                     <button
                       onClick={e => { e.stopPropagation(); setModal({ type:"relation", data:o }); }}
                       style={{ background:"none", border:"none", color:T.textDim, cursor:"pointer",
-                        fontSize:11, padding:0, lineHeight:1, WebkitTapHighlightColor:"transparent" }}>
+                        fontSize:12, padding:0, lineHeight:1, WebkitTapHighlightColor:"transparent" }}>
                       ✏
                     </button>
                   </div>
-                  <div style={{ fontSize:11, fontWeight:800, color:T.text,
+                  <div style={{ fontSize:12, fontWeight:600, color:T.text,
                     overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
                     {o.label}
                   </div>
-                  <div style={{ fontSize:10.5, fontWeight:700, color:net >= 0 ? T.green : T.red }}>
+                  <div style={{ fontSize:10.5, fontWeight:600, color:net >= 0 ? T.green : T.red }}>
                     {fmtE(net)}
                   </div>
                 </div>
@@ -425,8 +424,7 @@ export default function OrgChart({ s, T, setModal }) {
         <div style={{ background:T.surfaceHigh, border:`1px solid ${T.border}`, borderRadius:10,
           padding:"11px 13px", marginTop:8 }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
-            <div style={{ fontSize:9, color:T.textLow, fontWeight:700,
-              textTransform:"uppercase", letterSpacing:"0.08em" }}>
+            <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0 }}>
               {selectedOwner.label} — Positionen
             </div>
             <button onClick={() => setSelectedId(null)}
@@ -436,7 +434,7 @@ export default function OrgChart({ s, T, setModal }) {
           </div>
 
           {selectedAssets.length === 0 ? (
-            <div style={{ fontSize:10, color:T.textDim, padding:"4px 0" }}>
+            <div style={{ fontSize:12, color:T.textDim, padding:"4px 0" }}>
               Keine Positionen direkt zugeordnet
             </div>
           ) : (
@@ -448,7 +446,7 @@ export default function OrgChart({ s, T, setModal }) {
                   borderBottom:`1px solid ${T.border}`, paddingBottom:7, marginBottom:7,
                 }}>
                   <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:11, fontWeight:600, color:T.text,
+                    <div style={{ fontSize:12, fontWeight:600, color:T.text,
                       overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
                       {a.name}
                     </div>
@@ -457,12 +455,12 @@ export default function OrgChart({ s, T, setModal }) {
                     </div>
                   </div>
                   <div style={{ textAlign:"right", flexShrink:0, marginLeft:8 }}>
-                    <div style={{ fontSize:11, fontWeight:800,
+                    <div style={{ fontSize:12, fontWeight:600,
                       color:netVal >= 0 ? T.green : T.red }}>
                       {fmtE(netVal)}
                     </div>
                     {(a.debt || 0) > 0 && (
-                      <div style={{ fontSize:8, color:T.textDim }}>
+                      <div style={{ fontSize:11, color:T.textDim }}>
                         Brutto {fmtE((a.value || 0) * a._share)}
                       </div>
                     )}
@@ -474,8 +472,8 @@ export default function OrgChart({ s, T, setModal }) {
 
           <div style={{ display:"flex", justifyContent:"space-between",
             alignItems:"center", paddingTop:4 }}>
-            <span style={{ fontSize:10, color:T.textMid, fontWeight:700 }}>Nettovermögen</span>
-            <span style={{ fontSize:13, fontWeight:900,
+            <span style={{ fontSize:12, color:T.textMid, fontWeight:600 }}>Nettovermögen</span>
+            <span style={{ fontSize:13, fontWeight:650,
               color:(ownerNet[selectedOwner.id]||0) >= 0 ? T.green : T.red }}>
               {fmtE(ownerNet[selectedOwner.id] || 0)}
             </span>

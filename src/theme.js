@@ -1,18 +1,21 @@
 import { ASSET_CLASS_DEFAULTS, CY } from "./constants.js";
 
+// Design tokens. Values must stay 6-digit hex: components append 2-digit alpha (e.g. T.accent+"22").
 export const DARK = {
-  bg:"#04080f", surface:"#06101a", surfaceHigh:"#07111e",
-  border:"#0a1c2c", borderHigh:"#0f2535",
-  text:"#c8ddf0", textMid:"#3a5570", textLow:"#1e3545", textDim:"#0f2030",
-  accent:"#38bdf8", green:"#10b981", red:"#ef4444", amber:"#f59e0b",
-  purple:"#a78bfa", pink:"#f472b6", tabBar:"#050d17", tabBorder:"#0a1825", header:"#050d17",
+  bg:"#0d0e11", surface:"#15171b", surfaceHigh:"#1c1e23",
+  border:"#25282e", borderHigh:"#32363e",
+  text:"#ececf0", textMid:"#a4a8b3", textLow:"#878b97", textDim:"#6a6e7a",
+  accent:"#6c9cff", green:"#3cbf8a", red:"#ec6a6a", amber:"#e3aa45",
+  purple:"#a28bf6", pink:"#e27aa8", tabBar:"#111316", tabBorder:"#22252b", header:"#0d0e11",
+  shadow:"0 1px 2px rgba(0,0,0,0.4)", onAccent:"#0b1226",
 };
 export const LIGHT = {
-  bg:"#f0f4f8", surface:"#ffffff", surfaceHigh:"#f8fafc",
-  border:"#dde5ed", borderHigh:"#c8d6e4",
-  text:"#0f2535", textMid:"#4a6880", textLow:"#7a9ab8", textDim:"#a8c0d0",
-  accent:"#0284c7", green:"#059669", red:"#dc2626", amber:"#d97706",
-  purple:"#7c3aed", pink:"#db2777", tabBar:"#ffffff", tabBorder:"#dde5ed", header:"#ffffff",
+  bg:"#f4f5f7", surface:"#ffffff", surfaceHigh:"#f8f9fb",
+  border:"#e4e6eb", borderHigh:"#d3d7de",
+  text:"#12151c", textMid:"#4a5160", textLow:"#666d7b", textDim:"#949aa6",
+  accent:"#2f63d6", green:"#14865a", red:"#cf3f3f", amber:"#b27418",
+  purple:"#6a4cd6", pink:"#c0407e", tabBar:"#ffffff", tabBorder:"#e4e6eb", header:"#f4f5f7",
+  shadow:"0 1px 2px rgba(16,24,40,0.05)", onAccent:"#ffffff",
 };
 
 export const DEFAULT_CLASS_RETURNS = Object.fromEntries(

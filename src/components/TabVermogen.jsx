@@ -63,13 +63,13 @@ export default function TabVermogen({ s, T, updClass, updArr, setModal, agg, fil
                 </Pie>
                 <ReTooltip
                   formatter={(v, n, props) => [fmtE(v), props.payload.cls]}
-                  contentStyle={{ background:T.surface, border:"1px solid "+T.border, borderRadius:6, fontSize:10, color:T.text }}
+                  contentStyle={{ background:T.surface, border:"1px solid "+T.border, borderRadius:6, fontSize:12, color:T.text }}
                 />
               </PieChart>
               {/* Mitte: Nettowert */}
               <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", pointerEvents:"none" }}>
-                <div style={{ fontSize:7, color:T.textDim, textTransform:"uppercase", letterSpacing:"0.06em" }}>Netto</div>
-                <div style={{ fontSize:12, fontWeight:900, color:T.accent }}>{fmtE(agg.net)}</div>
+                <div style={{ fontSize:13, color:T.textMid, letterSpacing:0 }}>Netto</div>
+                <div style={{ fontSize:12, fontWeight:650, color:T.accent }}>{fmtE(agg.net)}</div>
               </div>
             </div>
 
@@ -78,9 +78,9 @@ export default function TabVermogen({ s, T, updClass, updArr, setModal, agg, fil
               {pieData.map(e => (
                 <div key={e.cls} style={{ display:"flex", alignItems:"center", gap:7 }}>
                   <div style={{ width:8, height:8, borderRadius:2, background:e.color, flexShrink:0 }} />
-                  <span style={{ fontSize:10, color:T.text, flex:1, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{e.cls}</span>
-                  <span style={{ fontSize:10, color:T.textMid, fontWeight:700, flexShrink:0 }}>{e.pct.toFixed(0)}%</span>
-                  <span style={{ fontSize:9, color:T.textDim, flexShrink:0 }}>{fmtE(e.value)}</span>
+                  <span style={{ fontSize:12, color:T.text, flex:1, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{e.cls}</span>
+                  <span style={{ fontSize:12, color:T.textMid, fontWeight:600, flexShrink:0 }}>{e.pct.toFixed(0)}%</span>
+                  <span style={{ fontSize:11, color:T.textDim, flexShrink:0 }}>{fmtE(e.value)}</span>
                 </div>
               ))}
             </div>
@@ -91,7 +91,7 @@ export default function TabVermogen({ s, T, updClass, updArr, setModal, agg, fil
       {/* Renditeerwartungen */}
       <Card T={T} style={{ padding:16 }}>
         <CardLabel T={T} mb={4}>Renditeerwartungen nach Asset-Klasse</CardLabel>
-        <div style={{ fontSize:9, color:T.textDim, marginBottom:14 }}>
+        <div style={{ fontSize:11, color:T.textDim, marginBottom:14 }}>
           Gilt für alle Positionen der jeweiligen Klasse. Gewichteter Durchschnitt:{" "}
           <strong style={{ color:T.amber }}>{agg.wavgReturn.toFixed(1)}% p.a.</strong>
         </div>
@@ -107,10 +107,10 @@ export default function TabVermogen({ s, T, updClass, updArr, setModal, agg, fil
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 }}>
                 <div style={{ display:"flex", alignItems:"center", gap:7 }}>
                   <div style={{ width:8, height:8, borderRadius:2, background:clsColor }} />
-                  <span style={{ fontSize:11, fontWeight:600, color:T.text }}>{cls}</span>
-                  <span style={{ fontSize:9, color:T.textDim }}>{fmtE(clsNet)} ({weight.toFixed(0)}%)</span>
+                  <span style={{ fontSize:12, fontWeight:600, color:T.text }}>{cls}</span>
+                  <span style={{ fontSize:11, color:T.textDim }}>{fmtE(clsNet)} ({weight.toFixed(0)}%)</span>
                 </div>
-                {isNeg && <span style={{ fontSize:8, color:T.red, background:T.red+"15", padding:"1px 6px", borderRadius:4 }}>Wertverlust</span>}
+                {isNeg && <span style={{ fontSize:11, color:T.red, background:T.red+"15", padding:"1px 6px", borderRadius:4 }}>Wertverlust</span>}
               </div>
               <Sl label="" value={retVal} min={sliderMin(cls)} max={sliderMax(cls)} step={0.5}
                 onChange={v => updClass(cls, v)} fmt={v => v.toFixed(1)+"%"}
@@ -132,9 +132,9 @@ export default function TabVermogen({ s, T, updClass, updArr, setModal, agg, fil
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8 }}>
           {LIQUIDITY_CATS.map(l => (
             <div key={l} style={{ borderTop:"3px solid "+LIQ_CLR[l], paddingTop:6 }}>
-              <div style={{ fontSize:9, color:LIQ_CLR[l], fontWeight:700 }}>{l}</div>
-              <div style={{ fontSize:13, fontWeight:800, color:T.text }}>{fmtE(agg.byLiquidity[l]||0)}</div>
-              <div style={{ fontSize:9, color:T.textDim }}>
+              <div style={{ fontSize:11, color:LIQ_CLR[l], fontWeight:600 }}>{l}</div>
+              <div style={{ fontSize:13, fontWeight:600, color:T.text }}>{fmtE(agg.byLiquidity[l]||0)}</div>
+              <div style={{ fontSize:11, color:T.textDim }}>
                 {agg.net > 0 ? ((agg.byLiquidity[l]||0) / agg.net * 100).toFixed(0)+"%" : "0%"}
               </div>
             </div>
@@ -147,10 +147,10 @@ export default function TabVermogen({ s, T, updClass, updArr, setModal, agg, fil
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
           <CardLabel T={T} mb={0}>Positionen</CardLabel>
           <div style={{ display:"flex", gap:6, flexWrap:"wrap", justifyContent:"flex-end" }}>
-            <Btn sm T={T} onClick={() => setModal({ type:"owner" })}>Eigentümer</Btn>
-            <Btn sm color={T.amber} T={T} onClick={() => exportAssetsToExcel(s.assets, s.owners || [])}>↓ Excel</Btn>
-            <Btn sm color={T.purple} T={T} onClick={() => fileInputRef.current?.click()}>↑ Import</Btn>
-            <Btn sm color={T.green} T={T} onClick={() => setModal({ type:"asset", data:null })}>+ Position</Btn>
+            <Btn sm color={T.textMid} T={T} onClick={() => setModal({ type:"owner" })}>Eigentümer</Btn>
+            <Btn sm color={T.textMid} T={T} onClick={() => exportAssetsToExcel(s.assets, s.owners || [])}>↓ Excel</Btn>
+            <Btn sm color={T.textMid} T={T} onClick={() => fileInputRef.current?.click()}>↑ Import</Btn>
+            <Btn sm color={T.accent} T={T} onClick={() => setModal({ type:"asset", data:null })}>+ Position</Btn>
           </div>
           <input ref={fileInputRef} type="file" accept=".xlsx,.xls" style={{ display:"none" }} onChange={handleImport} />
         </div>
@@ -159,7 +159,7 @@ export default function TabVermogen({ s, T, updClass, updArr, setModal, agg, fil
           <div style={{ textAlign:"center", padding:"24px 0 12px" }}>
             <div style={{ fontSize:32, color:T.textDim, marginBottom:8 }}>◈</div>
             <div style={{ fontSize:12, fontWeight:600, color:T.textMid, marginBottom:4 }}>Noch keine Positionen</div>
-            <div style={{ fontSize:10, color:T.textDim, marginBottom:14, lineHeight:1.6 }}>Füge Assets hinzu — ETFs, Immobilien, Cash, Beteiligungen</div>
+            <div style={{ fontSize:12, color:T.textDim, marginBottom:14, lineHeight:1.6 }}>Füge Assets hinzu — ETFs, Immobilien, Cash, Beteiligungen</div>
             <Btn sm color={T.green} T={T} onClick={() => setModal({ type:"asset", data:null })}>+ Erste Position anlegen</Btn>
           </div>
         )}
@@ -185,41 +185,41 @@ export default function TabVermogen({ s, T, updClass, updArr, setModal, agg, fil
                 <div style={{ fontSize:12, color:T.text, fontWeight:600 }}>
                   {a.name}
                   {a.locked && (
-                    <span style={{ fontSize:7, color:T.amber, background:T.amber+"18", padding:"1px 4px", borderRadius:3, marginLeft:5 }}>
+                    <span style={{ fontSize:10, color:T.amber, background:T.amber+"18", padding:"1px 4px", borderRadius:3, marginLeft:5 }}>
                       GESPERRT
                     </span>
                   )}
                 </div>
                 <div style={{ display:"flex", gap:5, marginTop:3, flexWrap:"wrap", alignItems:"center" }}>
-                  <span style={{ fontSize:8, color:clsColor, fontWeight:600 }}>{a.class}</span>
+                  <span style={{ fontSize:11, color:clsColor, fontWeight:600 }}>{a.class}</span>
                   {ownershipLabels.map((lbl, i) => (
-                    <span key={i} style={{ fontSize:8, color:T.textDim }}>· {lbl}</span>
+                    <span key={i} style={{ fontSize:11, color:T.textDim }}>· {lbl}</span>
                   ))}
-                  <span style={{ fontSize:8, color:LIQ_CLR[a.liquidity||"Semi-liquide"], background:LIQ_CLR[a.liquidity||"Semi-liquide"]+"18", padding:"1px 5px", borderRadius:3 }}>
+                  <span style={{ fontSize:11, color:LIQ_CLR[a.liquidity||"Semi-liquide"], background:LIQ_CLR[a.liquidity||"Semi-liquide"]+"18", padding:"1px 5px", borderRadius:3 }}>
                     {a.liquidity||"Semi-liquide"}
                   </span>
-                  <span style={{ fontSize:8, color:T.textDim }}>
+                  <span style={{ fontSize:11, color:T.textDim }}>
                     {(s.classReturns[a.class] ?? ASSET_CLASS_DEFAULTS[a.class]?.return ?? 0).toFixed(1)}% p.a.
                   </span>
                 </div>
 
                 {stilleRes !== null && (
-                  <div style={{ fontSize:8, color:stilleRes >= 0 ? T.green : T.red, marginTop:3 }}>
+                  <div style={{ fontSize:11, color:stilleRes >= 0 ? T.green : T.red, marginTop:3 }}>
                     Stille Reserven: {stilleRes >= 0 ? "+" : ""}{full(stilleRes)}
                   </div>
                 )}
                 {isFord && (a.monthlyRepayment||0) > 0 && (
-                  <div style={{ fontSize:8, color:T.green, marginTop:3 }}>
+                  <div style={{ fontSize:11, color:T.green, marginTop:3 }}>
                     Rückzahlung +{full(a.monthlyRepayment)}/Mo. | Zinssatz {a.loanRate||0}%
                   </div>
                 )}
                 {(a.monthlyRunningCost||0) > 0 && (
-                  <div style={{ fontSize:8, color:T.red, marginTop:3 }}>
+                  <div style={{ fontSize:11, color:T.red, marginTop:3 }}>
                     Lfd. Kosten −{full(a.monthlyRunningCost)}/Mo.
                   </div>
                 )}
                 {!isFord && (a.debt||0) > 0 && (
-                  <div style={{ fontSize:8, color:T.red, marginTop:3 }}>
+                  <div style={{ fontSize:11, color:T.red, marginTop:3 }}>
                     Schulden {full(a.debt)} | {full(a.loanAnnuitat||0)}/Mo. Annuität
                   </div>
                 )}
@@ -227,11 +227,11 @@ export default function TabVermogen({ s, T, updClass, updArr, setModal, agg, fil
 
               <div style={{ display:"flex", gap:6, alignItems:"center", flexShrink:0, marginLeft:8 }}>
                 <div style={{ textAlign:"right" }}>
-                  <div style={{ fontSize:12, fontWeight:800, color:T.text }}>{fmtE(a.value)}</div>
+                  <div style={{ fontSize:12, fontWeight:600, color:T.text }}>{fmtE(a.value)}</div>
                   {!isFord && (a.debt||0) > 0 && (
-                    <div style={{ fontSize:9, color:T.green }}>netto {fmtE((a.value||0)-(a.debt||0))}</div>
+                    <div style={{ fontSize:11, color:T.green }}>netto {fmtE((a.value||0)-(a.debt||0))}</div>
                   )}
-                  {isFord && <div style={{ fontSize:9, color:T.green }}>Forderung</div>}
+                  {isFord && <div style={{ fontSize:11, color:T.green }}>Forderung</div>}
                 </div>
                 <Btn sm T={T} onClick={() => setModal({ type:"asset", data:a })}>edit</Btn>
                 <Btn sm danger T={T} onClick={() => updArr("assets", s.assets.filter(x => x.id !== a.id))}>×</Btn>
@@ -241,8 +241,8 @@ export default function TabVermogen({ s, T, updClass, updArr, setModal, agg, fil
         })}
 
         <div style={{ display:"flex", justifyContent:"space-between", paddingTop:8, borderTop:"1px solid "+T.border }}>
-          <span style={{ fontSize:10, color:T.textLow }}>Schulden <strong style={{ color:T.red }}>−{fmtE(agg.debt)}</strong></span>
-          <span style={{ fontSize:10, color:T.textLow }}>Netto <strong style={{ color:T.accent }}>{fmtE(agg.net)}</strong></span>
+          <span style={{ fontSize:12, color:T.textLow }}>Schulden <strong style={{ color:T.red }}>−{fmtE(agg.debt)}</strong></span>
+          <span style={{ fontSize:12, color:T.textLow }}>Netto <strong style={{ color:T.accent }}>{fmtE(agg.net)}</strong></span>
         </div>
       </Card>
 
@@ -253,7 +253,7 @@ export default function TabVermogen({ s, T, updClass, updArr, setModal, agg, fil
           <Btn sm color={T.red} T={T} onClick={() => setModal({ type:"standaloneLoan", data:null })}>+ Darlehen</Btn>
         </div>
         {!(s.standaloneLoans||[]).length ? (
-          <div style={{ fontSize:11, color:T.textDim, textAlign:"center", padding:"12px 0" }}>
+          <div style={{ fontSize:12, color:T.textDim, textAlign:"center", padding:"12px 0" }}>
             Keine separaten Verbindlichkeiten
           </div>
         ) : (
@@ -268,12 +268,12 @@ export default function TabVermogen({ s, T, updClass, updArr, setModal, agg, fil
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ fontSize:12, fontWeight:600, color:T.text }}>{l.name}</div>
                   <div style={{ display:"flex", gap:5, marginTop:3, flexWrap:"wrap", alignItems:"center" }}>
-                    <span style={{ fontSize:8, color:T.red, fontWeight:600 }}>{l.loanType === "endfaellig" ? "Endfällig" : "Annuität"}</span>
-                    {ownerLabel && <span style={{ fontSize:8, color:T.textDim }}>· {ownerLabel}</span>}
-                    <span style={{ fontSize:8, color:T.textDim }}>{l.loanRate||0}% Zinssatz</span>
-                    {l.loanTermYears && <span style={{ fontSize:8, color:T.textDim }}>{l.loanTermYears} J. Laufzeit</span>}
+                    <span style={{ fontSize:11, color:T.red, fontWeight:600 }}>{l.loanType === "endfaellig" ? "Endfällig" : "Annuität"}</span>
+                    {ownerLabel && <span style={{ fontSize:11, color:T.textDim }}>· {ownerLabel}</span>}
+                    <span style={{ fontSize:11, color:T.textDim }}>{l.loanRate||0}% Zinssatz</span>
+                    {l.loanTermYears && <span style={{ fontSize:11, color:T.textDim }}>{l.loanTermYears} J. Laufzeit</span>}
                   </div>
-                  <div style={{ fontSize:8, color:T.red, marginTop:3 }}>
+                  <div style={{ fontSize:11, color:T.red, marginTop:3 }}>
                     {full(l.loanAnnuitat||0)}/Mo. | Restschuld {fmtE(l.debt||0)}
                   </div>
                 </div>
@@ -287,7 +287,7 @@ export default function TabVermogen({ s, T, updClass, updArr, setModal, agg, fil
         )}
         {(s.standaloneLoans||[]).length > 0 && (
           <div style={{ display:"flex", justifyContent:"flex-end", paddingTop:8, borderTop:"1px solid "+T.border }}>
-            <span style={{ fontSize:10, color:T.textLow }}>Gesamt Restschuld <strong style={{ color:T.red }}>−{fmtE((s.standaloneLoans||[]).reduce((t,l) => t+(l.debt||0), 0))}</strong></span>
+            <span style={{ fontSize:12, color:T.textLow }}>Gesamt Restschuld <strong style={{ color:T.red }}>−{fmtE((s.standaloneLoans||[]).reduce((t,l) => t+(l.debt||0), 0))}</strong></span>
           </div>
         )}
       </Card>
@@ -303,7 +303,7 @@ export default function TabVermogen({ s, T, updClass, updArr, setModal, agg, fil
             <div style={{ width:36, height:36, borderRadius:"50%", border:"1px dashed "+T.border, display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 8px" }}>
               <span style={{ fontSize:18, color:T.textDim }}>+</span>
             </div>
-            <div style={{ fontSize:11, color:T.textDim }}>Noch kein Snapshot — einmal im Quartal eintragen</div>
+            <div style={{ fontSize:12, color:T.textDim }}>Noch kein Snapshot — einmal im Quartal eintragen</div>
           </div>
         ) : (
           [...(s.snapshots||[])].sort((a, b) => b.date.localeCompare(a.date)).map(sn => {
@@ -315,14 +315,14 @@ export default function TabVermogen({ s, T, updClass, updArr, setModal, agg, fil
                 <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                   <div style={{ cursor: hasDetails ? "pointer" : "default" }}
                     onClick={() => hasDetails && setExpandedSnap(isExpanded ? null : sn.id)}>
-                    <div style={{ fontSize:11, color:T.textMid, fontWeight:600 }}>
+                    <div style={{ fontSize:12, color:T.textMid, fontWeight:600 }}>
                       {sn.date}
-                      {hasDetails && <span style={{ fontSize:8, color:T.textDim, marginLeft:5 }}>{isExpanded ? "▲" : "▼"}</span>}
+                      {hasDetails && <span style={{ fontSize:11, color:T.textDim, marginLeft:5 }}>{isExpanded ? "▲" : "▼"}</span>}
                     </div>
-                    {sn.note && <div style={{ fontSize:9, color:T.textDim }}>{sn.note}</div>}
+                    {sn.note && <div style={{ fontSize:11, color:T.textDim }}>{sn.note}</div>}
                   </div>
                   <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-                    <div style={{ fontSize:13, fontWeight:800, color:T.accent }}>{fmtE(net)}</div>
+                    <div style={{ fontSize:13, fontWeight:600, color:T.accent }}>{fmtE(net)}</div>
                     <Btn sm danger T={T} onClick={() => updArr("snapshots", s.snapshots.filter(x => x.id !== sn.id))}>×</Btn>
                   </div>
                 </div>
@@ -335,12 +335,12 @@ export default function TabVermogen({ s, T, updClass, updArr, setModal, agg, fil
                         <div key={av.assetId} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:5 }}>
                           <div style={{ display:"flex", alignItems:"center", gap:6 }}>
                             <div style={{ width:6, height:6, borderRadius:"50%", background:color, flexShrink:0 }} />
-                            <span style={{ fontSize:10, color:T.textMid }}>{av.name}</span>
-                            <span style={{ fontSize:8, color:T.textDim }}>{av.class}</span>
+                            <span style={{ fontSize:12, color:T.textMid }}>{av.name}</span>
+                            <span style={{ fontSize:11, color:T.textDim }}>{av.class}</span>
                           </div>
                           <div style={{ textAlign:"right" }}>
-                            <span style={{ fontSize:10, fontWeight:700, color:T.text }}>{fmtE(av.value)}</span>
-                            {(av.debt||0) > 0 && <span style={{ fontSize:9, color:T.green, marginLeft:5 }}>netto {fmtE(avNet)}</span>}
+                            <span style={{ fontSize:12, fontWeight:600, color:T.text }}>{fmtE(av.value)}</span>
+                            {(av.debt||0) > 0 && <span style={{ fontSize:11, color:T.green, marginLeft:5 }}>netto {fmtE(avNet)}</span>}
                           </div>
                         </div>
                       );

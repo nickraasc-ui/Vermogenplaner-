@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { IconBtn } from "./ui.jsx";
 
 const STEPS = [
   {
@@ -37,11 +38,11 @@ const IllustrationOverview = ({ T }) => (
 
     {/* 5 tab icons */}
     {[
-      { x:20,  label:"Übersicht",  icon:"◈", color:"#38bdf8" },
-      { x:76,  label:"Haushalt",   icon:"⇄",  color:"#10b981" },
-      { x:132, label:"Vermögen",   icon:"◉",  color:"#a78bfa" },
-      { x:188, label:"Projektion", icon:"↗",  color:"#f59e0b" },
-      { x:244, label:"Szenarien",  icon:"◎",  color:"#f472b6" },
+      { x:20,  label:"Übersicht",  icon:"◈", color:"#5b8def" },
+      { x:76,  label:"Haushalt",   icon:"⇄",  color:"#3cbf8a" },
+      { x:132, label:"Vermögen",   icon:"◉",  color:"#a28bf6" },
+      { x:188, label:"Projektion", icon:"↗",  color:"#e3aa45" },
+      { x:244, label:"Szenarien",  icon:"◎",  color:"#e27aa8" },
     ].map(t => (
       <g key={t.x}>
         <rect x={t.x} y="20" width="52" height="52" rx="10" fill={t.color+"22"} stroke={t.color+"55"} strokeWidth="1" />
@@ -59,11 +60,11 @@ const IllustrationOverview = ({ T }) => (
 
 const IllustrationVermoegen = ({ T }) => {
   const bars = [
-    { label:"Aktien-ETF", pct:38, color:"#38bdf8" },
-    { label:"Immobilien", pct:30, color:"#10b981" },
-    { label:"Private Equity", pct:18, color:"#34d399" },
-    { label:"Cash", pct:9, color:"#64748b" },
-    { label:"Krypto", pct:5, color:"#f472b6" },
+    { label:"Aktien-ETF", pct:38, color:"#5b8def" },
+    { label:"Immobilien", pct:30, color:"#3cbf8a" },
+    { label:"Private Equity", pct:18, color:"#4fc6a0" },
+    { label:"Cash", pct:9, color:"#8a93a6" },
+    { label:"Krypto", pct:5, color:"#e27aa8" },
   ];
   const maxW = 200;
   return (
@@ -77,10 +78,10 @@ const IllustrationVermoegen = ({ T }) => {
         </g>
       ))}
       {/* Owner tags */}
-      <rect x="14" y="138" width="60" height="14" rx="7" fill="#38bdf8" opacity="0.2" stroke="#38bdf8" strokeWidth="0.5"/>
-      <text x="44" y="145" textAnchor="middle" fontSize="8" fill="#38bdf8">Person A 60%</text>
-      <rect x="82" y="138" width="60" height="14" rx="7" fill="#a78bfa" opacity="0.2" stroke="#a78bfa" strokeWidth="0.5"/>
-      <text x="112" y="145" textAnchor="middle" fontSize="8" fill="#a78bfa">Person B 40%</text>
+      <rect x="14" y="138" width="60" height="14" rx="7" fill="#5b8def" opacity="0.2" stroke="#5b8def" strokeWidth="0.5"/>
+      <text x="44" y="145" textAnchor="middle" fontSize="8" fill="#5b8def">Person A 60%</text>
+      <rect x="82" y="138" width="60" height="14" rx="7" fill="#a28bf6" opacity="0.2" stroke="#a28bf6" strokeWidth="0.5"/>
+      <text x="112" y="145" textAnchor="middle" fontSize="8" fill="#a28bf6">Person B 40%</text>
     </svg>
   );
 };
@@ -90,10 +91,10 @@ const IllustrationHaushalt = ({ T }) => (
     <rect width="320" height="145" rx="12" fill={T.surfaceHigh} />
 
     {/* Income block */}
-    <rect x="12" y="14" width="88" height="110" rx="8" fill="#10b981" opacity="0.12" stroke="#10b981" strokeWidth="1" strokeOpacity="0.4"/>
-    <text x="56" y="36" textAnchor="middle" fontSize="9" fill="#10b981" fontWeight="700">EINNAHMEN</text>
+    <rect x="12" y="14" width="88" height="110" rx="8" fill="#3cbf8a" opacity="0.12" stroke="#3cbf8a" strokeWidth="1" strokeOpacity="0.4"/>
+    <text x="56" y="36" textAnchor="middle" fontSize="9" fill="#3cbf8a" fontWeight="700">EINNAHMEN</text>
     {["Gehalt","Miete","Dividenden","Zinsen"].map((l,i) => (
-      <text key={l} x="56" y={54+i*18} textAnchor="middle" fontSize="9" fill="#10b981" opacity="0.9">{l}</text>
+      <text key={l} x="56" y={54+i*18} textAnchor="middle" fontSize="9" fill="#3cbf8a" opacity="0.9">{l}</text>
     ))}
 
     {/* Arrow */}
@@ -105,10 +106,10 @@ const IllustrationHaushalt = ({ T }) => (
     </defs>
 
     {/* Expense block */}
-    <rect x="137" y="14" width="80" height="72" rx="8" fill="#ef4444" opacity="0.1" stroke="#ef4444" strokeWidth="1" strokeOpacity="0.4"/>
-    <text x="177" y="33" textAnchor="middle" fontSize="9" fill="#ef4444" fontWeight="700">AUSGABEN</text>
+    <rect x="137" y="14" width="80" height="72" rx="8" fill="#ec6a6a" opacity="0.1" stroke="#ec6a6a" strokeWidth="1" strokeOpacity="0.4"/>
+    <text x="177" y="33" textAnchor="middle" fontSize="9" fill="#ec6a6a" fontWeight="700">AUSGABEN</text>
     {["Lebenskosten","Versicherung","Darlehen"].map((l,i) => (
-      <text key={l} x="177" y={48+i*14} textAnchor="middle" fontSize="8" fill="#ef4444" opacity="0.9">{l}</text>
+      <text key={l} x="177" y={48+i*14} textAnchor="middle" fontSize="8" fill="#ec6a6a" opacity="0.9">{l}</text>
     ))}
 
     {/* Arrow down */}
@@ -120,20 +121,20 @@ const IllustrationHaushalt = ({ T }) => (
     </defs>
 
     {/* Savings */}
-    <rect x="137" y="105" width="80" height="22" rx="8" fill="#f59e0b" opacity="0.15" stroke="#f59e0b" strokeWidth="1" strokeOpacity="0.5"/>
-    <text x="177" y="120" textAnchor="middle" fontSize="9" fill="#f59e0b" fontWeight="800">→ Sparrate</text>
+    <rect x="137" y="105" width="80" height="22" rx="8" fill="#e3aa45" opacity="0.15" stroke="#e3aa45" strokeWidth="1" strokeOpacity="0.5"/>
+    <text x="177" y="120" textAnchor="middle" fontSize="9" fill="#e3aa45" fontWeight="800">→ Sparrate</text>
 
     {/* Arrow to invest */}
     <path d="M219 116 L238 116" stroke={T.textMid} strokeWidth="1.5" markerEnd="url(#arr)" opacity="0.5"/>
 
     {/* Invest */}
-    <rect x="240" y="14" width="68" height="130" rx="8" fill="#38bdf8" opacity="0.1" stroke="#38bdf8" strokeWidth="1" strokeOpacity="0.4"/>
-    <text x="274" y="36" textAnchor="middle" fontSize="9" fill="#38bdf8" fontWeight="700">DEPOT</text>
+    <rect x="240" y="14" width="68" height="130" rx="8" fill="#5b8def" opacity="0.1" stroke="#5b8def" strokeWidth="1" strokeOpacity="0.4"/>
+    <text x="274" y="36" textAnchor="middle" fontSize="9" fill="#5b8def" fontWeight="700">DEPOT</text>
     {/* Mini bar chart inside */}
     {[40,55,48,70,62,85].map((h,i) => (
-      <rect key={i} x={248+i*9} y={130-h*0.6} width="6" height={h*0.6} rx="2" fill="#38bdf8" opacity={0.4+i*0.1}/>
+      <rect key={i} x={248+i*9} y={130-h*0.6} width="6" height={h*0.6} rx="2" fill="#5b8def" opacity={0.4+i*0.1}/>
     ))}
-    <text x="274" y="140" textAnchor="middle" fontSize="8" fill="#38bdf8" opacity="0.8">wächst</text>
+    <text x="274" y="140" textAnchor="middle" fontSize="8" fill="#5b8def" opacity="0.8">wächst</text>
   </svg>
 );
 
@@ -149,8 +150,8 @@ const IllustrationProjektion = ({ T }) => {
   const pathOf = (arr) => arr.map((v,i) => `${i===0?"M":"L"}${toX(i)},${toY(v)}`).join(" ");
 
   const milestones = [
-    { v:5.0, label:"€1M", color:"#f59e0b" },
-    { v:11.4, label:"€2M", color:"#10b981" },
+    { v:5.0, label:"€1M", color:"#e3aa45" },
+    { v:11.4, label:"€2M", color:"#3cbf8a" },
   ];
 
   return (
@@ -164,8 +165,8 @@ const IllustrationProjektion = ({ T }) => {
 
       {/* Paths */}
       <path d={pathOf(cons)} fill="none" stroke={T.textMid} strokeWidth="1.5" strokeDasharray="4,3" opacity="0.6"/>
-      <path d={pathOf(base)} fill="none" stroke="#38bdf8" strokeWidth="2.5" />
-      <path d={pathOf(opt)}  fill="none" stroke="#10b981" strokeWidth="1.5" strokeDasharray="4,3" opacity="0.6"/>
+      <path d={pathOf(base)} fill="none" stroke="#5b8def" strokeWidth="2.5" />
+      <path d={pathOf(opt)}  fill="none" stroke="#3cbf8a" strokeWidth="1.5" strokeDasharray="4,3" opacity="0.6"/>
 
       {/* Milestone dots on base */}
       {milestones.map(m => {
@@ -188,9 +189,9 @@ const IllustrationProjektion = ({ T }) => {
       ))}
 
       {/* Legend */}
-      <circle cx="30" cy="15" r="4" fill="#10b981" opacity="0.7"/>
+      <circle cx="30" cy="15" r="4" fill="#3cbf8a" opacity="0.7"/>
       <text x="38" y="19" fontSize="8" fill={T.textMid}>Optimistisch</text>
-      <circle cx="120" cy="15" r="4" fill="#38bdf8"/>
+      <circle cx="120" cy="15" r="4" fill="#5b8def"/>
       <text x="128" y="19" fontSize="8" fill={T.textMid}>Basis</text>
       <circle cx="185" cy="15" r="4" fill={T.textMid} opacity="0.6"/>
       <text x="193" y="19" fontSize="8" fill={T.textMid}>Konservativ</text>
@@ -203,18 +204,18 @@ const IllustrationDemoData = ({ T }) => (
     <rect width="320" height="130" rx="12" fill={T.surfaceHigh} />
 
     {/* Demo profile card */}
-    <rect x="14" y="12" width="140" height="106" rx="10" fill={T.surface} stroke="#38bdf8" strokeWidth="1" strokeOpacity="0.5"/>
-    <circle cx="40" cy="36" r="14" fill="#38bdf822" stroke="#38bdf8" strokeWidth="1.5"/>
-    <text x="40" y="41" textAnchor="middle" fontSize="11" fill="#38bdf8" fontWeight="900">FM</text>
+    <rect x="14" y="12" width="140" height="106" rx="10" fill={T.surface} stroke="#5b8def" strokeWidth="1" strokeOpacity="0.5"/>
+    <circle cx="40" cy="36" r="14" fill="#5b8def22" stroke="#5b8def" strokeWidth="1.5"/>
+    <text x="40" y="41" textAnchor="middle" fontSize="11" fill="#5b8def" fontWeight="900">FM</text>
     <text x="62" y="31" fontSize="11" fill={T.text} fontWeight="800">Familie M.</text>
-    <text x="62" y="44" fontSize="9" fill="#38bdf8" fontWeight="700">€1,24M</text>
+    <text x="62" y="44" fontSize="9" fill="#5b8def" fontWeight="700">€1,24M</text>
 
     {/* Pre-filled items */}
     {[
-      { y:64,  label:"MSCI World ETF",   val:"€245k", color:"#38bdf8" },
-      { y:80,  label:"Eigentumswohnung", val:"€480k", color:"#10b981" },
-      { y:96,  label:"Tagesgeld",        val:"€52k",  color:"#64748b" },
-      { y:112, label:"GmbH-Beteiligung", val:"€180k", color:"#34d399" },
+      { y:64,  label:"MSCI World ETF",   val:"€245k", color:"#5b8def" },
+      { y:80,  label:"Eigentumswohnung", val:"€480k", color:"#3cbf8a" },
+      { y:96,  label:"Tagesgeld",        val:"€52k",  color:"#8a93a6" },
+      { y:112, label:"GmbH-Beteiligung", val:"€180k", color:"#4fc6a0" },
     ].map(r => (
       <g key={r.label}>
         <circle cx="26" cy={r.y} r="3" fill={r.color}/>
@@ -242,10 +243,10 @@ const IllustrationDemoData = ({ T }) => (
 const StepContent = ({ step, T }) => {
   const box = {
     background: T.surface, border: "1px solid " + T.border,
-    borderRadius: 8, padding: "10px 12px", marginBottom: 10, fontSize: 10, color: T.textMid, lineHeight: 1.7,
+    borderRadius: 8, padding: "10px 12px", marginBottom: 10, fontSize:12, color: T.textMid, lineHeight: 1.7,
   };
   const tag = (label, color) => (
-    <span style={{ display:"inline-block", fontSize:8, padding:"2px 8px", borderRadius:10, background:color+"22", border:"1px solid "+color+"55", color, fontWeight:700, marginRight:5, marginBottom:4 }}>
+    <span style={{ display:"inline-block", fontSize:11, padding:"2px 8px", borderRadius:10, background:color+"22", border:"1px solid "+color+"55", color, fontWeight:600, marginRight:5, marginBottom:4 }}>
       {label}
     </span>
   );
@@ -258,15 +259,15 @@ const StepContent = ({ step, T }) => {
       </div>
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
         {[
-          { icon:"◈", label:"Übersicht", desc:"Nettowert, Sparquote, Darlehen auf einen Blick", color:"#38bdf8" },
-          { icon:"⇄", label:"Haushalt", desc:"Einnahmen & Ausgaben, Sparrate, Mittelverteilung", color:"#10b981" },
-          { icon:"◉", label:"Vermögen", desc:"11 Asset-Klassen, Eigentümeranteile, Rendite-Slider", color:"#a78bfa" },
-          { icon:"↗", label:"Projektion", desc:"3 Szenarien über 35 Jahre, Milestones, Inflation", color:"#f59e0b" },
+          { icon:"◈", label:"Übersicht", desc:"Nettowert, Sparquote, Darlehen auf einen Blick", color:"#5b8def" },
+          { icon:"⇄", label:"Haushalt", desc:"Einnahmen & Ausgaben, Sparrate, Mittelverteilung", color:"#3cbf8a" },
+          { icon:"◉", label:"Vermögen", desc:"11 Asset-Klassen, Eigentümeranteile, Rendite-Slider", color:"#a28bf6" },
+          { icon:"↗", label:"Projektion", desc:"3 Szenarien über 35 Jahre, Milestones, Inflation", color:"#e3aa45" },
         ].map(f => (
           <div key={f.label} style={{ background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:8, padding:"10px 10px" }}>
             <div style={{ fontSize:16, color:f.color, marginBottom:4 }}>{f.icon}</div>
-            <div style={{ fontSize:10, fontWeight:700, color:T.text, marginBottom:3 }}>{f.label}</div>
-            <div style={{ fontSize:9, color:T.textDim, lineHeight:1.5 }}>{f.desc}</div>
+            <div style={{ fontSize:12, fontWeight:600, color:T.text, marginBottom:3 }}>{f.label}</div>
+            <div style={{ fontSize:11, color:T.textDim, lineHeight:1.5 }}>{f.desc}</div>
           </div>
         ))}
       </div>
@@ -283,11 +284,11 @@ const StepContent = ({ step, T }) => {
         Im Tab <strong style={{ color:T.text }}>Vermögen</strong> erfasst du alle Positionen deines Portfolios. Jede Position bekommt eine <strong style={{ color:T.text }}>Asset-Klasse</strong>, die bestimmt, mit welcher Rendite sie in der Projektion wächst.
       </div>
       <div style={{ ...box }}>
-        <div style={{ fontWeight:700, color:T.text, marginBottom:6 }}>Asset-Klassen:</div>
+        <div style={{ fontWeight:600, color:T.text, marginBottom:6 }}>Asset-Klassen:</div>
         {[
-          ["Aktien-ETF","#38bdf8"],["Aktien","#f59e0b"],["Immobilien","#10b981"],
-          ["Private Equity","#34d399"],["Anleihen","#a78bfa"],["Cash","#64748b"],
-          ["Krypto","#f472b6"],["Forderung","#22d3ee"],
+          ["Aktien-ETF","#5b8def"],["Aktien","#e3aa45"],["Immobilien","#3cbf8a"],
+          ["Private Equity","#4fc6a0"],["Anleihen","#a28bf6"],["Cash","#8a93a6"],
+          ["Krypto","#e27aa8"],["Forderung","#3fb3d6"],
         ].map(([l,c]) => tag(l,c))}
       </div>
       <div style={{ ...box }}>
@@ -303,20 +304,20 @@ const StepContent = ({ step, T }) => {
     <div>
       <IllustrationHaushalt T={T} />
       <div style={{ ...box, marginTop:12 }}>
-        Der Tab <strong style={{ color:T.text }}>Haushalt</strong> zeigt deinen monatlichen Geldfluss — heute und in der Zukunft. Die <strong style={{ color:"#f59e0b" }}>Cashflow-Vorschau</strong> rechnet Einnahmen und Ausgaben über den gesamten Zeithorizont fort.
+        Der Tab <strong style={{ color:T.text }}>Haushalt</strong> zeigt deinen monatlichen Geldfluss — heute und in der Zukunft. Die <strong style={{ color:"#e3aa45" }}>Cashflow-Vorschau</strong> rechnet Einnahmen und Ausgaben über den gesamten Zeithorizont fort.
       </div>
       <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
         {[
-          { icon:"↑", color:"#10b981", title:"Einnahmen (Zuflüsse)", items:["Einkommensströme (Gehalt, Freelance, Rente)", "Immo-Netto-CF (Miete − Hausgeld − Annuität)", "Ausschüttungsrenditen (Dividenden, Kupons)", "Forderungs-Rückflüsse"] },
-          { icon:"↓", color:"#ef4444", title:"Ausgaben (Abflüsse)", items:["Lebenshaltung, Versicherung, Bildung", "Darlehensannuitäten (fallen weg wenn abbezahlt)", "Laufende Asset-Kosten (Liegeplatz etc.)"] },
-          { icon:"→", color:"#f59e0b", title:"Sparrate", items:["Auto-Modus: alles was übrig bleibt", "Manuell: fixer Betrag einstellbar", "Fließt proportional in investierbare Assets"] },
-          { icon:"📅", color:"#38bdf8", title:"Jahres-Regler & Check-in", items:["Regler in der Cashflow-Vorschau wählt beliebiges Jahr", "Monatsübersicht zeigt projizierte Werte für dieses Jahr", "IST-Daten erfassen und mit der Prognose vergleichen"] },
+          { icon:"↑", color:"#3cbf8a", title:"Einnahmen (Zuflüsse)", items:["Einkommensströme (Gehalt, Freelance, Rente)", "Immo-Netto-CF (Miete − Hausgeld − Annuität)", "Ausschüttungsrenditen (Dividenden, Kupons)", "Forderungs-Rückflüsse"] },
+          { icon:"↓", color:"#ec6a6a", title:"Ausgaben (Abflüsse)", items:["Lebenshaltung, Versicherung, Bildung", "Darlehensannuitäten (fallen weg wenn abbezahlt)", "Laufende Asset-Kosten (Liegeplatz etc.)"] },
+          { icon:"→", color:"#e3aa45", title:"Sparrate", items:["Auto-Modus: alles was übrig bleibt", "Manuell: fixer Betrag einstellbar", "Fließt proportional in investierbare Assets"] },
+          { icon:"📅", color:"#5b8def", title:"Jahres-Regler & Check-in", items:["Regler in der Cashflow-Vorschau wählt beliebiges Jahr", "Monatsübersicht zeigt projizierte Werte für dieses Jahr", "IST-Daten erfassen und mit der Prognose vergleichen"] },
         ].map(s => (
           <div key={s.title} style={{ ...box, display:"flex", gap:10, marginBottom:0 }}>
             <div style={{ fontSize:18, color:s.color, flexShrink:0, lineHeight:1.2 }}>{s.icon}</div>
             <div>
-              <div style={{ fontWeight:700, color:T.text, marginBottom:4 }}>{s.title}</div>
-              {s.items.map(i => <div key={i} style={{ fontSize:9, color:T.textDim, marginBottom:2 }}>• {i}</div>)}
+              <div style={{ fontWeight:600, color:T.text, marginBottom:4 }}>{s.title}</div>
+              {s.items.map(i => <div key={i} style={{ fontSize:11, color:T.textDim, marginBottom:2 }}>• {i}</div>)}
             </div>
           </div>
         ))}
@@ -332,8 +333,8 @@ const StepContent = ({ step, T }) => {
       </div>
       <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
         {[
-          { color:"#10b981", label:"Optimistisch", desc:"+2% auf alle Klassenrenditen" },
-          { color:"#38bdf8", label:"Basis", desc:"Exakt deine eingestellten Renditen" },
+          { color:"#3cbf8a", label:"Optimistisch", desc:"+2% auf alle Klassenrenditen" },
+          { color:"#5b8def", label:"Basis", desc:"Exakt deine eingestellten Renditen" },
           { color:T.textMid, label:"Konservativ", desc:"−2% auf alle Klassenrenditen" },
         ].map(s => (
           <div key={s.label} style={{ ...box, display:"flex", gap:10, alignItems:"center", marginBottom:0 }}>
@@ -352,7 +353,7 @@ const StepContent = ({ step, T }) => {
         <strong style={{ color:T.text }}>Szenario-Planer</strong> (Tab "Szenarien"): Plane Einmalereignisse, Erbschaften, Gehaltssteigerungen oder finanzierte Käufe. Vier Typen:
         <div style={{ marginTop:4 }}>
           {[["↓ Ausgabe","Einmalig/Jährlich/Monatlich aus dem Portfolio"],["↑ Zufluss","Erbschaft, Bonus, Verkaufserlös"],["⇄ Sparratenänderung","Renteneintritt, Teilzeit, Gehaltserhöhung"],["≡ Finanziert","Kauf auf Kredit — Rate reduziert die Sparrate"]].map(([t,d]) => (
-            <div key={t} style={{ fontSize:9, color:T.textDim, marginBottom:2 }}>• <strong style={{ color:T.textMid }}>{t}</strong> — {d}</div>
+            <div key={t} style={{ fontSize:11, color:T.textDim, marginBottom:2 }}>• <strong style={{ color:T.textMid }}>{t}</strong> — {d}</div>
           ))}
         </div>
       </div>
@@ -367,7 +368,7 @@ const StepContent = ({ step, T }) => {
         {" "}Du siehst sofort wie das Programm funktioniert — ohne erst mühsam Daten eingeben zu müssen.
       </div>
       <div style={{ ...box }}>
-        <div style={{ fontWeight:700, color:T.text, marginBottom:8 }}>So startest du:</div>
+        <div style={{ fontWeight:600, color:T.text, marginBottom:8 }}>So startest du:</div>
         {[
           ["1", "Profil anlegen", 'Klicke auf "Profil anlegen" und gib einen Namen ein.'],
           ["2", "Beispieldaten erkunden", "Navigiere durch alle Tabs — ETF, Immobilie, Haushalt, Projektion sind bereits befüllt."],
@@ -377,11 +378,11 @@ const StepContent = ({ step, T }) => {
         ].map(([n, title, desc]) => (
           <div key={n} style={{ display:"flex", gap:10, marginBottom:10 }}>
             <div style={{ width:22, height:22, borderRadius:"50%", background:T.accent+"22", border:"1px solid "+T.accent+"55", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-              <span style={{ fontSize:10, fontWeight:900, color:T.accent }}>{n}</span>
+              <span style={{ fontSize:12, fontWeight:650, color:T.accent }}>{n}</span>
             </div>
             <div>
-              <div style={{ fontSize:10, fontWeight:700, color:T.text, marginBottom:2 }}>{title}</div>
-              <div style={{ fontSize:9, color:T.textDim, lineHeight:1.5 }}>{desc}</div>
+              <div style={{ fontSize:12, fontWeight:600, color:T.text, marginBottom:2 }}>{title}</div>
+              <div style={{ fontSize:11, color:T.textDim, lineHeight:1.5 }}>{desc}</div>
             </div>
           </div>
         ))}
@@ -399,22 +400,22 @@ export default function GuideModal({ T, onClose, onCreateProfile }) {
   const isLast = step === STEPS.length - 1;
 
   return (
-    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.7)", zIndex:300, display:"flex", alignItems:"flex-end" }}
+    <div className="vp-overlay" style={{ zIndex:300 }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ background:T.surface, border:"1px solid "+T.border, borderRadius:"18px 18px 0 0", width:"100%", maxHeight:"92vh", display:"flex", flexDirection:"column" }}>
+      <div className="vp-sheet" role="dialog" aria-label="Anleitung" style={{ background:T.surface, border:"1px solid "+T.border, display:"flex", flexDirection:"column", overflowY:"hidden" }}>
 
         {/* Header */}
         <div style={{ padding:"12px 20px 0", flexShrink:0 }}>
-          <div style={{ width:36, height:4, background:T.border, borderRadius:2, margin:"0 auto 14px" }} />
+          <div className="vp-grabber" style={{ background:T.borderHigh }} />
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:4 }}>
             <div>
-              <div style={{ fontSize:7, color:T.textDim, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.12em", marginBottom:3 }}>
-                SCHRITT {step+1} VON {STEPS.length}
+              <div style={{ fontSize:12, color:T.textLow, fontWeight:500, marginBottom:3 }}>
+                Schritt {step+1} von {STEPS.length}
               </div>
-              <div style={{ fontSize:16, fontWeight:900, color:T.text, letterSpacing:"-0.01em" }}>{STEPS[step].title}</div>
-              <div style={{ fontSize:10, color:T.textMid, marginTop:1 }}>{STEPS[step].subtitle}</div>
+              <div style={{ fontSize:18, fontWeight:650, color:T.text, letterSpacing:"-0.015em" }}>{STEPS[step].title}</div>
+              <div style={{ fontSize:13, color:T.textMid, marginTop:2 }}>{STEPS[step].subtitle}</div>
             </div>
-            <button onClick={onClose} style={{ background:"none", border:"none", color:T.textMid, cursor:"pointer", fontSize:22, lineHeight:1, padding:"0 4px", flexShrink:0 }}>x</button>
+            <IconBtn icon="close" label="Schließen" onClick={onClose} T={T} />
           </div>
 
           {/* Step dots */}
@@ -434,18 +435,18 @@ export default function GuideModal({ T, onClose, onCreateProfile }) {
         <div style={{ padding:"14px 20px", paddingBottom:"calc(14px + env(safe-area-inset-bottom,0px))", borderTop:"1px solid "+T.border, display:"flex", gap:10, flexShrink:0 }}>
           {step > 0 && (
             <button onClick={() => setStep(s => s-1)}
-              style={{ flex:1, padding:"12px", borderRadius:8, border:"1px solid "+T.border, background:"transparent", color:T.textMid, cursor:"pointer", fontSize:13, fontWeight:700 }}>
+              style={{ flex:1, padding:"12px", borderRadius:10, border:"1px solid "+T.border, background:"transparent", color:T.textMid, cursor:"pointer", fontSize:15, fontWeight:600 }}>
               Zurück
             </button>
           )}
           {!isLast ? (
             <button onClick={() => setStep(s => s+1)}
-              style={{ flex:2, padding:"12px", borderRadius:8, border:"1px solid "+T.accent+"44", background:T.accent+"15", color:T.accent, cursor:"pointer", fontSize:13, fontWeight:700 }}>
+              style={{ flex:2, padding:"12px", borderRadius:10, border:"none", background:T.accent, color:T.onAccent, cursor:"pointer", fontSize:15, fontWeight:600 }}>
               Weiter →
             </button>
           ) : (
             <button onClick={() => { onClose(); onCreateProfile?.(); }}
-              style={{ flex:2, padding:"12px", borderRadius:8, border:"none", background:T.accent, color:"#fff", cursor:"pointer", fontSize:13, fontWeight:800 }}>
+              style={{ flex:2, padding:"12px", borderRadius:10, border:"none", background:T.accent, color:T.onAccent, cursor:"pointer", fontSize:15, fontWeight:600 }}>
               Profil anlegen & loslegen
             </button>
           )}

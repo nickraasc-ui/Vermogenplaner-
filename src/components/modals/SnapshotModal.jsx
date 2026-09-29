@@ -61,14 +61,14 @@ export default function SnapshotModal({ s, cf, agg, T, setModal, updArr }) {
       </div>
 
       <div style={{ background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:8, padding:12, marginBottom:14 }}>
-        <div style={{ fontSize:9, color:T.textLow, marginBottom:3 }}>
+        <div style={{ fontSize:11, color:T.textLow, marginBottom:3 }}>
           Nettowert {isFuture ? "hochgerechnet auf "+new Date(date).toLocaleDateString("de-DE") : "erfasst"}
         </div>
-        <div style={{ fontSize:22, fontWeight:900, color:T.accent }}>{full(totalNet)}</div>
-        <div style={{ fontSize:9, color:T.textDim, marginTop:2 }}>aktuell: {full(agg.net)}</div>
+        <div style={{ fontSize:22, fontWeight:650, color:T.accent }}>{full(totalNet)}</div>
+        <div style={{ fontSize:13, color:T.textMid, marginTop:2 }}>aktuell: {full(agg.net)}</div>
       </div>
 
-      <div style={{ fontSize:9, color:T.textMid, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:8 }}>
+      <div style={{ fontSize:11, color:T.textMid, fontWeight:600, letterSpacing:0, marginBottom:8 }}>
         Werte pro Position {isFuture && <span style={{ color:T.amber }}>— hochgerechnet, bitte prüfen</span>}
       </div>
 
@@ -80,14 +80,14 @@ export default function SnapshotModal({ s, cf, agg, T, setModal, updArr }) {
           <div key={av.assetId} style={{ background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:8, padding:"10px 12px", marginBottom:8 }}>
             <div style={{ display:"flex", alignItems:"center", gap:7, marginBottom:8 }}>
               <div style={{ width:7, height:7, borderRadius:"50%", background:color, flexShrink:0 }} />
-              <div style={{ fontSize:11, fontWeight:700, color:T.text }}>{av.name}</div>
-              <div style={{ fontSize:9, color:T.textDim }}>{av.class}</div>
+              <div style={{ fontSize:12, fontWeight:600, color:T.text }}>{av.name}</div>
+              <div style={{ fontSize:11, color:T.textDim }}>{av.class}</div>
             </div>
             <div style={{ display:"grid", gridTemplateColumns:isImmo?"1fr 1fr":"1fr", gap:8 }}>
               <Inp label="Marktwert (EUR)" value={String(av.value)} onChange={v => setVal(av.assetId,"value",v)} type="number" T={T} />
               {isImmo && <Inp label="Restschuld (EUR)" value={String(av.debt)} onChange={v => setVal(av.assetId,"debt",v)} type="number" T={T} />}
             </div>
-            {isImmo && <div style={{ fontSize:9, color:T.green, marginTop:2 }}>Netto: {full(net)}</div>}
+            {isImmo && <div style={{ fontSize:11, color:T.green, marginTop:2 }}>Netto: {full(net)}</div>}
           </div>
         );
       })}

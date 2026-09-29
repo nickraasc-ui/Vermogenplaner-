@@ -3,17 +3,17 @@ export const IMMO_HAUSGELD = 220;
 export const IMMO_GRUNDSTEUER = 10;
 
 export const ASSET_CLASS_DEFAULTS = {
-  "Aktien":         { return: 9,   color: "#f59e0b" },
-  "Aktien-ETF":     { return: 8,   color: "#38bdf8" },
-  "Anleihen":       { return: 3,   color: "#a78bfa" },
-  "Anleihen-ETF":   { return: 3.5, color: "#818cf8" },
-  "Immobilien":     { return: 3,   color: "#10b981" },
-  "Cash":           { return: 2,   color: "#64748b" },
-  "Rohstoffe":      { return: 5,   color: "#fb923c" },
-  "Krypto":         { return: 12,  color: "#f472b6" },
-  "Private Equity": { return: 11,  color: "#34d399" },
-  "Forderung":      { return: 5,   color: "#22d3ee" },
-  "Sonstiges":      { return: -5,  color: "#94a3b8" },
+  "Aktien":         { return: 9,   color: "#e3aa45" },
+  "Aktien-ETF":     { return: 8,   color: "#5b8def" },
+  "Anleihen":       { return: 3,   color: "#a28bf6" },
+  "Anleihen-ETF":   { return: 3.5, color: "#7d8bf2" },
+  "Immobilien":     { return: 3,   color: "#3cbf8a" },
+  "Cash":           { return: 2,   color: "#8a93a6" },
+  "Rohstoffe":      { return: 5,   color: "#ea8a50" },
+  "Krypto":         { return: 12,  color: "#e27aa8" },
+  "Private Equity": { return: 11,  color: "#4fc6a0" },
+  "Forderung":      { return: 5,   color: "#3fb3d6" },
+  "Sonstiges":      { return: -5,  color: "#9aa3b5" },
 };
 export const ASSET_CLASSES = Object.keys(ASSET_CLASS_DEFAULTS);
 
@@ -26,8 +26,8 @@ export const LIQUIDITY_DEFAULT = {
   "Private Equity": "Illiquide", "Forderung": "Semi-liquide",
   "Sonstiges": "Illiquide",
 };
-export const LIQ_CLR = { "Liquide": "#10b981", "Semi-liquide": "#f59e0b", "Illiquide": "#ef4444" };
-export const BCK_CLRS = ["#f59e0b","#10b981","#38bdf8","#a78bfa","#f472b6","#fb923c","#ef4444","#34d399"];
+export const LIQ_CLR = { "Liquide": "#3cbf8a", "Semi-liquide": "#e3aa45", "Illiquide": "#ec6a6a" };
+export const BCK_CLRS = ["#e3aa45","#3cbf8a","#5b8def","#a28bf6","#e27aa8","#ea8a50","#ec6a6a","#4fc6a0"];
 
 export const CY = new Date().getFullYear();
 export const CM = new Date().toISOString().slice(0, 7);
@@ -37,12 +37,12 @@ export const EXPENSE_CATEGORIES = ["Lebenshaltung","Versicherung","Bildung","Woh
 
 export const OWNER_TYPES = ["Person","GmbH","GmbH & Co. KG","KG","GbR","Stiftung","AG","Sonstiges"];
 export const RELATION_TYPES = [
-  { value:"Ehepartner",   label:"Ehepartner/in", color:"#f472b6" },
-  { value:"Kind",         label:"Kind",           color:"#38bdf8" },
-  { value:"Elternteil",   label:"Elternteil",     color:"#38bdf8" },
-  { value:"Geschwister",  label:"Geschwister",    color:"#a78bfa" },
-  { value:"Treuhänder",   label:"Treuhänder",     color:"#f59e0b" },
-  { value:"Begünstigter", label:"Begünstigter",   color:"#10b981" },
+  { value:"Ehepartner",   label:"Ehepartner/in", color:"#e27aa8" },
+  { value:"Kind",         label:"Kind",           color:"#5b8def" },
+  { value:"Elternteil",   label:"Elternteil",     color:"#5b8def" },
+  { value:"Geschwister",  label:"Geschwister",    color:"#a28bf6" },
+  { value:"Treuhänder",   label:"Treuhänder",     color:"#e3aa45" },
+  { value:"Begünstigter", label:"Begünstigter",   color:"#3cbf8a" },
 ];
 export const ASSET_TAX_TYPES = [
   { value:"abgeltung",          label:"Abgeltungsteuer (Aktien/ETF/Zinsen)" },

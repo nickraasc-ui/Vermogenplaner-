@@ -2,17 +2,17 @@ import { fmtE, full } from "./ui.jsx";
 import { CY } from "../constants.js";
 
 const TYPE_META = {
-  "Einmalig":  { icon:"↓", color:"#ef4444", label:"Ausgabe einmalig" },
-  "Jährlich":  { icon:"↓", color:"#ef4444", label:"Ausgabe jährlich" },
-  "Monatlich": { icon:"↓", color:"#ef4444", label:"Ausgabe monatlich" },
-  "Zufluss":   { icon:"↑", color:"#10b981", label:"Zufluss" },
-  "Sparrate":  { icon:"⇄", color:"#f59e0b", label:"Einnahmenänderung" },
-  "financed":  { icon:"≡", color:"#38bdf8", label:"Finanziert" },
+  "Einmalig":  { icon:"↓", color:"#ec6a6a", label:"Ausgabe einmalig" },
+  "Jährlich":  { icon:"↓", color:"#ec6a6a", label:"Ausgabe jährlich" },
+  "Monatlich": { icon:"↓", color:"#ec6a6a", label:"Ausgabe monatlich" },
+  "Zufluss":   { icon:"↑", color:"#3cbf8a", label:"Zufluss" },
+  "Sparrate":  { icon:"⇄", color:"#e3aa45", label:"Einnahmenänderung" },
+  "financed":  { icon:"≡", color:"#5b8def", label:"Finanziert" },
 };
 
 const getMeta = (b) => {
   if (b.fundingMode === "financed") return TYPE_META["financed"];
-  return TYPE_META[b.type] || { icon:"◎", color:"#94a3b8", label:b.type };
+  return TYPE_META[b.type] || { icon:"◎", color:"#9aa3b5", label:b.type };
 };
 
 const getDesc = (b, currentAge, s) => {
@@ -88,12 +88,12 @@ export default function TabBuckets({ s, T, upd, updArr, setModal, agg, final, cu
           {/* Content */}
           <div style={{ flex:1, minWidth:0 }}>
             <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>
-              <span style={{ fontSize:13, fontWeight:700, color:T.text }}>{b.name||"Unbenannt"}</span>
-              <span style={{ fontSize:8, padding:"1px 6px", borderRadius:4, background:meta.color+"18", color:meta.color, fontWeight:700 }}>{meta.label}</span>
+              <span style={{ fontSize:13, fontWeight:600, color:T.text }}>{b.name||"Unbenannt"}</span>
+              <span style={{ fontSize:11, padding:"1px 6px", borderRadius:4, background:meta.color+"18", color:meta.color, fontWeight:600 }}>{meta.label}</span>
             </div>
-            <div style={{ fontSize:9, color:T.textDim, marginTop:3, lineHeight:1.5 }}>{getDesc(b, currentAge, s)}</div>
+            <div style={{ fontSize:11, color:T.textDim, marginTop:3, lineHeight:1.5 }}>{getDesc(b, currentAge, s)}</div>
             {Math.abs(impact) > 100 && (
-              <div style={{ fontSize:9, color:impact>0?T.green:T.red, marginTop:3, fontWeight:700 }}>
+              <div style={{ fontSize:11, color:impact>0?T.green:T.red, marginTop:3, fontWeight:600 }}>
                 {impact>0?"+" : ""}{fmtE(impact)} am Horizont
               </div>
             )}
@@ -109,9 +109,9 @@ export default function TabBuckets({ s, T, upd, updArr, setModal, agg, final, cu
             {/* Edit/Delete */}
             <div style={{ display:"flex", gap:4 }}>
               <button onClick={() => setModal({ type:"bucket", data:b })}
-                style={{ background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:5, padding:"3px 8px", cursor:"pointer", fontSize:9, color:T.textMid, fontWeight:600 }}>edit</button>
+                style={{ background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:5, padding:"3px 8px", cursor:"pointer", fontSize:11, color:T.textMid, fontWeight:600 }}>edit</button>
               <button onClick={() => updArr("buckets", buckets.filter(x => x.id !== b.id))}
-                style={{ background:T.red+"10", border:"1px solid "+T.red+"22", borderRadius:5, padding:"3px 8px", cursor:"pointer", fontSize:9, color:T.red, fontWeight:600 }}>x</button>
+                style={{ background:T.red+"10", border:"1px solid "+T.red+"22", borderRadius:5, padding:"3px 8px", cursor:"pointer", fontSize:11, color:T.red, fontWeight:600 }}>x</button>
             </div>
           </div>
         </div>
@@ -125,39 +125,39 @@ export default function TabBuckets({ s, T, upd, updArr, setModal, agg, final, cu
       {/* Header */}
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
         <div>
-          <div style={{ fontWeight:900, color:T.text, fontSize:15 }}>Szenario-Planer</div>
-          <div style={{ fontSize:10, color:T.textDim, marginTop:2 }}>
+          <div style={{ fontWeight:650, color:T.text, fontSize:15 }}>Szenario-Planer</div>
+          <div style={{ fontSize:12, color:T.textDim, marginTop:2 }}>
             Aktive Szenarien fließen in die Projektion ein — toggle zum Vergleichen
           </div>
         </div>
         <button onClick={() => setModal({ type:"bucket", data:null })}
-          style={{ padding:"7px 14px", borderRadius:8, border:"1px solid "+T.green+"44", background:T.green+"15", color:T.green, cursor:"pointer", fontSize:12, fontWeight:700, WebkitTapHighlightColor:"transparent", flexShrink:0 }}>
+          style={{ padding:"7px 14px", borderRadius:8, border:"1px solid "+T.green+"44", background:T.green+"15", color:T.green, cursor:"pointer", fontSize:12, fontWeight:600, WebkitTapHighlightColor:"transparent", flexShrink:0 }}>
           + Szenario
         </button>
       </div>
 
       {/* Summary bar */}
       {buckets.length > 0 && (
-        <div style={{ background:T.surface, border:"1px solid "+T.border, borderRadius:10, padding:"12px 14px" }}>
+        <div style={{ background:T.surface, border:"1px solid "+T.border, boxShadow:T.shadow, borderRadius:14, padding:"12px 14px" }}>
           <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8 }}>
             <div>
-              <div style={{ fontSize:8, color:T.textLow, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:3 }}>Szenarien</div>
-              <div style={{ fontSize:16, fontWeight:900, color:T.text }}>{active.length}<span style={{ fontSize:9, color:T.textDim, fontWeight:400 }}>/{buckets.length}</span></div>
-              <div style={{ fontSize:8, color:T.textDim }}>aktiv</div>
+              <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0, marginBottom:3 }}>Szenarien</div>
+              <div style={{ fontSize:16, fontWeight:650, color:T.text }}>{active.length}<span style={{ fontSize:11, color:T.textDim, fontWeight:400 }}>/{buckets.length}</span></div>
+              <div style={{ fontSize:13, color:T.textMid }}>aktiv</div>
             </div>
             <div>
-              <div style={{ fontSize:8, color:T.textLow, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:3 }}>Gesamteffekt</div>
-              <div style={{ fontSize:16, fontWeight:900, color:totalImpact>=0?T.green:T.red }}>
+              <div style={{ fontSize:11, color:T.textLow, fontWeight:600, letterSpacing:0, marginBottom:3 }}>Gesamteffekt</div>
+              <div style={{ fontSize:16, fontWeight:650, color:totalImpact>=0?T.green:T.red }}>
                 {totalImpact>=0?"+":""}{fmtE(totalImpact)}
               </div>
-              <div style={{ fontSize:8, color:T.textDim }}>am Horizont (ca.)</div>
+              <div style={{ fontSize:13, color:T.textMid }}>am Horizont (ca.)</div>
             </div>
             <div>
-              <div style={{ fontSize:8, color:T.textLow, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:3 }}>Mit Szenarien</div>
-              <div style={{ fontSize:16, fontWeight:900, color:T.accent }}>
+              <div style={{ fontSize:11, color:T.textLow, fontWeight:600, letterSpacing:0, marginBottom:3 }}>Mit Szenarien</div>
+              <div style={{ fontSize:16, fontWeight:650, color:T.accent }}>
                 {fmtE((final?.base||0) )}
               </div>
-              <div style={{ fontSize:8, color:T.textDim }}>Basis-Prognose</div>
+              <div style={{ fontSize:11, color:T.textDim }}>Basis-Prognose</div>
             </div>
           </div>
         </div>
@@ -167,8 +167,8 @@ export default function TabBuckets({ s, T, upd, updArr, setModal, agg, final, cu
       {buckets.length === 0 && (
         <div style={{ background:T.surface, border:"1px dashed "+T.border, borderRadius:10, padding:32, textAlign:"center" }}>
           <div style={{ fontSize:28, marginBottom:10 }}>⇄</div>
-          <div style={{ fontSize:13, fontWeight:700, color:T.textMid, marginBottom:6 }}>Noch keine Szenarien</div>
-          <div style={{ fontSize:10, color:T.textDim, marginBottom:6, lineHeight:1.7 }}>
+          <div style={{ fontSize:13, fontWeight:600, color:T.textMid, marginBottom:6 }}>Noch keine Szenarien</div>
+          <div style={{ fontSize:12, color:T.textDim, marginBottom:6, lineHeight:1.7 }}>
             Definiere Ereignisse und vergleiche deren Auswirkung auf dein Vermögen.
           </div>
           <div style={{ display:"flex", flexDirection:"column", gap:5, marginBottom:20, textAlign:"left", background:T.surfaceHigh, borderRadius:8, padding:"10px 14px" }}>
@@ -181,14 +181,14 @@ export default function TabBuckets({ s, T, upd, updArr, setModal, agg, final, cu
               <div key={label} style={{ display:"flex", gap:8, alignItems:"center" }}>
                 <span style={{ fontSize:12, width:18, textAlign:"center" }}>{icon}</span>
                 <div>
-                  <span style={{ fontSize:10, fontWeight:700, color:T.textMid }}>{label}</span>
-                  <span style={{ fontSize:9, color:T.textDim }}> — {ex}</span>
+                  <span style={{ fontSize:12, fontWeight:600, color:T.textMid }}>{label}</span>
+                  <span style={{ fontSize:11, color:T.textDim }}> — {ex}</span>
                 </div>
               </div>
             ))}
           </div>
           <button onClick={() => setModal({ type:"bucket", data:null })}
-            style={{ padding:"10px 24px", borderRadius:8, border:"none", background:T.accent, color:"#fff", cursor:"pointer", fontSize:13, fontWeight:700 }}>
+            style={{ padding:"10px 24px", borderRadius:8, border:"none", background:T.accent, color:T.onAccent, cursor:"pointer", fontSize:13, fontWeight:600 }}>
             Erstes Szenario anlegen
           </button>
         </div>
@@ -197,7 +197,7 @@ export default function TabBuckets({ s, T, upd, updArr, setModal, agg, final, cu
       {/* Active scenarios */}
       {active.length > 0 && (
         <div>
-          <div style={{ fontSize:9, color:T.textLow, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:8 }}>
+          <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0, marginBottom:8 }}>
             Aktiv ({active.length}) — fließen in Projektion ein
           </div>
           <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
@@ -209,7 +209,7 @@ export default function TabBuckets({ s, T, upd, updArr, setModal, agg, final, cu
       {/* Inactive scenarios */}
       {inactive.length > 0 && (
         <div>
-          <div style={{ fontSize:9, color:T.textLow, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:8 }}>
+          <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0, marginBottom:8 }}>
             Deaktiviert ({inactive.length}) — ausgeblendet aus Projektion
           </div>
           <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
@@ -220,7 +220,7 @@ export default function TabBuckets({ s, T, upd, updArr, setModal, agg, final, cu
 
       {/* Tip */}
       {buckets.length > 0 && (
-        <div style={{ background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:8, padding:"10px 13px", fontSize:9, color:T.textDim, lineHeight:1.6 }}>
+        <div style={{ background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:8, padding:"10px 13px", fontSize:11, color:T.textDim, lineHeight:1.6 }}>
           Tip: Deaktiviere ein Szenario, wechsle in den Tab <strong style={{ color:T.text }}>Projektion</strong> und vergleiche den Endwert — dann aktiviere wieder. So siehst du den direkten Einfluss.
         </div>
       )}

@@ -77,7 +77,7 @@ export default function TabProjektion({ s, T, upd, cf, agg, projection, final, l
     .sort((a,b) => a.year - b.year);
 
   const chipStyle = (active, color) => ({
-    fontSize:8, padding:"2px 9px", borderRadius:10,
+    fontSize:11, padding:"2px 9px", borderRadius:10,
     border:"1px solid "+(active ? (color||T.accent) : T.border),
     background: active ? (color||T.accent)+"22" : "transparent",
     color: active ? (color||T.accent) : T.textMid,
@@ -87,7 +87,7 @@ export default function TabProjektion({ s, T, upd, cf, agg, projection, final, l
 
   const toggleBtn = (active, color, label, onClick) => (
     <button onClick={onClick}
-      style={{ padding:"6px 13px", borderRadius:6, border:"1px solid "+(active?color:T.border), background:active?color+"18":"transparent", color:active?color:T.textMid, cursor:"pointer", fontSize:11, fontWeight:700, WebkitTapHighlightColor:"transparent" }}>
+      style={{ padding:"6px 13px", borderRadius:6, border:"1px solid "+(active?color:T.border), background:active?color+"18":"transparent", color:active?color:T.textMid, cursor:"pointer", fontSize:12, fontWeight:600, WebkitTapHighlightColor:"transparent" }}>
       {label}
     </button>
   );
@@ -98,15 +98,15 @@ export default function TabProjektion({ s, T, upd, cf, agg, projection, final, l
       {/* Export */}
       <div style={{ display:"flex", justifyContent:"flex-end" }}>
         <button onClick={() => exportCSV(projection, cashflowProjection, s)}
-          style={{ padding:"6px 14px", borderRadius:7, border:"1px solid "+T.border, background:T.surfaceHigh, color:T.textMid, cursor:"pointer", fontSize:11, fontWeight:700, WebkitTapHighlightColor:"transparent" }}>
+          style={{ padding:"6px 14px", borderRadius:7, border:"1px solid "+T.border, background:T.surfaceHigh, color:T.textMid, cursor:"pointer", fontSize:12, fontWeight:600, WebkitTapHighlightColor:"transparent" }}>
           ↓ Excel-Export (CSV)
         </button>
       </div>
 
       {/* Asset class filter */}
       {availClasses.length > 1 && (
-        <div style={{ background:T.surface, border:"1px solid "+T.border, borderRadius:10, padding:"10px 12px" }}>
-          <div style={{ fontSize:9, color:T.textLow, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:8 }}>Projektion filtern nach Asset-Klasse</div>
+        <div style={{ background:T.surface, border:"1px solid "+T.border, boxShadow:T.shadow, borderRadius:14, padding:"10px 12px" }}>
+          <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0, marginBottom:8 }}>Projektion filtern nach Asset-Klasse</div>
           <div style={{ display:"flex", gap:5, flexWrap:"wrap" }}>
             <button onClick={resetProjClass} style={chipStyle(projClassFilter.length === 0)}>Alle</button>
             {availClasses.map(cls => (
@@ -117,7 +117,7 @@ export default function TabProjektion({ s, T, upd, cf, agg, projection, final, l
             ))}
           </div>
           {isFiltered && (
-            <div style={{ fontSize:9, color:T.amber, marginTop:6 }}>
+            <div style={{ fontSize:11, color:T.amber, marginTop:6 }}>
               Nur: {projClassFilter.join(", ")} — Sparrate wirkt nur auf investierbare Klassen in der Auswahl
             </div>
           )}
@@ -125,10 +125,10 @@ export default function TabProjektion({ s, T, upd, cf, agg, projection, final, l
       )}
 
       {/* Planning parameters */}
-      <div style={{ background:T.surface, border:"1px solid "+T.border, borderRadius:10, padding:14, display:"flex", flexDirection:"column", gap:14 }}>
+      <div style={{ background:T.surface, border:"1px solid "+T.border, boxShadow:T.shadow, borderRadius:14, padding:14, display:"flex", flexDirection:"column", gap:14 }}>
         <div style={{ display:"flex", gap:8, flexWrap:"wrap", alignItems:"center" }}>
           {s.autoSpar
-            ? <span style={{ fontSize:10, color:T.textDim, fontStyle:"italic" }}>Sparrate wächst mit Einkommensströmen</span>
+            ? <span style={{ fontSize:12, color:T.textDim, fontStyle:"italic" }}>Sparrate wächst mit Einkommensströmen</span>
             : toggleBtn(s.sparRateGrowth, T.green, "Sparrate wächst "+(s.sparRateGrowth?s.sparGrowthPct+"%/J. ein":"aus"), () => upd({ sparRateGrowth:!s.sparRateGrowth }))
           }
           {toggleBtn(s.taxOnReturns, T.red, s.taxOnReturns?"nach Steuern":"vor Steuern", () => upd({ taxOnReturns:!s.taxOnReturns }))}
@@ -151,7 +151,7 @@ export default function TabProjektion({ s, T, upd, cf, agg, projection, final, l
       </div>
 
       {/* Info box */}
-      <div style={{ background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:8, padding:"10px 13px", fontSize:10, color:T.textMid, lineHeight:1.7 }}>
+      <div style={{ background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:8, padding:"10px 13px", fontSize:12, color:T.textMid, lineHeight:1.7 }}>
         <strong style={{ color:T.text }}>Berechnungslogik:</strong> Sparrate ({full(cf.eff)}/Mo.) fließt proportional in investierbare Positionen. Szenarien: −{s.projSpreadCons??2}%/+{s.projSpreadOpt??2}% auf alle Klassenrenditen.
         {s.taxOnReturns && <span style={{ color:T.red }}> Nach Abgeltungsteuer (KeSt 26,4% / ETF-Teilfreistellung / Immo steuerfrei).</span>}
         {s.inflationAdj && <span style={{ color:T.amber }}> Werte real ({s.inflation}% Inflation bereinigt).</span>}
@@ -160,8 +160,8 @@ export default function TabProjektion({ s, T, upd, cf, agg, projection, final, l
       {/* Starting value */}
       {projection[0] && (
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:8, padding:"8px 12px" }}>
-          <span style={{ fontSize:10, color:T.textDim }}>Startwert heute</span>
-          <span style={{ fontSize:14, fontWeight:900, color:T.text }}>{fmtE(projection[0].base)}</span>
+          <span style={{ fontSize:12, color:T.textDim }}>Startwert heute</span>
+          <span style={{ fontSize:14, fontWeight:650, color:T.text }}>{fmtE(projection[0].base)}</span>
         </div>
       )}
 
@@ -176,10 +176,10 @@ export default function TabProjektion({ s, T, upd, cf, agg, projection, final, l
           return (
             <div key={k} onClick={() => togglePane(k)}
               style={{ background:T.surface, border:"2px solid "+(active ? c : c+"33"), borderRadius:9, padding:11, cursor:"pointer", WebkitTapHighlightColor:"transparent" }}>
-              <div style={{ fontSize:8, color:c, fontWeight:700, letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:2 }}>{l}</div>
-              <div style={{ fontSize:18, fontWeight:900, color:T.text }}>{fmtE(final[k])}</div>
-              <div style={{ fontSize:8, color:active ? c : T.textDim, marginTop:1 }}>{spread} {active ? "▲" : "▼"}</div>
-              <div style={{ fontSize:8, color:T.textDim }}>{s.inflationAdj?"real":"nominal"}{s.taxOnReturns?" · n.St.":""}</div>
+              <div style={{ fontSize:13, color:c, fontWeight:600, letterSpacing:0, marginBottom:2 }}>{l}</div>
+              <div style={{ fontSize:18, fontWeight:650, color:T.text }}>{fmtE(final[k])}</div>
+              <div style={{ fontSize:11, color:active ? c : T.textDim, marginTop:1 }}>{spread} {active ? "▲" : "▼"}</div>
+              <div style={{ fontSize:11, color:T.textDim }}>{s.inflationAdj?"real":"nominal"}{s.taxOnReturns?" · n.St.":""}</div>
             </div>
           );
         })}
@@ -187,7 +187,7 @@ export default function TabProjektion({ s, T, upd, cf, agg, projection, final, l
 
       {/* Inline scenario settings pane */}
       {(activePane === "cons" || activePane === "base" || activePane === "opt") && (
-        <div style={{ background:T.surface, border:"1px solid "+T.border, borderRadius:10, padding:14 }}>
+        <div style={{ background:T.surface, border:"1px solid "+T.border, boxShadow:T.shadow, borderRadius:14, padding:14 }}>
           {activePane === "cons" && (
             <Sl label="Konservativ-Abschlag" value={s.projSpreadCons??2} min={0.5} max={8} step={0.5}
               onChange={v => upd({ projSpreadCons:v })} fmt={v => "−"+v+"%"} color={T.textMid}
@@ -195,12 +195,12 @@ export default function TabProjektion({ s, T, upd, cf, agg, projection, final, l
           )}
           {activePane === "base" && (
             <div>
-              <div style={{ fontSize:9, color:T.textMid, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:8 }}>Basisrendite</div>
+              <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0, marginBottom:8 }}>Basisrendite</div>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 }}>
-                <span style={{ fontSize:11, color:T.textMid }}>Gewichteter Ø aller Klassen</span>
-                <span style={{ fontSize:15, fontWeight:900, color:T.accent }}>{agg.wavgReturn.toFixed(1)}% p.a.</span>
+                <span style={{ fontSize:12, color:T.textMid }}>Gewichteter Ø aller Klassen</span>
+                <span style={{ fontSize:15, fontWeight:650, color:T.accent }}>{agg.wavgReturn.toFixed(1)}% p.a.</span>
               </div>
-              <div style={{ fontSize:9, color:T.textDim }}>Renditeannahmen pro Asset-Klasse einstellbar im Tab Vermögen.</div>
+              <div style={{ fontSize:11, color:T.textDim }}>Renditeannahmen pro Asset-Klasse einstellbar im Tab Vermögen.</div>
             </div>
           )}
           {activePane === "opt" && (
@@ -215,12 +215,12 @@ export default function TabProjektion({ s, T, upd, cf, agg, projection, final, l
       <div onClick={() => togglePane("inflation")}
         style={{ background:T.surface, border:"1px solid "+(s.inflationAdj ? T.amber+"88" : T.border), borderRadius:10, padding:"10px 14px", cursor:"pointer", WebkitTapHighlightColor:"transparent", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
         <div>
-          <div style={{ fontSize:9, color:T.amber, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em" }}>Inflation</div>
-          <div style={{ fontSize:11, color:T.text, marginTop:2 }}>
+          <div style={{ fontSize:13, color:T.amber, fontWeight:600, letterSpacing:0 }}>Inflation</div>
+          <div style={{ fontSize:12, color:T.text, marginTop:2 }}>
             {s.inflationAdj ? s.inflation+"% p.a. · Werte real bereinigt" : "Nicht berücksichtigt · nominal"}
           </div>
         </div>
-        <span style={{ fontSize:10, color:T.textMid }}>{activePane === "inflation" ? "▲" : "▼"}</span>
+        <span style={{ fontSize:12, color:T.textMid }}>{activePane === "inflation" ? "▲" : "▼"}</span>
       </div>
       {activePane === "inflation" && (
         <div style={{ background:T.surfaceHigh, border:"1px solid "+T.amber+"44", borderRadius:10, padding:14, display:"flex", flexDirection:"column", gap:14 }}>
@@ -237,7 +237,7 @@ export default function TabProjektion({ s, T, upd, cf, agg, projection, final, l
       )}
 
       {/* Chart */}
-      <div style={{ background:T.surface, border:"1px solid "+T.border, borderRadius:10, padding:"13px 4px 8px" }}>
+      <div style={{ background:T.surface, border:"1px solid "+T.border, boxShadow:T.shadow, borderRadius:14, padding:"13px 4px 8px" }}>
         <ResponsiveContainer width="100%" height={240}>
           <AreaChart data={projection} margin={{ top:4, right:10, left:0, bottom:0 }}>
             <defs>
@@ -248,9 +248,9 @@ export default function TabProjektion({ s, T, upd, cf, agg, projection, final, l
                 </linearGradient>
               ))}
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke={T.border} />
-            <XAxis dataKey="age" tick={{ fill:T.textLow, fontSize:9 }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fill:T.textLow, fontSize:9 }} tickFormatter={fmtE} width={50} axisLine={false} tickLine={false} />
+            <CartesianGrid vertical={false} stroke={T.border} />
+            <XAxis dataKey="age" tick={{ fill:T.textLow, fontSize:11 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill:T.textLow, fontSize:11 }} tickFormatter={fmtE} width={62} axisLine={false} tickLine={false} />
             <Tooltip content={(props) => <ChTip {...props} T={T} />} />
             <Area type="monotone" dataKey="cons" name="Konservativ" stroke={T.textMid} fill="url(#pgcons)" strokeWidth={1.5} dot={false} />
             <Area type="monotone" dataKey="base" name="Basis" stroke={T.accent} fill="url(#pgbase)" strokeWidth={2.5} dot={false} />
@@ -277,15 +277,15 @@ export default function TabProjektion({ s, T, upd, cf, agg, projection, final, l
             <div onClick={() => togglePane("rentenlucke")}
               style={{ background:T.surface, border:"1px solid "+(isOpen ? T.purple+"88" : T.border), borderRadius:10, padding:"10px 14px", cursor:"pointer", WebkitTapHighlightColor:"transparent", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
               <div>
-                <div style={{ fontSize:9, color:T.purple, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em" }}>Rentenlückenanalyse</div>
-                <div style={{ fontSize:11, color:T.text, marginTop:2 }}>
+                <div style={{ fontSize:13, color:T.purple, fontWeight:600, letterSpacing:0 }}>Rentenlückenanalyse</div>
+                <div style={{ fontSize:12, color:T.text, marginTop:2 }}>
                   {monthlyGap > 0
                     ? <span>Alter {retAge}: <strong style={{ color:T.red }}>{full(monthlyGap)}/Mo. Lücke</strong></span>
                     : <span>Alter {retAge}: <strong style={{ color:T.green }}>kein Defizit</strong></span>
                   }
                 </div>
               </div>
-              <span style={{ fontSize:10, color:T.textMid }}>{isOpen ? "▲" : "▼"}</span>
+              <span style={{ fontSize:12, color:T.textMid }}>{isOpen ? "▲" : "▼"}</span>
             </div>
             {isOpen && (
               <div style={{ background:T.surface, border:"1px solid "+T.purple+"44", borderRadius:10, padding:14, marginTop:4, display:"flex", flexDirection:"column", gap:14 }}>
@@ -293,17 +293,17 @@ export default function TabProjektion({ s, T, upd, cf, agg, projection, final, l
                   onChange={v => upd({ retirementAge: v })} fmt={v => v+" Jahre"} color={T.purple} T={T} />
 
                 <div style={{ background:T.surfaceHigh, borderRadius:8, padding:"12px 14px", display:"flex", flexDirection:"column", gap:10 }}>
-                  <div style={{ fontSize:9, color:T.textLow, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:2 }}>
+                  <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0, marginBottom:2 }}>
                     Prognose Alter {retAge} · Jahr {CY + retIdx}
                   </div>
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
                     <div>
-                      <div style={{ fontSize:9, color:T.textDim }}>Einnahmen</div>
-                      <div style={{ fontSize:15, fontWeight:900, color:T.green }}>{full(retCF.avail || 0)}/Mo.</div>
+                      <div style={{ fontSize:11, color:T.textDim }}>Einnahmen</div>
+                      <div style={{ fontSize:15, fontWeight:650, color:T.green }}>{full(retCF.avail || 0)}/Mo.</div>
                     </div>
                     <div>
-                      <div style={{ fontSize:9, color:T.textDim }}>Ausgaben</div>
-                      <div style={{ fontSize:15, fontWeight:900, color:T.red }}>{full(retCF.bound || 0)}/Mo.</div>
+                      <div style={{ fontSize:11, color:T.textDim }}>Ausgaben</div>
+                      <div style={{ fontSize:15, fontWeight:650, color:T.red }}>{full(retCF.bound || 0)}/Mo.</div>
                     </div>
                   </div>
 
@@ -312,39 +312,39 @@ export default function TabProjektion({ s, T, upd, cf, agg, projection, final, l
                       <div style={{ borderTop:"1px solid "+T.border, paddingTop:10 }}>
                         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
                           <div>
-                            <div style={{ fontSize:9, color:T.textDim }}>Monatliche Lücke</div>
-                            <div style={{ fontSize:16, fontWeight:900, color:T.red }}>{full(monthlyGap)}</div>
+                            <div style={{ fontSize:11, color:T.textDim }}>Monatliche Lücke</div>
+                            <div style={{ fontSize:16, fontWeight:650, color:T.red }}>{full(monthlyGap)}</div>
                           </div>
                           <div>
-                            <div style={{ fontSize:9, color:T.textDim }}>Projektion Portfolio</div>
-                            <div style={{ fontSize:16, fontWeight:900, color:T.accent }}>{fmtE(projBase)}</div>
+                            <div style={{ fontSize:11, color:T.textDim }}>Projektion Portfolio</div>
+                            <div style={{ fontSize:16, fontWeight:650, color:T.accent }}>{fmtE(projBase)}</div>
                           </div>
                         </div>
                       </div>
                       <div style={{ borderTop:"1px solid "+T.border, paddingTop:10 }}>
                         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
                           <div>
-                            <div style={{ fontSize:9, color:T.textDim }}>Kapitalbedarf (25×)</div>
-                            <div style={{ fontSize:13, fontWeight:800, color:T.purple }}>{fmtE(required25x)}</div>
-                            <div style={{ fontSize:8, color:T.textDim }}>4%-Regel (SWR)</div>
+                            <div style={{ fontSize:11, color:T.textDim }}>Kapitalbedarf (25×)</div>
+                            <div style={{ fontSize:13, fontWeight:600, color:T.purple }}>{fmtE(required25x)}</div>
+                            <div style={{ fontSize:11, color:T.textDim }}>4%-Regel (SWR)</div>
                           </div>
                           <div>
-                            <div style={{ fontSize:9, color:T.textDim }}>Tragfähigkeit (0% Rendite)</div>
-                            <div style={{ fontSize:13, fontWeight:800, color:covered >= 25 ? T.green : covered >= 15 ? T.amber : T.red }}>
+                            <div style={{ fontSize:11, color:T.textDim }}>Tragfähigkeit (0% Rendite)</div>
+                            <div style={{ fontSize:13, fontWeight:600, color:covered >= 25 ? T.green : covered >= 15 ? T.amber : T.red }}>
                               {isFinite(covered) ? covered.toFixed(0)+" Jahre" : "unbegrenzt"}
                             </div>
-                            <div style={{ fontSize:8, color:T.textDim }}>{covered >= 25 ? "4%-Regel erfüllt" : "< 25 = Lücke"}</div>
+                            <div style={{ fontSize:11, color:T.textDim }}>{covered >= 25 ? "4%-Regel erfüllt" : "< 25 = Lücke"}</div>
                           </div>
                         </div>
                       </div>
                       <div style={{ background: surplus >= 0 ? T.green+"12" : T.red+"12", border:"1px solid "+(surplus>=0?T.green:T.red)+"44", borderRadius:7, padding:"9px 12px" }}>
-                        <div style={{ fontSize:9, color:surplus>=0?T.green:T.red, fontWeight:700, marginBottom:2 }}>
+                        <div style={{ fontSize:11, color:surplus>=0?T.green:T.red, fontWeight:600, marginBottom:2 }}>
                           {surplus >= 0 ? "Kapitalpuffer" : "Kapitallücke"}
                         </div>
-                        <div style={{ fontSize:14, fontWeight:900, color:surplus>=0?T.green:T.red }}>
+                        <div style={{ fontSize:14, fontWeight:650, color:surplus>=0?T.green:T.red }}>
                           {surplus >= 0 ? "+" : ""}{fmtE(surplus)}
                         </div>
-                        <div style={{ fontSize:9, color:T.textDim, marginTop:2 }}>
+                        <div style={{ fontSize:11, color:T.textDim, marginTop:2 }}>
                           {surplus >= 0
                             ? "Portfolio übersteigt 25× Jahresdefizit — Rente gut gedeckt"
                             : `Noch ${fmtE(Math.abs(surplus))} Vermögen aufbauen für volle Deckung`}
@@ -353,12 +353,12 @@ export default function TabProjektion({ s, T, upd, cf, agg, projection, final, l
                     </>
                   ) : (
                     <div style={{ background:T.green+"12", border:"1px solid "+T.green+"44", borderRadius:7, padding:"9px 12px" }}>
-                      <div style={{ fontSize:11, fontWeight:700, color:T.green, marginBottom:2 }}>Kein Defizit im Rentenalter</div>
-                      <div style={{ fontSize:10, color:T.textDim }}>Laufende Einnahmen decken alle Ausgaben — Portfolio bleibt vollständig erhalten.</div>
+                      <div style={{ fontSize:12, fontWeight:600, color:T.green, marginBottom:2 }}>Kein Defizit im Rentenalter</div>
+                      <div style={{ fontSize:12, color:T.textDim }}>Laufende Einnahmen decken alle Ausgaben — Portfolio bleibt vollständig erhalten.</div>
                     </div>
                   )}
                 </div>
-                <div style={{ fontSize:9, color:T.textDim, lineHeight:1.6 }}>
+                <div style={{ fontSize:11, color:T.textDim, lineHeight:1.6 }}>
                   <strong style={{ color:T.amber }}>Wichtig:</strong> Gesetzliche Rente, Betriebsrente etc. als Einkommensstrom mit Startdatum (z.B. Alter 67) im Haushalt-Tab eintragen — nur dann fließen sie hier in die Lückenberechnung ein. Lücke = projizierte Ausgaben − Einnahmen im gewählten Alter.
                 </div>
               </div>
@@ -371,47 +371,47 @@ export default function TabProjektion({ s, T, upd, cf, agg, projection, final, l
       <button onClick={() => setModal({ type:"afford" })}
         style={{ background:T.surface, border:"1px solid "+T.purple+"33", borderRadius:10, padding:14, cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"center", WebkitTapHighlightColor:"transparent" }}>
         <div>
-          <div style={{ fontSize:13, fontWeight:700, color:T.purple }}>Was kann ich mir leisten?</div>
-          <div style={{ fontSize:10, color:T.textLow, marginTop:2 }}>Wachstum vs. Substanz — Affordability</div>
+          <div style={{ fontSize:13, fontWeight:600, color:T.purple }}>Was kann ich mir leisten?</div>
+          <div style={{ fontSize:12, color:T.textLow, marginTop:2 }}>Wachstum vs. Substanz — Affordability</div>
         </div>
         <div style={{ fontSize:20, color:T.purple }}>{">"}</div>
       </button>
 
       {/* Milestones */}
-      <div style={{ background:T.surface, border:"1px solid "+T.border, borderRadius:10, padding:14 }}>
-        <div style={{ fontSize:9, color:T.textLow, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:12 }}>Meilensteine — Basis-Szenario</div>
+      <div style={{ background:T.surface, border:"1px solid "+T.border, boxShadow:T.shadow, borderRadius:14, padding:14 }}>
+        <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0, marginBottom:12 }}>Meilensteine — Basis-Szenario</div>
         {milestones.map(t => {
           const hit = projection.find(d => d.base >= t);
           return (
             <div key={t} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", borderBottom:"1px solid "+T.border, paddingBottom:8, marginBottom:8 }}>
-              <div style={{ fontSize:13, fontWeight:800, color:T.accent }}>{fmtE(t)}</div>
+              <div style={{ fontSize:13, fontWeight:600, color:T.accent }}>{fmtE(t)}</div>
               {hit
-                ? <div style={{ textAlign:"right" }}><div style={{ fontSize:12, fontWeight:700, color:T.green }}>Alter {hit.age}</div><div style={{ fontSize:9, color:T.textDim }}>in {hit.age-currentAge} J.</div></div>
-                : <div style={{ fontSize:10, color:T.red }}>Nicht im Horizont</div>}
+                ? <div style={{ textAlign:"right" }}><div style={{ fontSize:12, fontWeight:600, color:T.green }}>Alter {hit.age}</div><div style={{ fontSize:11, color:T.textDim }}>in {hit.age-currentAge} J.</div></div>
+                : <div style={{ fontSize:12, color:T.red }}>Nicht im Horizont</div>}
             </div>
           );
         })}
         {loanSummary.map(l => l.yrsLeft && (
           <div key={l.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", borderBottom:"1px solid "+T.border, paddingBottom:8, marginBottom:8 }}>
             <div>
-              <div style={{ fontSize:12, fontWeight:700, color:T.purple }}>{l.name} schuldenfrei</div>
-              <div style={{ fontSize:9, color:T.textDim }}>+{full(l.annuitat)}/Mo. frei</div>
+              <div style={{ fontSize:12, fontWeight:600, color:T.purple }}>{l.name} schuldenfrei</div>
+              <div style={{ fontSize:11, color:T.textDim }}>+{full(l.annuitat)}/Mo. frei</div>
             </div>
             <div style={{ textAlign:"right" }}>
-              <div style={{ fontSize:12, fontWeight:700, color:T.purple }}>{CY+l.yrsLeft}</div>
-              <div style={{ fontSize:9, color:T.textDim }}>Alter {currentAge+l.yrsLeft}</div>
+              <div style={{ fontSize:12, fontWeight:600, color:T.purple }}>{CY+l.yrsLeft}</div>
+              <div style={{ fontSize:11, color:T.textDim }}>Alter {currentAge+l.yrsLeft}</div>
             </div>
           </div>
         ))}
         {maturityEvents.map(e => (
           <div key={e.name+e.year} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", borderBottom:"1px solid "+T.border, paddingBottom:8, marginBottom:8 }}>
             <div>
-              <div style={{ fontSize:12, fontWeight:700, color:T.amber }}>{e.name} fällig</div>
-              <div style={{ fontSize:9, color:T.textDim }}>{e.class} · {fmtE(e.value)} Rückfluss</div>
+              <div style={{ fontSize:12, fontWeight:600, color:T.amber }}>{e.name} fällig</div>
+              <div style={{ fontSize:11, color:T.textDim }}>{e.class} · {fmtE(e.value)} Rückfluss</div>
             </div>
             <div style={{ textAlign:"right" }}>
-              <div style={{ fontSize:12, fontWeight:700, color:T.amber }}>{e.year}</div>
-              <div style={{ fontSize:9, color:T.textDim }}>Alter {currentAge + (e.year - CY)}</div>
+              <div style={{ fontSize:12, fontWeight:600, color:T.amber }}>{e.year}</div>
+              <div style={{ fontSize:11, color:T.textDim }}>Alter {currentAge + (e.year - CY)}</div>
             </div>
           </div>
         ))}

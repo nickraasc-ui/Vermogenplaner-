@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sheet, Inp, SelEl, Btn, full, uid } from "../ui.jsx";
+import { Sheet, Inp, SelEl, Btn, full, uid, IconBtn } from "../ui.jsx";
 import { ASSET_CLASSES, LIQUIDITY_CATS, LIQUIDITY_DEFAULT, LIQ_CLR, ASSET_TAX_TYPES, VALUATION_METHODS, IMMO_CF_GROSS, IMMO_HAUSGELD, IMMO_GRUNDSTEUER, LOAN_TYPES } from "../../constants.js";
 
 export default function AssetModal({ data, s, T, setModal, updArr }) {
@@ -69,28 +69,23 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
   const rowStyle = { display: "flex", gap: 8, marginBottom: 8, alignItems: "center" };
   const nativeSelect = {
     flex: 2, background: T.surface, border: "1px solid " + T.border,
-    borderRadius: 6, color: T.text, padding: "6px 8px", fontSize: 12,
+    borderRadius: 6, color: T.text, padding: "6px 8px", fontSize:12,
   };
   const nativeInput = {
     flex: 1, background: T.surface, border: "1px solid " + T.border,
-    borderRadius: 6, color: T.text, padding: "6px 8px", fontSize: 12, minWidth: 0,
+    borderRadius: 6, color: T.text, padding: "6px 8px", fontSize:12, minWidth: 0,
   };
   const sectionBox = {
     background: T.surfaceHigh, border: "1px solid " + T.border,
     borderRadius: 8, padding: 12, marginBottom: 12,
   };
   const sectionLabel = {
-    fontSize: 9, color: T.textMid, fontWeight: 700,
-    textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10,
+    fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0, marginBottom: 10,
   };
   const addRowBtn = {
     background: "transparent", border: "1px solid " + T.border,
     borderRadius: 6, color: T.textMid, padding: "5px 12px",
-    cursor: "pointer", fontSize: 11, width: "100%", marginTop: 4,
-  };
-  const removeBtn = {
-    background: "transparent", border: "1px solid " + T.red,
-    borderRadius: 5, color: T.red, padding: "4px 8px", cursor: "pointer", fontSize: 11,
+    cursor: "pointer", fontSize:12, width: "100%", marginTop: 4,
   };
 
   return (
@@ -115,15 +110,15 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
                 next[i] = { ...next[i], share: (parseFloat(e.target.value) || 0) / 100 };
                 set({ ownership: next });
               }} style={nativeInput} />
-            <span style={{ fontSize: 10, color: T.textMid }}>%</span>
-            <button style={removeBtn} onClick={() => set({ ownership: ownership.filter((_, j) => j !== i) })}>x</button>
+            <span style={{ fontSize:12, color: T.textMid }}>%</span>
+            <IconBtn icon="close" label="Entfernen" danger T={T} size={36} onClick={() => set({ ownership: ownership.filter((_, j) => j !== i) })} />
           </div>
         ))}
         {ownership.length > 0 && (
           <div style={{ marginBottom: 8 }}>
             <div style={{ display:"flex", justifyContent:"space-between", marginBottom:3 }}>
-              <span style={{ fontSize:9, color:T.textDim }}>Anteilsverteilung</span>
-              <span style={{ fontSize:9, fontWeight:700, color:shareOk ? T.green : T.red }}>
+              <span style={{ fontSize:11, color:T.textDim }}>Anteilsverteilung</span>
+              <span style={{ fontSize:11, fontWeight:600, color:shareOk ? T.green : T.red }}>
                 {Math.round(ownerShareTotal * 100)}% / 100%
               </span>
             </div>
@@ -131,7 +126,7 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
               <div style={{ height:"100%", background:shareOk ? T.green : T.red, width:Math.min(ownerShareTotal*100,100)+"%" }} />
             </div>
             {!shareOk && (
-              <div style={{ fontSize:9, color:T.red, marginTop:3 }}>
+              <div style={{ fontSize:11, color:T.red, marginTop:3 }}>
                 {ownerShareTotal < 1 ? `+${Math.round((1-ownerShareTotal)*100)}% noch nicht vergeben` : `−${Math.round((ownerShareTotal-1)*100)}% zu viel`}
               </div>
             )}
@@ -150,7 +145,7 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
         {LIQUIDITY_CATS.map(l => (
           <div key={l} onClick={() => set({ liquidity: l })}
             style={{ flex: 1, padding: "7px 4px", borderRadius: 7, border: "2px solid " + (f.liquidity === l ? LIQ_CLR[l] : T.border), background: f.liquidity === l ? LIQ_CLR[l] + "18" : "transparent", cursor: "pointer", textAlign: "center" }}>
-            <div style={{ fontSize: 9, fontWeight: 700, color: f.liquidity === l ? LIQ_CLR[l] : T.textLow }}>{l}</div>
+            <div style={{ fontSize:11, fontWeight:600, color: f.liquidity === l ? LIQ_CLR[l] : T.textLow }}>{l}</div>
           </div>
         ))}
       </div>
@@ -169,7 +164,7 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
             <Inp label="Hausgeld/Mo." value={f.hausgeld} onChange={v => set({ hausgeld: v })} type="number" placeholder={String(IMMO_HAUSGELD)} T={T} />
             <Inp label="Grundsteuer/Mo." value={f.grundsteuer} onChange={v => set({ grundsteuer: v })} type="number" placeholder={String(IMMO_GRUNDSTEUER)} T={T} />
           </div>
-          <div style={{ fontSize: 9, color: immoNetCF >= 0 ? T.green : T.red, marginTop: 6 }}>
+          <div style={{ fontSize:11, color: immoNetCF >= 0 ? T.green : T.red, marginTop: 6 }}>
             Netto-CF vor Annuität: {full((parseFloat(f.monthlyRent) || 0) - (parseFloat(f.hausgeld) || 0) - (parseFloat(f.grundsteuer) || 0))}/Mo.
             {hasDebt && <span> | nach Annuität: {full(immoNetCF)}/Mo.</span>}
           </div>
@@ -185,7 +180,7 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
             <Inp label="Rückzahlung/Mo." value={f.monthlyRepayment} onChange={v => set({ monthlyRepayment: v })} type="number" placeholder="0" T={T} />
           </div>
           {(parseFloat(f.monthlyRepayment) || 0) > 0 && (
-            <div style={{ fontSize: 9, color: T.green, marginTop: 6 }}>
+            <div style={{ fontSize:11, color: T.green, marginTop: 6 }}>
               Monatlicher Zufluss: {full(parseFloat(f.monthlyRepayment) || 0)}/Mo.
               {fordPrincipal !== null && fordPrincipal > 0 && <span style={{ color: T.textDim }}> ({full(fordPrincipal)}/Mo. Tilgung)</span>}
             </div>
@@ -204,13 +199,13 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
                 style={{ flex:1, padding:"7px 4px", borderRadius:7, border:"1px solid "+(f.loanType===lt.value?T.accent:T.border),
                   background:f.loanType===lt.value?T.accent+"18":"transparent",
                   color:f.loanType===lt.value?T.accent:T.textMid,
-                  cursor:"pointer", fontSize:10, fontWeight:700, textAlign:"center" }}>
+                  cursor:"pointer", fontSize:12, fontWeight:600, textAlign:"center" }}>
                 {lt.label}
               </button>
             ))}
           </div>
           {f.loanType && (
-            <div style={{ fontSize:9, color:T.textDim, marginBottom:10 }}>
+            <div style={{ fontSize:11, color:T.textDim, marginBottom:10 }}>
               {LOAN_TYPES.find(l=>l.value===f.loanType)?.desc}
             </div>
           )}
@@ -226,34 +221,34 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
           {(+f.manualAnnuitat || calcAnnuitat) > 0 && (
             <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:6, marginTop:4 }}>
               <div style={{ background:T.bg, borderRadius:6, padding:"7px 8px" }}>
-                <div style={{ fontSize:8, color:T.textDim, marginBottom:2 }}>Annuität/Mo.{+f.manualAnnuitat > 0 ? " (manuell)" : ""}</div>
-                <div style={{ fontSize:12, fontWeight:800, color:T.accent }}>{full(+f.manualAnnuitat || calcAnnuitat)}</div>
+                <div style={{ fontSize:11, color:T.textDim, marginBottom:2 }}>Annuität/Mo.{+f.manualAnnuitat > 0 ? " (manuell)" : ""}</div>
+                <div style={{ fontSize:12, fontWeight:600, color:T.accent }}>{full(+f.manualAnnuitat || calcAnnuitat)}</div>
               </div>
               <div style={{ background:T.bg, borderRadius:6, padding:"7px 8px" }}>
-                <div style={{ fontSize:8, color:T.textDim, marginBottom:2 }}>
+                <div style={{ fontSize:11, color:T.textDim, marginBottom:2 }}>
                   {f.loanType==="endfaellig" ? "Zinsen/Mo." : "Tilgung/Mo."}
                 </div>
-                <div style={{ fontSize:12, fontWeight:800, color:f.loanType==="endfaellig"?T.red:T.green }}>
+                <div style={{ fontSize:12, fontWeight:600, color:f.loanType==="endfaellig"?T.red:T.green }}>
                   {f.loanType==="endfaellig" ? full(calcMonthlyInterest) : full(calcTilgung)}
                 </div>
               </div>
               <div style={{ background:T.bg, borderRadius:6, padding:"7px 8px" }}>
-                <div style={{ fontSize:8, color:T.textDim, marginBottom:2 }}>
+                <div style={{ fontSize:11, color:T.textDim, marginBottom:2 }}>
                   {f.loanType==="endfaellig" ? "Gesamtzinsen" : "Tilgung % p.a."}
                 </div>
-                <div style={{ fontSize:12, fontWeight:800, color:T.textMid }}>
+                <div style={{ fontSize:12, fontWeight:600, color:T.textMid }}>
                   {f.loanType==="endfaellig" ? full(calcTotalInterest) : calcTilgungPct.toFixed(2)+"%"}
                 </div>
               </div>
             </div>
           )}
           {f.loanType==="endfaellig" && lTerm > 0 && (
-            <div style={{ fontSize:9, color:T.amber, marginTop:8 }}>
+            <div style={{ fontSize:11, color:T.amber, marginTop:8 }}>
               Endfällig: Kapital {full(lDebt)} fällig in {lTerm} Jahren — Gesamtzinsaufwand {full(calcTotalInterest)}
             </div>
           )}
           {f.loanType!=="endfaellig" && calcTilgung > 0 && lTerm > 0 && (
-            <div style={{ fontSize:9, color:T.green, marginTop:8 }}>
+            <div style={{ fontSize:11, color:T.green, marginTop:8 }}>
               Schuldenfrei in {lTerm} Jahren — Gesamtzinsaufwand {full(calcTotalInterest)}
             </div>
           )}
@@ -263,7 +258,7 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
       {/* Ausschüttungsrendite (Dividenden, Kupons) — nur für Finanzassets */}
       {!isImmo && !isFord && (
         <div style={{ background: T.surfaceHigh, border: "1px solid " + T.border, borderRadius: 8, padding: 12, marginBottom: 12 }}>
-          <div style={{ fontSize: 9, color: T.textMid, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Ausschüttungen / Cashflow</div>
+          <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0, marginBottom: 8 }}>Ausschüttungen / Cashflow</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <Inp label="Ausschüttungsrendite %/J." value={f.yieldPct ?? "0"}
               onChange={v => set({ yieldPct: v })} type="number" placeholder="0 = thesaurierend" T={T} />
@@ -272,14 +267,14 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
           {(parseFloat(f.yieldPct) || 0) > 0 && (parseFloat(f.value) || 0) > 0 && (() => {
             const monthly = (parseFloat(f.value) || 0) * (parseFloat(f.yieldPct) || 0) / 100 / 12;
             return (
-              <div style={{ fontSize: 9, color: T.green, marginTop: 4 }}>
+              <div style={{ fontSize:11, color: T.green, marginTop: 4 }}>
                 Monatlicher Zufluss: {full(monthly)}/Mo. ({full(monthly * 12)}/J.)
                 <span style={{ color: T.textDim }}> — fließt in Haushaltsrechnung</span>
               </div>
             );
           })()}
           {(parseFloat(f.yieldPct) || 0) === 0 && (
-            <div style={{ fontSize: 9, color: T.textDim, marginTop: 4 }}>0% = thesaurierend / keine Ausschüttung</div>
+            <div style={{ fontSize:11, color: T.textDim, marginTop: 4 }}>0% = thesaurierend / keine Ausschüttung</div>
           )}
         </div>
       )}
@@ -289,7 +284,7 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
         <div style={{ ...sectionBox, opacity: 0.7 }}>
           <div style={{ ...sectionLabel, display:"flex", justifyContent:"space-between" }}>
             <span>Private Equity — Kapitalstruktur</span>
-            <span style={{ fontSize:8, color:T.amber, fontWeight:700, textTransform:"none", letterSpacing:0 }}>Anzeige · nicht in Projektion</span>
+            <span style={{ fontSize:11, color:T.amber, fontWeight:600, textTransform:"none", letterSpacing:0 }}>Anzeige · nicht in Projektion</span>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
             <Inp label="Commitment" value={f.commitment || ""} onChange={v => set({ commitment: v })} type="number" placeholder="0" T={T} />
@@ -297,7 +292,7 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
             <Inp label="Ausgeschüttet" value={f.distributed || ""} onChange={v => set({ distributed: v })} type="number" placeholder="0" T={T} />
           </div>
           {(parseFloat(f.commitment) || 0) > 0 && (
-            <div style={{ fontSize: 9, color: T.accent, marginTop: 6 }}>
+            <div style={{ fontSize:11, color: T.accent, marginTop: 6 }}>
               Noch nicht abgerufen: {full((parseFloat(f.commitment) || 0) - (parseFloat(f.called) || 0))}
               {(parseFloat(f.distributed) || 0) > 0 && <span style={{ color: T.green, marginLeft: 8 }}>Ausgeschüttet: {full(parseFloat(f.distributed) || 0)}</span>}
             </div>
@@ -325,7 +320,7 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
           const rate = byType !== null && byType !== undefined ? byType : (CLASS_KEST[f.class] ?? 26.38);
           const isOverride = byType !== null && byType !== undefined && byType !== CLASS_KEST[f.class];
           return (
-            <div style={{ fontSize:9, color: rate===0 ? T.green : isOverride ? T.amber : T.textDim, marginBottom:8 }}>
+            <div style={{ fontSize:11, color: rate===0 ? T.green : isOverride ? T.amber : T.textDim, marginBottom:8 }}>
               Effektive KeSt: <strong>{rate.toFixed(2)}%</strong>
               {isOverride && " (überschreibt Klassenstandard)"}
               {rate === 0 && " — keine Steuer auf Erträge und Zuwachs"}
@@ -339,7 +334,7 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
             onChange={v => set({ tax: { ...f.tax, acquisitionDate: v } })} placeholder="JJJJ-MM-TT" T={T} />
         </div>
         {(parseFloat(f.value) || 0) > 0 && (parseFloat(f.tax?.acquisitionPrice) || 0) > 0 && (
-          <div style={{ fontSize: 9, color: stilleReserven >= 0 ? T.green : T.red, marginTop: 4 }}>
+          <div style={{ fontSize:11, color: stilleReserven >= 0 ? T.green : T.red, marginTop: 4 }}>
             Stille Reserven: {full(stilleReserven)} ({stilleReserven >= 0 ? "+" : ""}{(stilleReserven / (parseFloat(f.tax?.acquisitionPrice) || 1) * 100).toFixed(1)}%)
           </div>
         )}
@@ -348,14 +343,14 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
       <Inp label="Notiz" value={f.note} onChange={v => set({ note: v })} placeholder="Optional" T={T} />
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, padding: "10px 12px", background: T.surfaceHigh, borderRadius: 8, border: "1px solid " + T.border }}>
         <input type="checkbox" checked={!!f.locked} onChange={e => set({ locked: e.target.checked })} id="lck" style={{ accentColor: T.amber, width: 18, height: 18 }} />
-        <label htmlFor="lck" style={{ fontSize: 13, color: T.textMid, cursor: "pointer" }}>Gesperrt / unumschichtbar</label>
+        <label htmlFor="lck" style={{ fontSize:13, color: T.textMid, cursor: "pointer" }}>Gesperrt / unumschichtbar</label>
       </div>
       {f.class === "Cash" && (
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, padding: "10px 12px", background: T.surfaceHigh, borderRadius: 8, border: "1px solid " + (f.isHaushaltsPuffer ? T.green : T.border) }}>
           <input type="checkbox" checked={!!f.isHaushaltsPuffer} onChange={e => set({ isHaushaltsPuffer: e.target.checked })} id="puf" style={{ accentColor: T.green, width: 18, height: 18 }} />
           <div>
-            <label htmlFor="puf" style={{ fontSize: 13, color: T.textMid, cursor: "pointer" }}>Als Haushaltspuffer verwenden</label>
-            <div style={{ fontSize: 9, color: T.textDim, marginTop: 1 }}>Negative Haushaltssalden werden zuerst aus diesem Konto gedeckt</div>
+            <label htmlFor="puf" style={{ fontSize:13, color: T.textMid, cursor: "pointer" }}>Als Haushaltspuffer verwenden</label>
+            <div style={{ fontSize:11, color: T.textDim, marginTop: 1 }}>Negative Haushaltssalden werden zuerst aus diesem Konto gedeckt</div>
           </div>
         </div>
       )}

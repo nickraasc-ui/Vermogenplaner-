@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sheet, Inp, SelEl, Btn, uid } from "../ui.jsx";
+import { Sheet, Inp, SelEl, Btn, uid, IconBtn } from "../ui.jsx";
 import { OWNER_TYPES, MARITAL_PROPERTY_OPTIONS, CY } from "../../constants.js";
 
 export default function OwnerModal({ s, T, setModal, upd }) {
@@ -35,11 +35,10 @@ export default function OwnerModal({ s, T, setModal, upd }) {
   };
 
   const sectionBox = { background: T.surfaceHigh, border: "1px solid " + T.border, borderRadius: 8, padding: 12, marginBottom: 14 };
-  const sectionLabel = { fontSize: 9, color: T.textMid, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 };
-  const nativeSelect = { flex: 2, background: T.surface, border: "1px solid " + T.border, borderRadius: 6, color: T.text, padding: "6px 8px", fontSize: 12 };
-  const nativeInput = { flex: 1, background: T.surface, border: "1px solid " + T.border, borderRadius: 6, color: T.text, padding: "6px 8px", fontSize: 12, minWidth: 0 };
-  const removeBtn = { background: "transparent", border: "1px solid " + T.red, borderRadius: 5, color: T.red, padding: "4px 8px", cursor: "pointer", fontSize: 11 };
-  const addRowBtn = { background: "transparent", border: "1px solid " + T.border, borderRadius: 6, color: T.textMid, padding: "5px 12px", cursor: "pointer", fontSize: 11, width: "100%", marginTop: 4 };
+  const sectionLabel = { fontSize:13, color: T.textMid, fontWeight:600, letterSpacing:0, marginBottom: 10 };
+  const nativeSelect = { flex: 2, background: T.surface, border: "1px solid " + T.border, borderRadius: 6, color: T.text, padding: "6px 8px", fontSize:12 };
+  const nativeInput = { flex: 1, background: T.surface, border: "1px solid " + T.border, borderRadius: 6, color: T.text, padding: "6px 8px", fontSize:12, minWidth: 0 };
+  const addRowBtn = { background: "transparent", border: "1px solid " + T.border, borderRadius: 6, color: T.textMid, padding: "5px 12px", cursor: "pointer", fontSize:12, width: "100%", marginTop: 4 };
 
   return (
     <Sheet title="Eigentümer verwalten" onClose={() => setModal(null)} T={T}>
@@ -48,7 +47,7 @@ export default function OwnerModal({ s, T, setModal, upd }) {
       <div style={{ ...sectionBox, opacity: 0.6 }}>
         <div style={{ ...sectionLabel, display:"flex", justifyContent:"space-between" }}>
           <span>Familienrecht & Steuerveranlagung</span>
-          <span style={{ fontSize:8, color:T.amber, fontWeight:700, textTransform:"none", letterSpacing:0 }}>Gespeichert · noch nicht in Rechnung aktiv</span>
+          <span style={{ fontSize:11, color:T.amber, fontWeight:600, textTransform:"none", letterSpacing:0 }}>Gespeichert · noch nicht in Rechnung aktiv</span>
         </div>
         <SelEl label="Güterstand" value={s.maritalProperty || "zugewinn"} onChange={v => upd({ maritalProperty: v })}
           options={MARITAL_PROPERTY_OPTIONS.map(m => ({ value: m.value, label: m.label }))} T={T} />
@@ -58,7 +57,7 @@ export default function OwnerModal({ s, T, setModal, upd }) {
             return (
               <div key={v} onClick={() => upd({ taxFiling: v })}
                 style={{ flex: 1, padding: "7px 6px", borderRadius: 7, border: "2px solid " + (active ? T.accent : T.border), background: active ? T.accent + "18" : "transparent", cursor: "pointer", textAlign: "center" }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: active ? T.accent : T.textLow }}>{l}</div>
+                <div style={{ fontSize:12, fontWeight:600, color: active ? T.accent : T.textLow }}>{l}</div>
               </div>
             );
           })}
@@ -79,10 +78,10 @@ export default function OwnerModal({ s, T, setModal, upd }) {
               onClick={() => setExpanded(isExpanded ? null : o.id)}>
               <div>
                 <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: T.text }}>{o.label}</span>
-                  <span style={{ fontSize: 8, color: T.textDim, background: T.surface, padding: "1px 5px", borderRadius: 3 }}>{o.type || "Person"}</span>
+                  <span style={{ fontSize:13, fontWeight: 600, color: T.text }}>{o.label}</span>
+                  <span style={{ fontSize:11, color: T.textDim, background: T.surface, padding: "1px 5px", borderRadius: 3 }}>{o.type || "Person"}</span>
                 </div>
-                <div style={{ fontSize: 9, color: T.textDim, marginTop: 1 }}>
+                <div style={{ fontSize:11, color: T.textDim, marginTop: 1 }}>
                   {inUse ? assetCount + " Position(en)" : "Keine Positionen"} {isExpanded ? "▲" : "▼"}
                 </div>
               </div>
@@ -102,8 +101,8 @@ export default function OwnerModal({ s, T, setModal, upd }) {
 
                 {/* Steuerprofil */}
                 <div style={{ marginBottom: 12, opacity: 0.6 }}>
-                  <div style={{ fontSize: 9, color: T.textMid, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Steuerprofil</div>
-                  <div style={{ fontSize:9, color:T.amber, marginBottom:8 }}>Gespeichert · noch nicht in Berechnungen aktiv</div>
+                  <div style={{ fontSize:13, color: T.textMid, fontWeight:600, letterSpacing:0, marginBottom: 4 }}>Steuerprofil</div>
+                  <div style={{ fontSize:11, color:T.amber, marginBottom:8 }}>Gespeichert · noch nicht in Berechnungen aktiv</div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                     <Inp label="Grenzsteuersatz %" value={o.tax?.personalTaxRate ?? 42}
                       onChange={v => updOwner(o.id, { tax: { ...o.tax, personalTaxRate: +v || 0 } })} type="number" T={T} />
@@ -114,14 +113,14 @@ export default function OwnerModal({ s, T, setModal, upd }) {
                     <input type="checkbox" checked={!!o.tax?.churchTax}
                       onChange={e => updOwner(o.id, { tax: { ...o.tax, churchTax: e.target.checked } })}
                       id={"ch_" + o.id} style={{ accentColor: T.amber, width: 16, height: 16 }} />
-                    <label htmlFor={"ch_" + o.id} style={{ fontSize: 12, color: T.textMid, cursor: "pointer" }}>Kirchensteuer</label>
+                    <label htmlFor={"ch_" + o.id} style={{ fontSize:12, color: T.textMid, cursor: "pointer" }}>Kirchensteuer</label>
                   </div>
                 </div>
 
                 {/* Gesellschafter (für Entities) */}
                 {isEntity && (
                   <div>
-                    <div style={{ fontSize: 9, color: T.textMid, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Gesellschafter</div>
+                    <div style={{ fontSize:13, color: T.textMid, fontWeight:600, letterSpacing:0, marginBottom: 8 }}>Gesellschafter</div>
                     {(o.ownedBy || []).map((ob, i) => (
                       <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center" }}>
                         <select value={ob.ownerId} onChange={e => {
@@ -137,8 +136,8 @@ export default function OwnerModal({ s, T, setModal, upd }) {
                             ownedBy[i] = { ...ownedBy[i], share: (parseFloat(e.target.value) || 0) / 100 };
                             updOwner(o.id, { ownedBy });
                           }} style={nativeInput} />
-                        <span style={{ fontSize: 10, color: T.textMid }}>%</span>
-                        <button style={removeBtn} onClick={() => updOwner(o.id, { ownedBy: (o.ownedBy || []).filter((_, j) => j !== i) })}>x</button>
+                        <span style={{ fontSize:12, color: T.textMid }}>%</span>
+                        <IconBtn icon="close" label="Entfernen" danger T={T} size={36} onClick={() => updOwner(o.id, { ownedBy: (o.ownedBy || []).filter((_, j) => j !== i) })} />
                       </div>
                     ))}
                     <button style={addRowBtn}

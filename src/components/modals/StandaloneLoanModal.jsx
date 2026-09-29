@@ -38,18 +38,18 @@ export default function StandaloneLoanModal({ data, s, T, setModal, updArr }) {
 
       {debt > 0 && ann > 0 && (
         <div style={{ background: T.surfaceHigh, border: "1px solid " + T.border, borderRadius: 8, padding: "10px 13px", marginBottom: 12 }}>
-          <div style={{ fontSize: 9, color: T.textMid, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>Vorschau</div>
+          <div style={{ fontSize:13, color: T.textMid, fontWeight:600, letterSpacing:0, marginBottom: 6 }}>Vorschau</div>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-            <span style={{ fontSize: 11, color: T.textMid }}>Monatsrate</span>
-            <span style={{ fontSize: 13, fontWeight: 800, color: T.red }}>{full(ann)}/Mo.</span>
+            <span style={{ fontSize:12, color: T.textMid }}>Monatsrate</span>
+            <span style={{ fontSize:13, fontWeight:600, color: T.red }}>{full(ann)}/Mo.</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-            <span style={{ fontSize: 11, color: T.textMid }}>davon Zinsen</span>
-            <span style={{ fontSize: 11, color: T.red }}>{full(monthlyInterest)}/Mo.</span>
+            <span style={{ fontSize:12, color: T.textMid }}>davon Zinsen</span>
+            <span style={{ fontSize:12, color: T.red }}>{full(monthlyInterest)}/Mo.</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <span style={{ fontSize: 11, color: T.textMid }}>davon Tilgung</span>
-            <span style={{ fontSize: 11, color: monthlyTilgung >= 0 ? T.green : T.red }}>{full(Math.max(0, monthlyTilgung))}/Mo.</span>
+            <span style={{ fontSize:12, color: T.textMid }}>davon Tilgung</span>
+            <span style={{ fontSize:12, color: monthlyTilgung >= 0 ? T.green : T.red }}>{full(Math.max(0, monthlyTilgung))}/Mo.</span>
           </div>
         </div>
       )}

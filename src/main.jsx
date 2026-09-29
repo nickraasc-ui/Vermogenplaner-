@@ -1,5 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
+import '@fontsource-variable/inter'
 import App from './app.jsx'
 
 if ('serviceWorker' in navigator) {

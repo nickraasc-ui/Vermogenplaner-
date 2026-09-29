@@ -5,8 +5,8 @@ import { CY, BCK_CLRS } from "../../constants.js";
 function Verdict({ label, sub, color, T }) {
   return (
     <div style={{ background:color+"15", border:"1px solid "+color+"44", borderRadius:8, padding:"11px 14px", marginBottom:10 }}>
-      <div style={{ fontSize:14, fontWeight:800, color }}>{label}</div>
-      {sub && <div style={{ fontSize:10, color, opacity:0.8, marginTop:3 }}>{sub}</div>}
+      <div style={{ fontSize:14, fontWeight:600, color }}>{label}</div>
+      {sub && <div style={{ fontSize:12, color, opacity:0.8, marginTop:3 }}>{sub}</div>}
     </div>
   );
 }
@@ -88,23 +88,23 @@ export default function AffordModal({ s, cf, agg, final, T, setModal, updArr }) 
 
       {/* Wachstumsbasis immer zeigen */}
       <div style={{ background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:8, padding:"10px 13px", marginBottom:10 }}>
-        <div style={{ fontSize:9, color:T.textMid, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:8 }}>Dein Vermögenswachstum</div>
+        <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0, marginBottom:8 }}>Dein Vermögenswachstum</div>
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
           <div>
-            <div style={{ fontSize:9, color:T.textDim }}>Jahreswachstum ({agg.wavgReturn.toFixed(1)}%)</div>
-            <div style={{ fontSize:15, fontWeight:800, color:T.green }}>{fmtE(annualGrowthEUR)}/J.</div>
+            <div style={{ fontSize:11, color:T.textDim }}>Jahreswachstum ({agg.wavgReturn.toFixed(1)}%)</div>
+            <div style={{ fontSize:15, fontWeight:600, color:T.green }}>{fmtE(annualGrowthEUR)}/J.</div>
           </div>
           <div>
-            <div style={{ fontSize:9, color:T.textDim }}>Monatswachstum</div>
-            <div style={{ fontSize:15, fontWeight:800, color:T.green }}>{full(monthlyGrowthEUR)}/Mo.</div>
+            <div style={{ fontSize:11, color:T.textDim }}>Monatswachstum</div>
+            <div style={{ fontSize:15, fontWeight:600, color:T.green }}>{full(monthlyGrowthEUR)}/Mo.</div>
           </div>
           <div>
-            <div style={{ fontSize:9, color:T.textDim }}>Cash-Liquidität</div>
-            <div style={{ fontSize:13, fontWeight:700, color:T.text }}>{fmtE(liquidCash)}</div>
+            <div style={{ fontSize:11, color:T.textDim }}>Cash-Liquidität</div>
+            <div style={{ fontSize:13, fontWeight:600, color:T.text }}>{fmtE(liquidCash)}</div>
           </div>
           <div>
-            <div style={{ fontSize:9, color:T.textDim }}>Monatssaldo</div>
-            <div style={{ fontSize:13, fontWeight:700, color:cf.saldo>=0?T.green:T.red }}>{full(cf.saldo)}/Mo.</div>
+            <div style={{ fontSize:11, color:T.textDim }}>Monatssaldo</div>
+            <div style={{ fontSize:13, fontWeight:600, color:cf.saldo>=0?T.green:T.red }}>{full(cf.saldo)}/Mo.</div>
           </div>
         </div>
       </div>
@@ -117,7 +117,7 @@ export default function AffordModal({ s, cf, agg, final, T, setModal, updArr }) 
           {/* Details je nach Typ */}
           {type === "Einmalig" && (
             <div style={{ background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:8, padding:13, marginBottom:10 }}>
-              <div style={{ fontSize:9, color:T.textMid, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:8 }}>Finanzierungswege</div>
+              <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0, marginBottom:8 }}>Finanzierungswege</div>
               <Row label="Aus Wachstum (Monate)" value={monthlyGrowthEUR > 0 ? (amount/monthlyGrowthEUR).toFixed(1)+" Mo." : "—"} type={amount <= annualGrowthEUR ? "in" : "warn"} T={T} />
               <Row label="Aus Sparrate ansparen" value={(cf.eff||0) > 0 ? Math.ceil(amount/cf.eff)+" Mo." : "—"} T={T} />
               <Row label="Cash vorhanden" value={fmtE(liquidCash)} type={liquidCash >= amount ? "in" : "out"} T={T} />
@@ -125,7 +125,7 @@ export default function AffordModal({ s, cf, agg, final, T, setModal, updArr }) 
           )}
           {(type === "Monatlich" || type === "Jährlich") && (
             <div style={{ background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:8, padding:13, marginBottom:10 }}>
-              <div style={{ fontSize:9, color:T.textMid, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:8 }}>Cashflow-Impact</div>
+              <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0, marginBottom:8 }}>Cashflow-Impact</div>
               <Row label="Kosten/Mo." value={full(monthly)} type="out" T={T} />
               <Row label="Wachstum/Mo." value={full(monthlyGrowthEUR)} type="in" T={T} />
               <Row label="Aktueller Saldo" value={full(cf.saldo||0)} type={cf.saldo >= 0 ? "in" : "out"} T={T} />
@@ -135,8 +135,8 @@ export default function AffordModal({ s, cf, agg, final, T, setModal, updArr }) 
 
           {/* Langfristiger Effekt */}
           <div style={{ background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:8, padding:13, marginBottom:12 }}>
-            <div style={{ fontSize:9, color:T.textMid, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:4 }}>Langfristiger Effekt ({s.horizon} J.)</div>
-            <div style={{ fontSize:9, color:T.textDim, marginBottom:8 }}>Opportunitätskosten bei {agg.wavgReturn.toFixed(1)}% gew. Ø-Rendite</div>
+            <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0, marginBottom:4 }}>Langfristiger Effekt ({s.horizon} J.)</div>
+            <div style={{ fontSize:11, color:T.textDim, marginBottom:8 }}>Opportunitätskosten bei {agg.wavgReturn.toFixed(1)}% gew. Ø-Rendite</div>
             <Row label="Projektion ohne" value={fmtE(baseEnd)} T={T} />
             <Row label="Entgangenes Wachstum" value={"−"+fmtE(impact)} type="out" T={T} />
             <Row label="Projektion mit" value={fmtE(newEnd)} type={pctI < 5 ? "in" : "warn"} bold T={T} />
@@ -144,7 +144,7 @@ export default function AffordModal({ s, cf, agg, final, T, setModal, updArr }) 
               <div style={{ background:T.border, borderRadius:5, overflow:"hidden", height:7, marginBottom:5 }}>
                 <div style={{ height:"100%", background:pctI < 5 ? T.green : pctI < 20 ? T.amber : T.red, width:Math.max(2, 100-pctI)+"%", transition:"width 0.4s" }} />
               </div>
-              <div style={{ fontSize:10, color:T.textLow, textAlign:"center" }}>Kostet {pctI.toFixed(1)}% des projizierten Endvermoegens</div>
+              <div style={{ fontSize:12, color:T.textLow, textAlign:"center" }}>Kostet {pctI.toFixed(1)}% des projizierten Endvermoegens</div>
             </div>
           </div>
 

@@ -27,13 +27,13 @@ export default function RelationModal({ data: owner, s, T, setModal, updArr }) {
   const removeBtn = {
     background:"transparent", border:"1px solid "+T.red,
     borderRadius:5, color:T.red, padding:"4px 8px",
-    cursor:"pointer", fontSize:11, flexShrink:0,
+    cursor:"pointer", fontSize:12, flexShrink:0,
     WebkitTapHighlightColor:"transparent",
   };
 
   return (
     <Sheet title={`Beziehungen: ${owner.label}`} onClose={() => setModal(null)} T={T}>
-      <div style={{ fontSize:10, color:T.textDim, marginBottom:16, lineHeight:1.7,
+      <div style={{ fontSize:12, color:T.textDim, marginBottom:16, lineHeight:1.7,
         background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:8, padding:"9px 12px" }}>
         Familienbeziehungen und persönliche Verbindungen werden im Organogramm als
         gestrichelte Linien dargestellt. Beteiligungsanteile (wer besitzt welche Gesellschaft)
@@ -41,7 +41,7 @@ export default function RelationModal({ data: owner, s, T, setModal, updArr }) {
       </div>
 
       {relations.length === 0 && (
-        <div style={{ textAlign:"center", padding:"10px 0", fontSize:11,
+        <div style={{ textAlign:"center", padding:"10px 0", fontSize:12,
           color:T.textDim, marginBottom:4 }}>
           Noch keine Beziehungen für {owner.label}
         </div>
@@ -73,13 +73,13 @@ export default function RelationModal({ data: owner, s, T, setModal, updArr }) {
         style={{ width:"100%", background:"transparent",
           border:"1px dashed "+(otherOwners.length ? T.border : T.textDim),
           borderRadius:8, padding:11, cursor:otherOwners.length ? "pointer" : "default",
-          fontSize:11, color:otherOwners.length ? T.textMid : T.textDim,
+          fontSize:12, color:otherOwners.length ? T.textMid : T.textDim,
           marginBottom:18, WebkitTapHighlightColor:"transparent" }}>
         + Beziehung hinzufügen
       </button>
 
       {!otherOwners.length && (
-        <div style={{ fontSize:9, color:T.amber, marginBottom:12, textAlign:"center" }}>
+        <div style={{ fontSize:11, color:T.amber, marginBottom:12, textAlign:"center" }}>
           Mindestens zwei Eigentümer nötig
         </div>
       )}

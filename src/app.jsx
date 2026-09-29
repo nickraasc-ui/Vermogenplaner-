@@ -1,13 +1,15 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import AppInner from "./AppInner.jsx";
 import GuideModal from "./components/GuideModal.jsx";
+import { DARK, LIGHT } from "./theme.js";
+import { Sheet, Inp, Btn, Icon, IconBtn, labelStyle } from "./components/ui.jsx";
 
 // ----------------------------------------------------------------- utils ---
 const uid = () => Math.random().toString(36).slice(2, 9);
 
 const PROFILE_COLORS = [
-  "#38bdf8","#10b981","#f59e0b","#a78bfa",
-  "#f472b6","#fb923c","#34d399","#818cf8"
+  "#5b8def","#3cbf8a","#e3aa45","#a28bf6",
+  "#e27aa8","#ea8a50","#4fc6a0","#7d8bf2"
 ];
 
 const PROFILES_KEY = "wealth-profiles-v1";
@@ -24,58 +26,6 @@ const loadProfiles = () => {
 const saveProfiles = (profiles) => {
   try { localStorage.setItem(PROFILES_KEY, JSON.stringify(profiles)); } catch {}
 };
-
-// ---------------------------------------------------------------- themes ---
-const DARK = {
-  bg:"#04080f", surface:"#06101a", surfaceHigh:"#07111e",
-  border:"#0a1c2c", text:"#c8ddf0", textMid:"#3a5570",
-  textLow:"#1e3545", textDim:"#0f2030",
-  accent:"#38bdf8", green:"#10b981", red:"#ef4444",
-  amber:"#f59e0b", purple:"#a78bfa",
-};
-const LIGHT = {
-  bg:"#f0f4f8", surface:"#ffffff", surfaceHigh:"#f8fafc",
-  border:"#dde5ed", text:"#0f2535", textMid:"#4a6880",
-  textLow:"#7a9ab8", textDim:"#a8c0d0",
-  accent:"#0284c7", green:"#059669", red:"#dc2626",
-  amber:"#d97706", purple:"#7c3aed",
-};
-
-// --------------------------------------------------------------- Sheet ---
-const Sheet = ({ title, onClose, children, T }) => (
-  <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.6)", zIndex:200, display:"flex", alignItems:"flex-end" }}
-    onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-    <div style={{ background:T.surface, border:"1px solid "+T.border, borderRadius:"18px 18px 0 0", padding:"0 0 env(safe-area-inset-bottom,16px)", width:"100%", maxHeight:"85vh", overflowY:"auto" }}>
-      <div style={{ padding:"12px 20px 0" }}>
-        <div style={{ width:36, height:4, background:T.border, borderRadius:2, margin:"0 auto 16px" }} />
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:18 }}>
-          <div style={{ fontWeight:900, fontSize:15, color:T.text }}>{title}</div>
-          <button onClick={onClose} style={{ background:"none", border:"none", color:T.textMid, cursor:"pointer", fontSize:22, lineHeight:1 }}>x</button>
-        </div>
-      </div>
-      <div style={{ padding:"0 20px 24px" }}>{children}</div>
-    </div>
-  </div>
-);
-
-const Inp = ({ label, value, onChange, placeholder="", T }) => (
-  <div style={{ marginBottom:14 }}>
-    {label && <label style={{ fontSize:9, color:T.textMid, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", display:"block", marginBottom:4 }}>{label}</label>}
-    <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-      style={{ width:"100%", background:T.bg, border:"1px solid "+T.border, borderRadius:8, padding:"11px 12px", color:T.text, fontSize:16, outline:"none", fontFamily:"inherit", WebkitAppearance:"none" }} />
-  </div>
-);
-
-const Btn = ({ children, onClick, color, full=false, sm=false, danger=false, T }) => (
-  <button onClick={onClick} style={{
-    padding: sm ? "6px 12px" : "12px 18px", borderRadius:8,
-    border:"1px solid "+(danger ? T.red+"44" : (color||T.accent)+"44"),
-    background: danger ? T.red+"15" : (color||T.accent)+"15",
-    color: danger ? T.red : (color||T.accent),
-    cursor:"pointer", fontSize:sm?11:14, fontWeight:700, fontFamily:"inherit",
-    width:full?"100%":"auto", WebkitTapHighlightColor:"transparent",
-  }}>{children}</button>
-);
 
 // ============================================================ MAIN APP ===
 export default function App() {
@@ -95,8 +45,9 @@ export default function App() {
   }, [activeId]);
   useEffect(() => {
     localStorage.setItem("wealth-dark", JSON.stringify(darkMode));
+    document.documentElement.style.colorScheme = darkMode ? "dark" : "light";
     document.body.style.background = T.bg;
-  }, [darkMode]);
+  }, [darkMode, activeId]);
 
   const activeProfile = profiles.find(p => p.id === activeId) || null;
 
@@ -138,45 +89,47 @@ export default function App() {
     return (
       <Sheet title={existing ? "Profil bearbeiten" : "Neues Profil anlegen"} onClose={() => setModal(null)} T={T}>
         <Inp label="Name (z.B. Familie Mustermann)" value={name} onChange={v=>{setName(v);if(!kuerz)setKuerz(autoKuerzel(v));}} placeholder="Familie / Person" T={T}/>
-        <Inp label="Kurzel (max 2 Zeichen)" value={kuerz} onChange={v=>setKuerz(v.slice(0,2).toUpperCase())} placeholder="FM" T={T}/>
+        <Inp label="Kürzel (max. 2 Zeichen)" value={kuerz} onChange={v=>setKuerz(v.slice(0,2).toUpperCase())} placeholder="FM" T={T}/>
         <Inp label="Notiz (optional)" value={note} onChange={setNote} placeholder="z.B. Beratungsmandat" T={T}/>
         <div style={{ marginBottom:20 }}>
-          <div style={{ fontSize:9, color:T.textMid, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:10 }}>Farbe</div>
+          <div style={labelStyle(T)}>Farbe</div>
           <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
             {PROFILE_COLORS.map(c => (
-              <div key={c} onClick={() => setColor(c)}
-                style={{ width:36, height:36, borderRadius:"50%", background:c, cursor:"pointer", border: color===c ? "3px solid "+T.text : "3px solid transparent", transition:"border 0.15s" }}/>
+              <button key={c} type="button" aria-label={"Farbe "+c} onClick={() => setColor(c)}
+                style={{ width:34, height:34, borderRadius:"50%", background:c, cursor:"pointer", padding:0,
+                  border:"2px solid "+(color===c ? T.surface : "transparent"),
+                  boxShadow: color===c ? "0 0 0 2px "+c : "none" }}/>
             ))}
           </div>
         </div>
         {existing && (
-          <div style={{ background:T.red+"10", border:"1px solid "+T.red+"33", borderRadius:8, padding:"10px 13px", marginBottom:14, fontSize:11, color:T.red }}>
-            Achtung: Alle gespeicherten Vermogensdaten dieses Profils bleiben erhalten. Nur Name, Kurzel und Farbe werden geandert.
+          <div style={{ background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:10, padding:"10px 13px", marginBottom:16, fontSize:13, color:T.textMid, lineHeight:1.5 }}>
+            Alle gespeicherten Vermögensdaten dieses Profils bleiben erhalten. Nur Name, Kürzel und Farbe werden geändert.
           </div>
         )}
-        <Btn full color={T.green} T={T} onClick={save}>
-          {existing ? "Anderungen speichern" : "Profil erstellen"}
+        <Btn full color={T.accent} T={T} onClick={save}>
+          {existing ? "Änderungen speichern" : "Profil erstellen"}
         </Btn>
       </Sheet>
     );
   };
 
   const DeleteConfirm = ({ profile }) => (
-    <Sheet title="Profil loschen?" onClose={() => setModal(null)} T={T}>
-      <div style={{ background:T.red+"10", border:"1px solid "+T.red+"33", borderRadius:10, padding:16, marginBottom:20 }}>
-        <div style={{ fontSize:14, fontWeight:700, color:T.red, marginBottom:6 }}>{profile.name}</div>
-        <div style={{ fontSize:12, color:T.textMid, lineHeight:1.7 }}>
-          Alle Vermogensdaten, Positionen, Check-ins und Buckets dieses Profils werden dauerhaft geloscht. Diese Aktion kann nicht ruckgangig gemacht werden.
+    <Sheet title="Profil löschen?" onClose={() => setModal(null)} T={T}>
+      <div style={{ background:T.red+"10", border:"1px solid "+T.red+"33", borderRadius:12, padding:16, marginBottom:20 }}>
+        <div style={{ fontSize:15, fontWeight:600, color:T.text, marginBottom:6 }}>{profile.name}</div>
+        <div style={{ fontSize:13, color:T.textMid, lineHeight:1.6 }}>
+          Alle Vermögensdaten, Positionen, Check-ins und Szenarien dieses Profils werden dauerhaft gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.
         </div>
       </div>
       <div style={{ display:"flex", gap:10 }}>
-        <Btn full T={T} onClick={() => setModal(null)}>Abbrechen</Btn>
+        <Btn full color={T.textMid} T={T} onClick={() => setModal(null)}>Abbrechen</Btn>
         <Btn full danger T={T} onClick={() => {
           // Remove profile data from localStorage
           localStorage.removeItem("wealth-pwa-v3-" + profile.id);
           setProfiles(ps => ps.filter(p => p.id !== profile.id));
           setModal(null);
-        }}>Endgultig loschen</Btn>
+        }}>Endgültig löschen</Btn>
       </div>
     </Sheet>
   );
@@ -195,16 +148,18 @@ export default function App() {
 
   const fmtNet = (v) => {
     if (v === null) return "Neu";
-    if (Math.abs(v) >= 1_000_000) return "\u20AC"+(v/1_000_000).toFixed(1)+"M";
-    if (Math.abs(v) >= 1_000) return "\u20AC"+(v/1_000).toFixed(0)+"k";
-    return "\u20AC"+Math.round(v);
+    if (Math.abs(v) >= 1_000_000) return "€"+(v/1_000_000).toFixed(1)+"M";
+    if (Math.abs(v) >= 1_000) return "€"+(v/1_000).toFixed(0)+"k";
+    return "€"+Math.round(v);
   };
 
   const editTarget = modal?.startsWith("edit:") ? profiles.find(p=>p.id===modal.slice(5)) : null;
   const delTarget  = modal?.startsWith("delete:") ? profiles.find(p=>p.id===modal.slice(7)) : null;
 
+  const pillBtn = { display:"inline-flex", alignItems:"center", gap:6, background:T.surface, border:"1px solid "+T.border, borderRadius:10, padding:"7px 12px", cursor:"pointer", fontSize:13, fontWeight:500, color:T.textMid, WebkitTapHighlightColor:"transparent" };
+
   return (
-    <div style={{ minHeight:"100vh", background:T.bg, color:T.text, fontFamily:"system-ui,-apple-system,'Helvetica Neue',sans-serif", paddingBottom:"env(safe-area-inset-bottom,24px)" }}>
+    <div style={{ minHeight:"100vh", background:T.bg, color:T.text, paddingBottom:"env(safe-area-inset-bottom,24px)" }}>
 
       {modal==="new"    && <ProfileForm/>}
       {editTarget       && <ProfileForm existing={editTarget}/>}
@@ -212,86 +167,82 @@ export default function App() {
       {modal==="guide"  && <GuideModal T={T} onClose={() => setModal(null)} onCreateProfile={() => setModal("new")} />}
 
       {/* Header */}
-      <div style={{ background:T.surface, borderBottom:"1px solid "+T.border, padding:"16px 18px 14px", paddingTop:"calc(16px + env(safe-area-inset-top,0px))", position:"sticky", top:0, zIndex:50 }}>
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+      <div style={{ background:T.header+"e6", backdropFilter:"blur(12px)", WebkitBackdropFilter:"blur(12px)", borderBottom:"1px solid "+T.border, padding:"14px 16px", paddingTop:"calc(14px + env(safe-area-inset-top,0px))", position:"sticky", top:0, zIndex:50 }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", maxWidth:600, margin:"0 auto" }}>
           <div>
-            <div style={{ fontSize:8, letterSpacing:"0.25em", color:T.textDim, fontWeight:700, textTransform:"uppercase" }}>Vermogensplaner</div>
-            <div style={{ fontSize:20, fontWeight:900, color:T.text, letterSpacing:"-0.02em", marginTop:2 }}>Profile</div>
+            <div style={{ fontSize:12, color:T.textLow, fontWeight:500 }}>Vermögensplaner</div>
+            <div style={{ fontSize:22, fontWeight:650, color:T.text, letterSpacing:"-0.02em", marginTop:1 }}>Profile</div>
           </div>
           <div style={{ display:"flex", gap:8 }}>
-            <button onClick={() => setModal("guide")}
-              style={{ background:T.accent+"15", border:"1px solid "+T.accent+"44", borderRadius:20, padding:"6px 14px", cursor:"pointer", fontSize:12, fontWeight:700, color:T.accent, WebkitTapHighlightColor:"transparent" }}>
-              ? Anleitung
+            <button onClick={() => setModal("guide")} style={pillBtn}>
+              <Icon name="help" size={16} /> Anleitung
             </button>
-            <button onClick={() => setDarkMode(d=>!d)}
-              style={{ background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:20, padding:"6px 12px", cursor:"pointer", fontSize:13, color:T.textMid, WebkitTapHighlightColor:"transparent" }}>
-              {darkMode ? "Light" : "Dark"}
-            </button>
+            <IconBtn icon={darkMode ? "sun" : "moon"} label={darkMode ? "Helles Design" : "Dunkles Design"} onClick={() => setDarkMode(d=>!d)} T={T} size={36} />
           </div>
         </div>
       </div>
 
       <div style={{ padding:"20px 16px", maxWidth:600, margin:"0 auto" }}>
 
-        {/* Profile grid */}
+        {/* Empty state */}
         {profiles.length === 0 && (
-          <div style={{ background:T.surface, border:"1px solid "+T.accent+"33", borderRadius:14, padding:32, textAlign:"center", marginBottom:16 }}>
-            <div style={{ fontSize:40, marginBottom:12 }}>◈</div>
-            <div style={{ fontSize:16, fontWeight:900, color:T.text, marginBottom:6, letterSpacing:"-0.01em" }}>Willkommen im Vermögensplaner</div>
-            <div style={{ fontSize:11, color:T.textDim, marginBottom:20, lineHeight:1.7 }}>
+          <div style={{ background:T.surface, border:"1px solid "+T.border, borderRadius:16, padding:"32px 24px", textAlign:"center", marginBottom:16, boxShadow:T.shadow }}>
+            <div style={{ width:52, height:52, borderRadius:14, background:T.accent+"18", color:T.accent, display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 16px" }}>
+              <Icon name="pie" size={26} />
+            </div>
+            <div style={{ fontSize:19, fontWeight:650, color:T.text, marginBottom:8, letterSpacing:"-0.015em" }}>Willkommen im Vermögensplaner</div>
+            <div style={{ fontSize:14, color:T.textMid, marginBottom:24, lineHeight:1.6, maxWidth:400, marginLeft:"auto", marginRight:"auto" }}>
               Ein privates Tool für komplexe Vermögensstrukturen — Immobilien, ETFs, Beteiligungen, mehrere Eigentümer, 35-Jahres-Projektion.
             </div>
             <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
               <Btn full color={T.accent} T={T} onClick={() => setModal("guide")}>
                 Anleitung ansehen (empfohlen)
               </Btn>
-              <button onClick={() => setModal("new")}
-                style={{ background:"transparent", border:"1px solid "+T.border, borderRadius:8, padding:"10px 18px", cursor:"pointer", fontSize:13, fontWeight:600, color:T.textMid, fontFamily:"inherit" }}>
+              <Btn full color={T.textMid} T={T} onClick={() => setModal("new")}>
                 Direkt Profil anlegen
-              </button>
+              </Btn>
             </div>
           </div>
         )}
 
-        <div style={{ display:"flex", flexDirection:"column", gap:10, marginBottom:16 }}>
+        {profiles.length > 0 && (
+          <div style={{ fontSize:13, color:T.textLow, fontWeight:500, margin:"0 2px 10px" }}>
+            {profiles.length} {profiles.length === 1 ? "Profil" : "Profile"}
+          </div>
+        )}
+
+        <div style={{ display:"flex", flexDirection:"column", gap:10, marginBottom:12 }}>
           {profiles.map(p => {
             const net = totalAssets(p.id);
             return (
-              <div key={p.id}
-                style={{ background:T.surface, border:"1px solid "+p.color+"33", borderRadius:14, padding:16, display:"flex", alignItems:"center", gap:14, cursor:"pointer", WebkitTapHighlightColor:"transparent" }}
+              <div key={p.id} className="vp-hover"
+                style={{ background:T.surface, border:"1px solid "+T.border, borderRadius:14, padding:"14px 14px 14px 16px", display:"flex", alignItems:"center", gap:14, cursor:"pointer", WebkitTapHighlightColor:"transparent", boxShadow:T.shadow }}
                 onClick={() => setActiveId(p.id)}>
 
                 {/* Avatar */}
-                <div style={{ width:48, height:48, borderRadius:"50%", background:p.color+"22", border:"2px solid "+p.color, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-                  <span style={{ fontSize:16, fontWeight:900, color:p.color }}>{p.kuerzel}</span>
+                <div style={{ width:44, height:44, borderRadius:12, background:p.color+"22", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                  <span style={{ fontSize:15, fontWeight:650, color:p.color }}>{p.kuerzel}</span>
                 </div>
 
                 {/* Info */}
                 <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontSize:15, fontWeight:800, color:T.text, letterSpacing:"-0.01em" }}>{p.name}</div>
-                  <div style={{ display:"flex", gap:10, marginTop:3, alignItems:"center" }}>
-                    <div style={{ fontSize:14, fontWeight:900, color:p.color }}>{fmtNet(net)}</div>
-                    {p.note && <div style={{ fontSize:9, color:T.textDim }}>{p.note}</div>}
+                  <div style={{ fontSize:15, fontWeight:600, color:T.text, letterSpacing:"-0.01em", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{p.name}</div>
+                  <div style={{ display:"flex", gap:8, marginTop:2, alignItems:"baseline", flexWrap:"wrap" }}>
+                    <div className="vp-num" style={{ fontSize:14, fontWeight:600, color:T.text }}>{fmtNet(net)}</div>
+                    {p.note && <div style={{ fontSize:12, color:T.textLow }}>· {p.note}</div>}
                   </div>
-                  <div style={{ fontSize:8, color:T.textDim, marginTop:2 }}>
+                  <div style={{ fontSize:12, color:T.textDim, marginTop:2 }}>
                     Erstellt {new Date(p.createdAt).toLocaleDateString("de-DE")}
                   </div>
                 </div>
 
                 {/* Actions */}
-                <div style={{ display:"flex", flexDirection:"column", gap:6, flexShrink:0 }} onClick={e => e.stopPropagation()}>
-                  <button onClick={() => setModal("edit:"+p.id)}
-                    style={{ background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:6, padding:"5px 10px", cursor:"pointer", fontSize:10, color:T.textMid, fontWeight:600, WebkitTapHighlightColor:"transparent" }}>
-                    Bearbeiten
-                  </button>
-                  <button onClick={() => setModal("delete:"+p.id)}
-                    style={{ background:T.red+"10", border:"1px solid "+T.red+"22", borderRadius:6, padding:"5px 10px", cursor:"pointer", fontSize:10, color:T.red, fontWeight:600, WebkitTapHighlightColor:"transparent" }}>
-                    Loschen
-                  </button>
+                <div style={{ display:"flex", gap:6, flexShrink:0 }} onClick={e => e.stopPropagation()}>
+                  <IconBtn icon="edit"  label="Profil bearbeiten" onClick={() => setModal("edit:"+p.id)} T={T} />
+                  <IconBtn icon="trash" label="Profil löschen" danger onClick={() => setModal("delete:"+p.id)} T={T} />
                 </div>
 
-                {/* Arrow */}
-                <div style={{ fontSize:18, color:p.color, flexShrink:0 }}>{">"}</div>
+                <div style={{ color:T.textDim, flexShrink:0 }}><Icon name="chevron" size={18} /></div>
               </div>
             );
           })}
@@ -300,17 +251,14 @@ export default function App() {
         {/* Add new profile button */}
         {profiles.length > 0 && (
           <button onClick={() => setModal("new")}
-            style={{ width:"100%", background:T.surface, border:"1px dashed "+T.border, borderRadius:14, padding:18, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:10, WebkitTapHighlightColor:"transparent" }}>
-            <div style={{ width:36, height:36, borderRadius:"50%", background:T.accent+"15", border:"1px solid "+T.accent+"44", display:"flex", alignItems:"center", justifyContent:"center" }}>
-              <span style={{ fontSize:20, color:T.accent, lineHeight:1 }}>+</span>
-            </div>
-            <span style={{ fontSize:13, fontWeight:700, color:T.accent }}>Neues Profil anlegen</span>
+            style={{ width:"100%", background:"transparent", border:"1px dashed "+T.borderHigh, borderRadius:14, padding:16, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8, color:T.textMid, fontSize:14, fontWeight:500, WebkitTapHighlightColor:"transparent" }}>
+            <Icon name="plus" size={16} /> Neues Profil anlegen
           </button>
         )}
 
         {/* Info box */}
-        <div style={{ marginTop:20, background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:10, padding:"11px 14px", fontSize:10, color:T.textDim, lineHeight:1.7 }}>
-          Alle Daten werden lokal auf diesem Gerat gespeichert. Jedes Profil ist vollstandig isoliert. Kein Cloud-Sync, kein Passwortschutz.
+        <div style={{ marginTop:20, fontSize:12, color:T.textLow, lineHeight:1.6, textAlign:"center", padding:"0 12px" }}>
+          Alle Daten werden lokal auf diesem Gerät gespeichert. Jedes Profil ist vollständig isoliert. Kein Cloud-Sync, kein Passwortschutz.
         </div>
       </div>
     </div>

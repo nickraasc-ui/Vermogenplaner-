@@ -37,10 +37,10 @@ export default function ImportPreviewModal({ preview, s, T, setModal, updArr }) 
         <div style={{ padding:"12px 20px 0" }}>
           <div style={{ width:36, height:4, background:T.border, borderRadius:2, margin:"0 auto 16px" }} />
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
-            <div style={{ fontWeight:900, fontSize:15, color:T.text }}>Import-Vorschau</div>
+            <div style={{ fontWeight:650, fontSize:15, color:T.text }}>Import-Vorschau</div>
             <button onClick={() => setModal(null)} style={{ background:"none", border:"none", color:T.textMid, cursor:"pointer", fontSize:22, lineHeight:1 }}>×</button>
           </div>
-          <div style={{ fontSize:10, color:T.textDim, marginBottom:16 }}>{preview.length} Positionen erkannt — wähle aus, was übernommen werden soll.</div>
+          <div style={{ fontSize:12, color:T.textDim, marginBottom:16 }}>{preview.length} Positionen erkannt — wähle aus, was übernommen werden soll.</div>
         </div>
         <div style={{ padding:"0 20px 24px" }}>
           <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:16 }}>
@@ -56,27 +56,27 @@ export default function ImportPreviewModal({ preview, s, T, setModal, updArr }) 
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                        <div style={{ fontSize:11, fontWeight:700, color:T.text }}>{imported.name}</div>
-                        <span style={{ fontSize:8, padding:"1px 6px", borderRadius:3, background:(isUpdate?T.amber:T.green)+"18", color:isUpdate?T.amber:T.green, fontWeight:700 }}>
+                        <div style={{ fontSize:12, fontWeight:600, color:T.text }}>{imported.name}</div>
+                        <span style={{ fontSize:11, padding:"1px 6px", borderRadius:3, background:(isUpdate?T.amber:T.green)+"18", color:isUpdate?T.amber:T.green, fontWeight:600 }}>
                           {isUpdate ? "AKTUALISIEREN" : "NEU"}
                         </span>
                       </div>
-                      <div style={{ fontSize:9, color:T.textDim, marginTop:2 }}>{imported.class}</div>
+                      <div style={{ fontSize:11, color:T.textDim, marginTop:2 }}>{imported.class}</div>
                     </div>
                     <div style={{ textAlign:"right", flexShrink:0 }}>
-                      <div style={{ fontSize:12, fontWeight:800, color:T.text }}>{fmtE(imported.value)}</div>
+                      <div style={{ fontSize:12, fontWeight:600, color:T.text }}>{fmtE(imported.value)}</div>
                       {isUpdate && matched && (
-                        <div style={{ fontSize:9, color: valChange > 0 ? T.green : valChange < 0 ? T.red : T.textDim }}>
+                        <div style={{ fontSize:11, color: valChange > 0 ? T.green : valChange < 0 ? T.red : T.textDim }}>
                           {valChange > 0 ? "+" : ""}{fmtE(valChange)} vs. aktuell
                         </div>
                       )}
                       {(imported.debt || 0) > 0 && (
-                        <div style={{ fontSize:9, color:T.red }}>Schulden {fmtE(imported.debt)}</div>
+                        <div style={{ fontSize:11, color:T.red }}>Schulden {fmtE(imported.debt)}</div>
                       )}
                     </div>
                   </div>
                   {!selected && (
-                    <div style={{ fontSize:8, color:T.textDim, marginTop:4 }}>Abgewählt — wird übersprungen</div>
+                    <div style={{ fontSize:11, color:T.textDim, marginTop:4 }}>Abgewählt — wird übersprungen</div>
                   )}
                 </div>
               );
@@ -91,11 +91,11 @@ export default function ImportPreviewModal({ preview, s, T, setModal, updArr }) 
 
           <div style={{ display:"flex", gap:10 }}>
             <button onClick={() => setModal(null)}
-              style={{ flex:1, padding:"12px", borderRadius:8, border:"1px solid "+T.border, background:"transparent", color:T.textMid, cursor:"pointer", fontSize:13, fontWeight:700, fontFamily:"inherit" }}>
+              style={{ flex:1, padding:"12px", borderRadius:8, border:"1px solid "+T.border, background:"transparent", color:T.textMid, cursor:"pointer", fontSize:13, fontWeight:600, fontFamily:"inherit" }}>
               Abbrechen
             </button>
             <button onClick={apply} disabled={selectedCount === 0}
-              style={{ flex:2, padding:"12px", borderRadius:8, border:"1px solid "+T.green+"44", background:T.green+"15", color:T.green, cursor: selectedCount===0?"not-allowed":"pointer", fontSize:13, fontWeight:700, fontFamily:"inherit", opacity: selectedCount===0 ? 0.5 : 1 }}>
+              style={{ flex:2, padding:"12px", borderRadius:8, border:"1px solid "+T.green+"44", background:T.green+"15", color:T.green, cursor: selectedCount===0?"not-allowed":"pointer", fontSize:13, fontWeight:600, fontFamily:"inherit", opacity: selectedCount===0 ? 0.5 : 1 }}>
               {selectedCount} Position{selectedCount !== 1 ? "en" : ""} übernehmen
             </button>
           </div>

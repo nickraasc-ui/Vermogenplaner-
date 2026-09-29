@@ -26,16 +26,16 @@ export default function ExpenseStreamModal({ data, s, T, setModal, updArr }) {
       </div>
       {amt > 0 && (
         <div style={{ background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:8, padding:"10px 13px", marginBottom:12 }}>
-          <div style={{ fontSize:9, color:T.textMid, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:6 }}>Vorschau</div>
+          <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0, marginBottom:6 }}>Vorschau</div>
           <div style={{ display:"flex", justifyContent:"space-between" }}>
-            <span style={{ fontSize:11, color:T.textMid }}>Monatlich</span>
-            <span style={{ fontSize:13, fontWeight:800, color:T.red }}>{full(amt)}/Mo.</span>
+            <span style={{ fontSize:12, color:T.textMid }}>Monatlich</span>
+            <span style={{ fontSize:13, fontWeight:600, color:T.red }}>{full(amt)}/Mo.</span>
           </div>
           <div style={{ display:"flex", justifyContent:"space-between", marginTop:4 }}>
-            <span style={{ fontSize:11, color:T.textMid }}>Jährlich</span>
-            <span style={{ fontSize:12, fontWeight:700, color:T.red }}>{full(amt*12)}/J.</span>
+            <span style={{ fontSize:12, color:T.textMid }}>Jährlich</span>
+            <span style={{ fontSize:12, fontWeight:600, color:T.red }}>{full(amt*12)}/J.</span>
           </div>
-          {f.endsAt && <div style={{ fontSize:9, color:T.green, marginTop:4 }}>Läuft aus: {f.endsAt} (zeitlich begrenzt)</div>}
+          {f.endsAt && <div style={{ fontSize:11, color:T.green, marginTop:4 }}>Läuft aus: {f.endsAt} (zeitlich begrenzt)</div>}
         </div>
       )}
       {hasPuffer && (
@@ -43,7 +43,7 @@ export default function ExpenseStreamModal({ data, s, T, setModal, updArr }) {
           <input type="checkbox" checked={!!f.isBufferContribution} onChange={e => set("isBufferContribution", e.target.checked)} id="buf" style={{ accentColor:T.green, width:18, height:18 }} />
           <div>
             <label htmlFor="buf" style={{ fontSize:13, color:T.textMid, cursor:"pointer" }}>Fließt in Haushaltspuffer</label>
-            <div style={{ fontSize:9, color:T.textDim, marginTop:1 }}>Betrag wird dem Pufferkonto gutgeschrieben statt konsumiert</div>
+            <div style={{ fontSize:11, color:T.textDim, marginTop:1 }}>Betrag wird dem Pufferkonto gutgeschrieben statt konsumiert</div>
           </div>
         </div>
       )}

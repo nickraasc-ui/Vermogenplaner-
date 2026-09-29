@@ -3,10 +3,10 @@ import { Sheet, Inp, SelEl, Btn, full, uid } from "../ui.jsx";
 import { CY, BCK_CLRS, ASSET_CLASSES } from "../../constants.js";
 
 const SCENARIO_TYPES = [
-  { key:"ausgabe",  label:"Ausgabe",              icon:"↓", color:"#ef4444", desc:"Einmalige oder wiederkehrende Kosten aus dem Portfolio" },
-  { key:"zufluss",  label:"Zufluss",               icon:"↑", color:"#10b981", desc:"Erbschaft, Bonus, Verkaufserlös — erhöht das Portfolio" },
-  { key:"sparrate", label:"Einnahmenänderung",     icon:"⇄", color:"#f59e0b", desc:"Gehaltserhöhung, Renteneintritt, Teilzeit — ändert den Spar-Cashflow" },
-  { key:"finanziert",label:"Finanziert",           icon:"≡", color:"#38bdf8", desc:"Monatliche Rate reduziert Sparrate im Finanzierungszeitraum" },
+  { key:"ausgabe",  label:"Ausgabe",              icon:"↓", color:"#ec6a6a", desc:"Einmalige oder wiederkehrende Kosten aus dem Portfolio" },
+  { key:"zufluss",  label:"Zufluss",               icon:"↑", color:"#3cbf8a", desc:"Erbschaft, Bonus, Verkaufserlös — erhöht das Portfolio" },
+  { key:"sparrate", label:"Einnahmenänderung",     icon:"⇄", color:"#e3aa45", desc:"Gehaltserhöhung, Renteneintritt, Teilzeit — ändert den Spar-Cashflow" },
+  { key:"finanziert",label:"Finanziert",           icon:"≡", color:"#5b8def", desc:"Monatliche Rate reduziert Sparrate im Finanzierungszeitraum" },
 ];
 
 const INVESTABLE_CLASSES = ASSET_CLASSES.filter(c => !["Cash","Immobilien","Forderung","Sonstiges"].includes(c));
@@ -74,8 +74,8 @@ export default function BucketModal({ data, s, T, setModal, updArr }) {
       {/* Active toggle */}
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:8, padding:"10px 14px", marginBottom:14 }}>
         <div>
-          <div style={{ fontSize:11, fontWeight:700, color:T.text }}>Szenario aktiv</div>
-          <div style={{ fontSize:9, color:T.textDim, marginTop:1 }}>Aktive Szenarien fließen in die Projektion ein</div>
+          <div style={{ fontSize:12, fontWeight:600, color:T.text }}>Szenario aktiv</div>
+          <div style={{ fontSize:11, color:T.textDim, marginTop:1 }}>Aktive Szenarien fließen in die Projektion ein</div>
         </div>
         <div onClick={() => set("active", !f.active)}
           style={{ width:44, height:24, borderRadius:12, background:f.active ? T.green : T.border, cursor:"pointer", position:"relative", transition:"background 0.2s", flexShrink:0 }}>
@@ -87,7 +87,7 @@ export default function BucketModal({ data, s, T, setModal, updArr }) {
 
       {/* Category selector */}
       <div style={{ marginBottom:14 }}>
-        <div style={{ fontSize:9, color:T.textMid, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:8 }}>Szenario-Typ</div>
+        <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0, marginBottom:8 }}>Szenario-Typ</div>
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6 }}>
           {SCENARIO_TYPES.map(t => (
             <button key={t.key} onClick={() => setCategory(t.key)}
@@ -96,11 +96,11 @@ export default function BucketModal({ data, s, T, setModal, updArr }) {
                 color: category===t.key ? t.color : T.textMid,
                 cursor:"pointer", textAlign:"left", WebkitTapHighlightColor:"transparent" }}>
               <div style={{ fontSize:14, lineHeight:1 }}>{t.icon}</div>
-              <div style={{ fontSize:10, fontWeight:700, marginTop:3 }}>{t.label}</div>
+              <div style={{ fontSize:12, fontWeight:600, marginTop:3 }}>{t.label}</div>
             </button>
           ))}
         </div>
-        {ct && <div style={{ fontSize:9, color:T.textDim, marginTop:6 }}>{ct.desc}</div>}
+        {ct && <div style={{ fontSize:11, color:T.textDim, marginTop:6 }}>{ct.desc}</div>}
       </div>
 
       {/* AUSGABE */}
@@ -129,7 +129,7 @@ export default function BucketModal({ data, s, T, setModal, updArr }) {
             <Inp label="Im Jahr" value={f.year} onChange={v => set("year",v)} type="number" placeholder={String(CY+5)} T={T} />
             <Inp label="oder Alter" value={f.age} onChange={v => set("age",v)} type="number" placeholder="50" T={T} />
           </div>
-          <div style={{ fontSize:9, color:T.green, marginTop:4 }}>
+          <div style={{ fontSize:11, color:T.green, marginTop:4 }}>
             Erhöht den Portfoliowert einmalig um {full(+f.amount||0)} zum Zieljahr
           </div>
         </div>
@@ -139,14 +139,14 @@ export default function BucketModal({ data, s, T, setModal, updArr }) {
       {category === "sparrate" && (
         <div style={sectionBox}>
           <div style={{ marginBottom:10 }}>
-            <div style={{ fontSize:9, color:T.textMid, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:6 }}>Monatliche Änderung</div>
+            <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0, marginBottom:6 }}>Monatliche Änderung</div>
             <div style={{ display:"flex", gap:8, marginBottom:8 }}>
-              {[["positiv","+ Erhöhung","#10b981"],["negativ","− Reduktion","#ef4444"]].map(([k,l,c]) => {
+              {[["positiv","+ Erhöhung","#3cbf8a"],["negativ","− Reduktion","#ec6a6a"]].map(([k,l,c]) => {
                 const isPos = (+f.delta||0) >= 0;
                 const active = k==="positiv" ? isPos : !isPos;
                 return (
                   <button key={k} onClick={() => set("delta", k==="positiv" ? Math.abs(+f.delta||0) : -Math.abs(+f.delta||0))}
-                    style={{ flex:1, padding:"7px 0", borderRadius:7, border:"1px solid "+(active?c:T.border), background:active?c+"18":"transparent", color:active?c:T.textMid, cursor:"pointer", fontSize:11, fontWeight:700, WebkitTapHighlightColor:"transparent" }}>
+                    style={{ flex:1, padding:"7px 0", borderRadius:7, border:"1px solid "+(active?c:T.border), background:active?c+"18":"transparent", color:active?c:T.textMid, cursor:"pointer", fontSize:12, fontWeight:600, WebkitTapHighlightColor:"transparent" }}>
                     {l}
                   </button>
                 );
@@ -162,7 +162,7 @@ export default function BucketModal({ data, s, T, setModal, updArr }) {
             <Inp label="Bis Jahr (opt.)" value={f.endsAt} onChange={v => set("endsAt",v)} type="number" placeholder="unbegrenzt" T={T} />
           </div>
           {(+f.delta||0) !== 0 && (
-            <div style={{ fontSize:9, color:(+f.delta||0)>0?T.green:T.red, marginTop:4 }}>
+            <div style={{ fontSize:11, color:(+f.delta||0)>0?T.green:T.red, marginTop:4 }}>
               {(+f.delta||0)>0?"+" : ""}{full(+f.delta||0)}/Mo.
               {" "}{(+f.delta||0)>0?"erhöht":"reduziert"} die Sparrate
               {f.startsAt ? " ab "+f.startsAt : ""}
@@ -172,23 +172,23 @@ export default function BucketModal({ data, s, T, setModal, updArr }) {
 
           {/* Spartöpfe */}
           <div style={{ marginTop:12, paddingTop:12, borderTop:"1px solid "+T.border }}>
-            <div style={{ fontSize:9, color:T.textMid, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:8 }}>Spartöpfe</div>
+            <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0, marginBottom:8 }}>Spartöpfe</div>
             <div style={{ display:"flex", gap:8, marginBottom:10 }}>
               {[["proportional","Proportional (auto)"],["manuell","Manuell je Klasse"]].map(([k,l]) => (
                 <button key={k} onClick={() => set("spartopfMode", k)}
-                  style={{ flex:1, padding:"6px 0", borderRadius:7, border:"1px solid "+(f.spartopfMode===k ? T.amber : T.border), background:f.spartopfMode===k ? T.amber+"18" : "transparent", color:f.spartopfMode===k ? T.amber : T.textMid, cursor:"pointer", fontSize:10, fontWeight:700, WebkitTapHighlightColor:"transparent" }}>
+                  style={{ flex:1, padding:"6px 0", borderRadius:7, border:"1px solid "+(f.spartopfMode===k ? T.amber : T.border), background:f.spartopfMode===k ? T.amber+"18" : "transparent", color:f.spartopfMode===k ? T.amber : T.textMid, cursor:"pointer", fontSize:12, fontWeight:600, WebkitTapHighlightColor:"transparent" }}>
                   {l}
                 </button>
               ))}
             </div>
             {f.spartopfMode === "manuell" && (
               <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
-                <div style={{ fontSize:9, color:T.textDim, marginBottom:2 }}>
+                <div style={{ fontSize:11, color:T.textDim, marginBottom:2 }}>
                   Wie soll die Sparratenänderung (+{full(Math.abs(+f.delta||0))}/Mo.) verteilt werden?
                 </div>
                 {INVESTABLE_CLASSES.map(cls => (
                   <div key={cls} style={{ display:"flex", alignItems:"center", gap:8 }}>
-                    <span style={{ fontSize:10, color:T.textMid, flex:1 }}>{cls}</span>
+                    <span style={{ fontSize:12, color:T.textMid, flex:1 }}>{cls}</span>
                     <div style={{ width:110 }}>
                       <Inp label="" value={(f.spartopfAmounts||{})[cls]||""} onChange={v => set("spartopfAmounts", { ...(f.spartopfAmounts||{}), [cls]: +v||0 })} type="number" placeholder="0 €/Mo." T={T} />
                     </div>
@@ -198,7 +198,7 @@ export default function BucketModal({ data, s, T, setModal, updArr }) {
                   const total = Object.values(f.spartopfAmounts||{}).reduce((t,v)=>t+(+v||0),0);
                   const rem = (Math.abs(+f.delta||0)) - total;
                   return total > 0 ? (
-                    <div style={{ fontSize:9, color:Math.abs(rem)<1?T.green:T.amber, marginTop:2 }}>
+                    <div style={{ fontSize:11, color:Math.abs(rem)<1?T.green:T.amber, marginTop:2 }}>
                       Verteilt: {full(total)}/Mo.{Math.abs(rem)>1?" · "+full(Math.abs(rem))+" unzugewiesen":""}
                     </div>
                   ) : null;
@@ -206,7 +206,7 @@ export default function BucketModal({ data, s, T, setModal, updArr }) {
               </div>
             )}
             {f.spartopfMode === "proportional" && (
-              <div style={{ fontSize:9, color:T.textDim }}>
+              <div style={{ fontSize:11, color:T.textDim }}>
                 Die Erhöhung wird proportional zur aktuellen Portfoliogewichtung verteilt.
               </div>
             )}
@@ -226,7 +226,7 @@ export default function BucketModal({ data, s, T, setModal, updArr }) {
             <Inp label="Finanzierungsstart" value={f.financingStart} onChange={v => set("financingStart",v)} type="number" placeholder={String(CY)} T={T} />
           </div>
           {(+f.monthlyPayment||0) > 0 && (+f.financingMonths||0) > 0 && (
-            <div style={{ fontSize:9, color:T.amber, marginTop:4 }}>
+            <div style={{ fontSize:11, color:T.amber, marginTop:4 }}>
               {full(+f.monthlyPayment||0)}/Mo. × {f.financingMonths} Mo. = {full(totalCost)} gesamt
             </div>
           )}
@@ -236,17 +236,17 @@ export default function BucketModal({ data, s, T, setModal, updArr }) {
       {/* Rough impact preview */}
       {roughImpact !== null && Math.abs(roughImpact) > 0 && (
         <div style={{ background: roughImpact>0?T.green+"0d":T.red+"0d", border:"1px solid "+(roughImpact>0?T.green:T.red)+"33", borderRadius:8, padding:"10px 13px", marginBottom:12 }}>
-          <div style={{ fontSize:9, color:T.textDim, marginBottom:2 }}>Geschätzter Projektionseffekt (am Horizont, inkl. entgangener Rendite)</div>
-          <div style={{ fontSize:15, fontWeight:900, color:roughImpact>0?T.green:T.red }}>
+          <div style={{ fontSize:11, color:T.textDim, marginBottom:2 }}>Geschätzter Projektionseffekt (am Horizont, inkl. entgangener Rendite)</div>
+          <div style={{ fontSize:15, fontWeight:650, color:roughImpact>0?T.green:T.red }}>
             {roughImpact>0?"+":""}{full(roughImpact)}
           </div>
-          <div style={{ fontSize:8, color:T.textDim, marginTop:1 }}>Ø {wavg.toFixed(1)}% Wachstum angenommen — schalte Szenario aus/ein zum Vergleich</div>
+          <div style={{ fontSize:11, color:T.textDim, marginTop:1 }}>Ø {wavg.toFixed(1)}% Wachstum angenommen — schalte Szenario aus/ein zum Vergleich</div>
         </div>
       )}
 
       {/* Color */}
       <div style={{ marginBottom:14 }}>
-        <div style={{ fontSize:9, color:T.textMid, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:8 }}>Farbe</div>
+        <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0, marginBottom:8 }}>Farbe</div>
         <div style={{ display:"flex", gap:8 }}>
           {BCK_CLRS.map(c => (
             <div key={c} onClick={() => set("color",c)}

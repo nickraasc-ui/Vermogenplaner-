@@ -28,18 +28,18 @@ export default function IncomeStreamModal({ data, s, T, setModal, updArr }) {
       </div>
       {amt > 0 && (
         <div style={{ background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:8, padding:"10px 13px", marginBottom:12 }}>
-          <div style={{ fontSize:9, color:T.textMid, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:6 }}>Vorschau</div>
+          <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0, marginBottom:6 }}>Vorschau</div>
           <div style={{ display:"flex", justifyContent:"space-between" }}>
-            <span style={{ fontSize:11, color:T.textMid }}>Heute</span>
-            <span style={{ fontSize:13, fontWeight:800, color:T.green }}>{full(amt)}/Mo.</span>
+            <span style={{ fontSize:12, color:T.textMid }}>Heute</span>
+            <span style={{ fontSize:13, fontWeight:600, color:T.green }}>{full(amt)}/Mo.</span>
           </div>
           {(+f.growthPct||0) > 0 && (
             <div style={{ display:"flex", justifyContent:"space-between", marginTop:4 }}>
-              <span style={{ fontSize:11, color:T.textMid }}>In 10 Jahren (+{f.growthPct}%/J.)</span>
-              <span style={{ fontSize:13, fontWeight:800, color:T.green }}>{full(amt * Math.pow(1+(+f.growthPct)/100, 10))}/Mo.</span>
+              <span style={{ fontSize:12, color:T.textMid }}>In 10 Jahren (+{f.growthPct}%/J.)</span>
+              <span style={{ fontSize:13, fontWeight:600, color:T.green }}>{full(amt * Math.pow(1+(+f.growthPct)/100, 10))}/Mo.</span>
             </div>
           )}
-          {f.endsAt && <div style={{ fontSize:9, color:T.amber, marginTop:4 }}>Läuft aus: {f.endsAt}</div>}
+          {f.endsAt && <div style={{ fontSize:11, color:T.amber, marginTop:4 }}>Läuft aus: {f.endsAt}</div>}
         </div>
       )}
       <Btn full color={T.green} T={T} onClick={() => {
