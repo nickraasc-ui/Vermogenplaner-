@@ -60,3 +60,14 @@ export const ownerShare = (asset, ownerFilter) => {
   const ownership = asset.ownership || (asset.owner ? [{ ownerId: asset.owner, share: 1 }] : []);
   return ownership.filter(o => ownerFilter.includes(o.ownerId)).reduce((t, o) => t + (o.share || 0), 0);
 };
+
+/**
+ * Whole years until the loan is repaid, using the same schedule as computeRemDebt
+ * (so "schuldenfrei" dates match the projection). null = not repaid within 100 years.
+ */
+export const yearsUntilPaidOff = (loan) => {
+  if (!(loan.debt > 0)) return 0;
+  if ((loan.loanType || "annuitat") === "endfaellig") return loan.loanTermYears || null;
+  for (let y = 1; y <= 100; y++) if (computeRemDebt(loan, y) < 0.5) return y;
+  return null;
+};

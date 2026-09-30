@@ -1,56 +1,44 @@
 import { useState } from "react";
 import { Sheet, Inp, Btn, full, fmtE, uid } from "../ui.jsx";
 import { ASSET_CLASS_DEFAULTS } from "../../constants.js";
+import { deriveAll } from "../../model/derive.js";
 
-function computeProjection(assets, classReturns, sparrate, yearsFromNow) {
-  const y = Math.max(0, yearsFromNow);
-  const investable = assets.filter(a => !a.locked && a.class !== "Cash" && a.class !== "Immobilien");
-  const invTotal   = investable.reduce((t, a) => t + (a.value||0), 0) || 1;
-
-  return assets.map(a => {
-    const r  = Math.max(0, (classReturns[a.class] || 5) / 100);
-    const rm = r / 12;
-    const mo = y * 12;
-
-    if (a.class === "Immobilien") {
-      const growR   = Math.max(0, (classReturns["Immobilien"] || 3) / 100);
-      const grossFV = (a.value||0) * Math.pow(1 + growR, y);
-      const remDebt = (a.loanTilgung||0) > 0
-        ? Math.max(0, (a.debt||0) - (a.loanTilgung||0) * 12 * y)
-        : (a.debt||0);
-      return { assetId:a.id, name:a.name, class:a.class, value:Math.round(grossFV), debt:Math.round(remDebt) };
-    }
-
-    if (a.class === "Cash") {
-      return { assetId:a.id, name:a.name, class:a.class, value:Math.round((a.value||0) * Math.pow(1 + r, y)), debt:0 };
-    }
-
-    const add = !a.locked ? sparrate * ((a.value||0) / invTotal) : 0;
-    const fv  = rm > 0
-      ? (a.value||0) * Math.pow(1+r, y) + add * ((Math.pow(1+rm, mo)-1) / rm)
-      : (a.value||0) + add * mo;
-    return { assetId:a.id, name:a.name, class:a.class, value:Math.round(fv), debt:0 };
-  });
+// Values for a future date come from the main projection (base scenario, all owners)
+function projectedValues(s, yearsFromNow) {
+  const { projection } = deriveAll(s);
+  const y = Math.min(projection.length - 1, Math.max(0, Math.round(yearsFromNow)));
+  const bd = projection[y].breakdown;
+  return {
+    assetVals: s.assets.map(a => ({ assetId:a.id, name:a.name, class:a.class,
+      value: Math.round(bd.values[a.id] ?? a.value ?? 0), debt: Math.round(bd.debts[a.id] ?? 0) })),
+    standaloneDebt: Math.round(bd.standaloneDebt || 0),
+  };
 }
 
 export default function SnapshotModal({ s, cf, agg, T, setModal, updArr }) {
   const today = new Date().toISOString().slice(0, 10);
   const [date, setDate] = useState(today);
   const [note, setNote] = useState("");
-  const [assetVals, setAssetVals] = useState(() =>
-    s.assets.map(a => ({ assetId:a.id, name:a.name, class:a.class, value:a.value||0, debt:a.debt||0 }))
-  );
+  const todayVals = () => ({
+    assetVals: s.assets.map(a => ({ assetId:a.id, name:a.name, class:a.class, value:a.value||0, debt:a.debt||0 })),
+    standaloneDebt: (s.standaloneLoans||[]).reduce((t, l) => t + (l.debt||0), 0),
+  });
+  const [assetVals, setAssetVals] = useState(() => todayVals().assetVals);
+  const [standaloneDebt, setStandaloneDebt] = useState(() => todayVals().standaloneDebt);
 
   const handleDateChange = (d) => {
     setDate(d);
     const years = (new Date(d) - new Date()) / (365.25 * 24 * 3600 * 1000);
-    setAssetVals(computeProjection(s.assets, s.classReturns, cf.eff, years));
+    const v = years > 0 ? projectedValues(s, years) : todayVals();
+    setAssetVals(v.assetVals);
+    setStandaloneDebt(v.standaloneDebt);
   };
 
   const setVal = (assetId, field, raw) =>
     setAssetVals(prev => prev.map(a => a.assetId === assetId ? { ...a, [field]: parseFloat(raw)||0 } : a));
 
-  const totalNet = assetVals.reduce((t, a) => t + (a.value||0) - (a.debt||0), 0);
+  // Net worth like the header: positions − their loans − standalone loans
+  const totalNet = assetVals.reduce((t, a) => t + (a.value||0) - (a.debt||0), 0) - standaloneDebt;
   const isFuture = date > today;
 
   return (
@@ -73,7 +61,7 @@ export default function SnapshotModal({ s, cf, agg, T, setModal, updArr }) {
       </div>
 
       {assetVals.map(av => {
-        const isImmo = av.class === "Immobilien";
+        const isImmo = av.class === "Immobilien" || (av.debt||0) > 0;
         const net    = (av.value||0) - (av.debt||0);
         const color  = ASSET_CLASS_DEFAULTS[av.class]?.color || T.textMid;
         return (
@@ -93,7 +81,7 @@ export default function SnapshotModal({ s, cf, agg, T, setModal, updArr }) {
       })}
 
       <Btn full color={T.green} T={T} onClick={() => {
-        updArr("snapshots", [...(s.snapshots||[]), { id:uid(), date, note, totalNet, assetValues:assetVals }]);
+        updArr("snapshots", [...(s.snapshots||[]), { id:uid(), date, note, totalNet, standaloneDebt, assetValues:assetVals }]);
         setModal(null);
       }}>Speichern</Btn>
     </Sheet>

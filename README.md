@@ -68,6 +68,12 @@ src/
 ├── storage.js                 # loadProfileState (mit Migrations-Logik), saveState
 ├── constants.js               # ASSET_CLASS_DEFAULTS, KeSt-Typen, Enums
 │
+├── model/                     # Reine Berechnungen (ohne React), getestet
+│   ├── derive.js              # deriveAll(state, filter): alle abgeleiteten Werte
+│   ├── cashflow.js            # cashflowAt(y): Cashflow eines Jahres
+│   ├── projection.js          # projectWealth: Vermögensprojektion, 3 Szenarien
+│   └── finance.js             # KeSt, Restschuld, Eigentumsanteil, Tilgungsdauer
+│
 ├── components/
 │   ├── ui.jsx                 # Shared UI: Tile, Btn, Sl (Slider), fmtE, full
 │   ├── TabDashboard.jsx       # Übersicht: KPIs, Loan-Summary, Nettowert-Chart
@@ -94,7 +100,7 @@ src/
 
 ### State-Architektur
 
-Der gesamte App-State lebt in einem einzigen `useState`-Objekt (`s`) in `AppInner.jsx`. Ableitungen (Cashflow `cf`, Aggregierung `agg`, Projektion `projection`, Sparverteilung `sparDist`) werden als `useMemo` berechnet und bei Änderungen reaktiv neu berechnet.
+Der gesamte App-State lebt in einem einzigen `useState`-Objekt (`s`) in `AppInner.jsx`. Alle Ableitungen (Cashflow `cf`, Aggregierung `agg`, Projektion `projection`, Sparverteilung `sparDist`) berechnet `deriveAll()` aus `src/model/derive.js` in einem `useMemo`.
 
 ```
 s (Profil-State)
@@ -152,6 +158,7 @@ Die App läuft dann auf `http://localhost:5173`.
 ### Build & Deployment
 
 ```bash
+npm test          # Berechnungs-Tests (Vitest)
 npm run build     # Erstellt dist/
 npm run preview   # Lokale Vorschau des Builds
 ```
@@ -181,7 +188,7 @@ Jedes Feld im System wird entweder in Berechnungen eingesetzt oder dient als Met
 | `debt` | ✓ | — | ✓ | Kern |
 | `class` | ✓ (Rendite-Lookup) | ✓ | ✓ | Kern |
 | `ownership` | ✓ (Anteil-Skalierung) | ✓ | ✓ | Kern |
-| `locked` | ✓ (Sparverteilung) | — | ✓ | Kern |
+| `locked` | ✓ (erhält keine Sparrate) | — | ✓ | Kern |
 | `loanType` | ✓ (Tilgungsformel) | ✓ | ✓ | Kern |
 | `loanRate` | ✓ (Amortisierung) | — | ✓ | Kern |
 | `loanTermYears` | ✓ (Laufzeit) | ✓ | ✓ | Kern |
@@ -197,7 +204,7 @@ Jedes Feld im System wird entweder in Berechnungen eingesetzt oder dient als Met
 | `valuationMethod` | — | — | ✓ | Metadaten |
 | `note` | — | — | ✓ | Metadaten |
 | `tax.acquisitionPrice/Date` | — | — | ✓ (stille Reserven) | Metadaten |
-| `tax.taxType` | — | — | ✓ | Metadaten |
+| `tax.taxType` | ✓ (KeSt-Satz) | ✓ (KeSt auf Ausschüttungen) | ✓ | Kern |
 | `lifecycle.maturity` | — | — | ✓ | Metadaten |
 | `commitment/called/distributed` | — | — | ✓ (PE) | Metadaten |
 | Owner `tax.*` | — | — | — | Gespeichert, noch nicht genutzt |
@@ -323,9 +330,11 @@ Jedes Feld im System wird entweder in Berechnungen eingesetzt oder dient als Met
 
 ## Berechnungsmethoden
 
+Alle Berechnungen liegen als reine Funktionen in `src/model/` (ohne React) und sind mit Vitest getestet (`npm test`, Tests in `tests/`).
+
 ### 1. Cashflow-Rechnung (Haushalt)
 
-Der monatliche Cashflow `cf` wird aus allen laufenden Einnahmen und Ausgaben des aktuellen Jahres berechnet.
+Der monatliche Cashflow `cf` ist `cashflowAt(0)` (siehe 4.) plus Anzeigewerte (Saldo, Sparquote, Pufferstand).
 
 **Einnahmen:**
 ```
@@ -386,99 +395,80 @@ drag = Basiszins × 0,7 × Teilfreistellung × 26,375%
 ```
 Basiszins ist einstellbar im Projektions-Tab (Standard: 2,29% / 2024).
 
-### 3. Kapitalwachstum in der Projektion
+### 3. Vermögensprojektion (`src/model/projection.js`)
 
-Die Projektion berechnet für jeden Jahr-Offset `y` drei Szenarien (konservativ −2%, Basis, optimistisch +2%).
-
-**Standardassets (Aktien, ETFs, etc.):**
-
-Entscheidend ist die Trennung zwischen Kapitalzuwachs und Ausschüttungsrendite, um Doppelzählung zu vermeiden — die Ausschüttung fließt bereits über die Sparrate:
+Jede Position, Immobilie und jedes Darlehen wird **einzeln** fortgeschrieben (monatliche Verzinsung, Jahresschritte). Drei Durchläufe: Basis, konservativ (`−projSpreadCons` %-Punkte) und optimistisch (`+projSpreadOpt`).
 
 ```
-capApprR = classReturn + scenarioAdj - yieldPct
-kest     = taxOnReturns ? KEST_RATES[class] : 0
-baseR    = capApprR × (1 - kest)          // realer Netto-Wachstumssatz
-
-FV = value × (1+r)^(y×12) + sp/mo × [(1+r/mo)^(y×12) - 1] / (r/mo)
+Nettovermögen(y) = Σ Depot-Positionen(y) + Σ Immobilien(y) + Haushaltspuffer(y)
+                 + Σ Forderungen(y) − Σ Restschulden(y)
 ```
 
-Dabei ist `sp` die monatliche Sparrate `computeSp(y)` (zeitabhängig), `r/mo = baseR/100/12`.
+Im Jahr 0 entspricht das exakt dem Nettovermögen im Header (inkl. Wertpapierkrediten und separaten Verbindlichkeiten).
 
-**Immobilien:**
+**Depot-Positionen** (alle Klassen außer Immobilien, Forderung, Haushaltspuffer) wachsen mit ihrer Netto-Rendite:
 ```
-FV = value × (1 + classReturn/100/12)^(y×12) - remDebt(y)
+r = classReturn + Szenario-Abschlag − yieldPct          // Ausschüttung fließt in den Cashflow
+r = r > 0 ? r × (1 − KeSt) : r                          // nur bei taxOnReturns; Verluste unversteuert
+r −= Vorabpauschale-Drag                                // thesaurierende ETFs, siehe 2.
+V(y) = V(y−1) × (1 + r/1200)^12
 ```
 
-`remDebt(y)` wird je nach Darlehenstyp berechnet:
+**Immobilien** wachsen auf den **vollen Marktwert** (nicht nur auf das Eigenkapital): `value × (1 + r/1200)^(12y)`.
 
-| Typ | Formel |
+**Darlehen** (Asset-Darlehen × Eigentumsanteil, separate Verbindlichkeiten voll) werden mit `computeRemDebt(loan, y)` getilgt:
+
+| Typ | Restschuld |
 |---|---|
-| Annuität / Volltilger | `D × (1+r)^(y×12) - M × ((1+r)^(y×12) - 1) / r` |
-| Endfällig | `D` bis Laufzeitende, danach `0` |
-| Legacy (kein loanType) | `max(0, D - tilgung × 12 × y)` (linearer Fallback) |
+| Annuität / Volltilger | `D × (1+r)^(12y) − M × ((1+r)^(12y) − 1) / r` |
+| Endfällig | `D` bis Laufzeitende, dann `0` — der Rückzahlungsbetrag wird im Fälligkeitsjahr aus dem Depot bezahlt |
+| ohne Zins/Rate | linear über `loanTilgung`, sonst konstant |
 
-Dabei: `D = debt`, `r = loanRate/1200` (monatl. Zinssatz), `M = loanAnnuitat`.
+Die Annuität mindert den Cashflow (und damit die Sparrate); die Tilgung senkt die Restschuld und erhöht so das Nettovermögen. Nach Tilgungsende wird die Rate frei und fließt in die Sparrate.
 
-Keine Sparrate-Zufuhr, kein KeSt (10-Jahres-Regel vereinfacht).
+**Sparrate** (aus dem Cashflow, siehe 4.) wird nach der **Sparraten-Verteilung** (siehe 5.) auf die Klassen verteilt, innerhalb einer Klasse proportional zu den Positionswerten. Gesperrte Positionen, Cash und Sonstiges erhalten nichts. Gibt es für eine Klasse noch keine Position (oder gar keine investierbare Position), entsteht ein virtueller Topf mit der Klassenrendite (Fallback: Aktien-ETF).
 
-**Cash:**
-```
-FV = value × (1 + r)^y
-```
-Keine Sparrate-Zufuhr (Cash ist Puffer, keine Anlage).
+**Abflüsse** (Defizit nach Puffer, Szenario-Ausgaben, endfällige Rückzahlungen) werden anteilig aus dem Depot entnommen; **Zuflüsse** (Erbschaft etc.) werden wie die Sparrate investiert.
 
-**Forderungen:**
-```
-FV = max(0, value × (1+r/mo)^mo - rep × [(1+r/mo)^mo - 1] / (r/mo))
-```
-Schrumpft durch monatliche Rückzahlung `rep = monthlyRepayment`.
+**Haushaltspuffer:** wächst mit der Cash-Rendite plus Puffer-Beiträgen und deckt Defizite zuerst.
 
-**Sonstiges (Verbrauchsgüter, abschreibungsgefährdete Assets):**
-```
-FV = max(0, value × (1 + min(0, baseR/100))^y)
-```
-Nur Abschreibung, kein Wachstum über 0%.
+**Forderungen:** `max(0, value × (1+r)^mo − rep × ((1+r)^mo − 1)/r)` — die Rückzahlungen fließen als Einnahme in den Cashflow.
 
-### 4. Sparrate in der Projektion `computeSp(y)`
+Die Basis-Projektion liefert zusätzlich eine Aufschlüsselung pro Position und Jahr (`breakdown`), die der CSV-Export und Snapshots mit zukünftigem Datum verwenden.
 
-Im Auto-Modus wird die Sparrate für jedes Jahr dynamisch berechnet:
+### 4. Cashflow pro Jahr (`src/model/cashflow.js`)
+
+`cashflowAt(y)` ist die **einzige** Cashflow-Berechnung — für das laufende Jahr (Haushalt-Tab, Sparquote) und jedes Projektionsjahr:
 
 ```
-sp(y) = max(0,
-    Σ incomeStreams(absYear) × wachstum
-  + immoNetCF(y)            × mietpreissteigerung
-  + forderungIncome
-  + assetYield(y)           × kestFactor
-  - Σ expenseStreams(absYear)
-  - otherAnnuität(y)        (fällt weg wenn Darlehen abbezahlt)
-  - finanzierte Buckets(y)
-)
+avail = Σ incomeStreams(Jahr) × (1+growthPct)^(Jahre seit Start)
+      + Immo-Netto-CF (Miete × (1+immoRentGrowthPct)^y − Hausgeld − Grundsteuer − Annuität solange Restschuld > 0)
+      + Forderungs-Rückflüsse + Ausschüttungen (nach KeSt und Pauschbetrag)
+bound = Σ expenseStreams(Jahr) + Nicht-Immo-Annuitäten (solange Restschuld > 0)
+      + laufende Asset-Kosten + finanzierte Szenarien
+sp    = autoSpar ? max(0, avail − bound + Sparraten-Szenarien)
+                 : min(manuellSparrate (+ Szenarien, optional × Wachstum), max(0, avail − bound))
 ```
 
-Beendete Darlehen setzen automatisch Cashflow frei: `if remDebt(y) ≤ 0: Annuität = 0`.
-
-Mietpreissteigerung: `monthlyRent × (1 + immoRentGrowthPct/100)^y`
-
-Im manuellen Modus: fester Betrag `manuellSparrate`, optional mit jährlichem Wachstum `sparGrowthPct`.
+Die Sparrate kann nie den tatsächlichen Überschuss übersteigen. Leere Immobilienfelder (Altdaten) werden mit Standardwerten gefüllt; ein eingetragener Wert **0** bleibt 0 (selbstgenutzte Immobilie).
 
 ### 5. Sparverteilung
 
-**Auto-Modus:** proportional zu den Marktwerten der nicht-gesperrten, investierbaren Assets (exkl. Cash, Immo, Forderung, Sonstiges). Gesperrte Assets nehmen nicht teil.
+**Auto-Modus:** proportional zu den Marktwerten der nicht-gesperrten, investierbaren Assets (exkl. Cash, Immo, Forderung, Sonstiges).
 
-**Manuell:** feste monatliche Beträge pro Asset-Klasse. Skalieren proportional mit der tatsächlichen Sparrate, wenn diese vom Basisjahr abweicht.
+**Manuell:** feste monatliche Beträge pro Asset-Klasse. In der Projektion werden daraus Anteile (Betrag ÷ Summe), die auf die jeweilige Sparrate angewendet werden. Einnahmenänderungs-Szenarien mit eigenem Spartopf fließen mit ihrer heutigen Verteilung ein.
 
-### 6. Bucket-Drainage
-
-Buckets ziehen einmalig oder wiederkehrend vom projizierten Vermögen ab:
+### 6. Szenario-Abflüsse (`bucketDrain`)
 
 ```
 bucketDrain(year) =
-  Σ Einmalig:  amount  wenn year == targetYear
-  Σ Jährlich:  amount  wenn year >= targetYear
-  Σ Monatlich: amount×12 wenn year >= targetYear
+  Σ Einmalig:  amount     wenn year == Zieljahr
+  Σ Zufluss:  −amount     wenn year == Zieljahr
+  Σ Jährlich:  amount     wenn Zieljahr ≤ year ≤ endsAt
+  Σ Monatlich: amount×12  wenn Zieljahr ≤ year ≤ endsAt
 ```
 
-Finanzierte Buckets (`fundingMode="financed"`) reduzieren stattdessen die Sparrate in der Finanzierungsphase.
+Finanzierte Szenarien (`fundingMode="financed"`) reduzieren stattdessen die Sparrate in der Finanzierungsphase; Einnahmenänderungen (`type="Sparrate"`) verändern die Sparrate um `delta`.
 
 ### 7. Inflationsbereinigung
 
@@ -494,6 +484,14 @@ Dynamisch: Aus einem Satz vordefinierter Schwellen (250k, 500k, 750k, 1M, 1.5M, 
 ---
 
 ## Versionshistorie
+
+### v1.16 — Berechnungen testbar, Projektionsmodell korrigiert (September 2026)
+- Berechnungen aus `AppInner.jsx` nach `src/model/` verschoben, Vitest-Tests
+- Eine Cashflow-Implementierung für heute und alle Projektionsjahre
+- Projektion: Tilgung erhöht das Vermögen, Immobilien wachsen auf den vollen Wert, Startwert = Nettovermögen, Sparraten-Verteilung und „gesperrt" wirken, endfällige Darlehen werden bei Fälligkeit bezahlt
+- „Schuldenfrei"-Datum aus dem exakten Tilgungsplan; CSV-Export und Zukunfts-Snapshots nutzen die Projektion
+- Fix: Miete/Hausgeld 0 € werden nicht mehr durch Standardwerte ersetzt; 0-%-Darlehen behalten ihren Zins
+- Neues Design (Trade-Republic-Stil)
 
 ### v1.15 — Organogramm: Familien- & Beteiligungsstruktur (Mai 2026)
 - **OrgChart-Komponente** (`src/components/OrgChart.jsx`): interaktives SVG-Organogramm im Dashboard-Tab (collapsible)

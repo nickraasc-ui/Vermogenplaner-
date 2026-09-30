@@ -4,17 +4,19 @@ import { Sl, ChTip, Icon, Btn, fmtE, full } from "./ui.jsx";
 import { CY, ASSET_CLASS_DEFAULTS } from "../constants.js";
 
 const exportCSV = (projection, cashflowProjection, s) => {
+  // Class columns come from the projection's per-position breakdown (base scenario).
+  // Owner columns split the base value by each owner's share of today's net worth (approximation).
   const assets = s.assets || [];
-  const classNet = {}, ownerNet = {};
-  let totalV0 = 0;
+  const ownerNet = {};
+  let totalNet0 = 0;
   assets.forEach(a => {
-    const v = a.class === "Immobilien" ? Math.max(0, (a.value||0)-(a.debt||0)) : (a.value||0);
-    classNet[a.class] = (classNet[a.class]||0) + v;
-    totalV0 += v;
+    const v = (a.value||0) - (a.debt||0);
+    totalNet0 += v;
     const ownership = a.ownership || (a.owner ? [{ownerId:a.owner, share:1}] : []);
     ownership.forEach(o => { ownerNet[o.ownerId] = (ownerNet[o.ownerId]||0) + v*(o.share||0); });
   });
-  const classes = Object.keys(classNet);
+  const classes = [...new Set(projection.flatMap(r => Object.keys(r.breakdown?.byClass || {})))];
+  const hasStandalone = projection.some(r => (r.breakdown?.standaloneDebt || 0) > 0);
   const owners  = s.owners || [];
 
   const hdr = [
@@ -22,14 +24,17 @@ const exportCSV = (projection, cashflowProjection, s) => {
     "Einnahmen_jährl_EUR","Ausgaben_jährl_EUR","Sparrate_jährl_EUR",
     "Immo_NetCF_jährl_EUR","Kapitalertraege_jährl_EUR","Kreditraten_jährl_EUR",
     "Portfolio_Basis_EUR","Portfolio_Konservativ_EUR","Portfolio_Optimistisch_EUR",
-    ...classes.map(c => `Klasse_${c.replace(/ /g,"_")}_EUR`),
+    ...classes.map(c => `Klasse_${c.replace(/ /g,"_")}_netto_EUR`),
+    ...(hasStandalone ? ["Verbindlichkeiten_EUR"] : []),
     ...owners.map(o => `Eigentümer_${o.label.replace(/ /g,"_")}_EUR`),
   ];
 
   const rows = projection.map((row, y) => {
     const cf    = cashflowProjection?.[y] || {};
     const year  = CY + y;
-    const scale = totalV0 > 0 ? row.base / totalV0 : 0;
+    const scale = totalNet0 > 0 ? row.base / totalNet0 : 0;
+    const defl  = s.inflationAdj ? 1 / Math.pow(1 + s.inflation/100, y) : 1; // breakdown is nominal
+    const bd    = row.breakdown || { byClass:{}, standaloneDebt:0 };
     return [
       year,
       `31.12.${year}`,
@@ -41,7 +46,8 @@ const exportCSV = (projection, cashflowProjection, s) => {
       Math.round((cf.assetYield ?? 0) * 12),
       Math.round((cf.otherAnnu  ?? 0) * 12),
       row.base, row.cons, row.opt,
-      ...classes.map(c => Math.round((classNet[c]||0) * scale)),
+      ...classes.map(c => Math.round((bd.byClass[c]||0) * defl)),
+      ...(hasStandalone ? [Math.round(-(bd.standaloneDebt||0) * defl)] : []),
       ...owners.map(o => Math.round((ownerNet[o.id]||0) * scale)),
     ];
   });
@@ -141,7 +147,7 @@ export default function TabProjektion({ s, T, upd, cf, agg, projection, final, l
 
       {/* Info box */}
       <div style={{ background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:8, padding:"10px 13px", fontSize:12, color:T.textMid, lineHeight:1.7 }}>
-        <strong style={{ color:T.text }}>Berechnungslogik:</strong> Sparrate ({full(cf.eff)}/Mo.) fließt proportional in investierbare Positionen. Szenarien: −{s.projSpreadCons??2}%/+{s.projSpreadOpt??2}% auf alle Klassenrenditen.
+        <strong style={{ color:T.text }}>Berechnungslogik:</strong> Sparrate ({full(cf.eff)}/Mo.) wird gemäß Sparraten-Verteilung investiert, jede Position wächst mit ihrer Klassenrendite. Tilgungen senken die Restschuld und erhöhen so das Vermögen. Szenarien: −{s.projSpreadCons??2}%/+{s.projSpreadOpt??2}% auf alle Klassenrenditen.
         {s.taxOnReturns && <span style={{ color:T.red }}> Nach Abgeltungsteuer (KeSt 26,4% / ETF-Teilfreistellung / Immo steuerfrei).</span>}
         {s.inflationAdj && <span style={{ color:T.amber }}> Werte real ({s.inflation}% Inflation bereinigt).</span>}
       </div>

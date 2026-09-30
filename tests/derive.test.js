@@ -13,7 +13,7 @@ const summary = (d) => ({
   cf: Object.fromEntries(["avail", "bound", "eff", "saldo", "quote", "deficitMonthly", "immoNetCF", "assetYieldIncome", "streamIncome", "streamExpense"].map(k => [k, round(d.cf[k])])),
   loans: d.loanSummary.map(l => ({ id: l.id, annuitat: round(l.annuitat), yrsLeft: l.yrsLeft })),
   sparDist: d.sparDist.map(x => ({ cls: x.cls, monthly: round(x.monthly) })),
-  projection: d.projection.filter((_, i) => i % 5 === 0 || i === d.projection.length - 1),
+  projection: d.projection.filter((_, i) => i % 5 === 0 || i === d.projection.length - 1).map(({ breakdown, ...row }) => row),
   cashflowSample: [0, 5, 10].map(y => d.cashflowProjection[y] && Object.fromEntries(["year", "avail", "bound", "sp", "deficitMonthly"].map(k => [k, round(d.cashflowProjection[y][k])]))),
 });
 
