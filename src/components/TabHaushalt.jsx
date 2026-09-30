@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
-import { Sl, Tile, Row, Btn, full, mlbl, ChTip } from "./ui.jsx";
+import { Sl, Tile, Row, Btn, Icon, Section, ListRow, Avatar, LinkBtn, full, mlbl, ChTip } from "./ui.jsx";
 import { ASSET_CLASS_DEFAULTS, ASSET_CLASSES, CY } from "../constants.js";
 
 const ALL_INVEST_CLASSES = ASSET_CLASSES.filter(cls => cls !== "Cash" && cls !== "Immobilien" && cls !== "Forderung");
@@ -47,16 +47,16 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
   const val = (cur, fut) => isCurrent ? cur : fut;
 
   return (
-    <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+    <div style={{ display:"flex", flexDirection:"column", gap:28 }}>
 
       {/* Warnings */}
       {isFiltered && (
-        <div style={{ background:T.accent+"12", border:"1px solid "+T.accent+"33", borderRadius:8, padding:"7px 12px", fontSize:12, color:T.accent }}>
+        <div style={{ background:T.surfaceHigh, border:"none", borderRadius:14, padding:"7px 12px", fontSize:12, color:T.accent }}>
           Gefiltert: {ownerFilter.map(id => (s.owners||[]).find(o => o.id===id)?.label||id).join(", ")} — Einnahmen- und Ausgabenströme des Eigentümers
         </div>
       )}
       {cf.rest < 0 && isCurrent && (
-        <div style={{ background:T.red+"15", border:"1px solid "+T.red+"44", borderRadius:8, padding:"10px 13px" }}>
+        <div style={{ background:T.surfaceHigh, border:"none", borderRadius:14, padding:"10px 13px" }}>
           <div style={{ fontSize:12, color:T.red, fontWeight:600, marginBottom:5 }}>
             Ausgaben übersteigen Einkommen um {full(Math.abs(cf.rest) * vm)}/{annualView?"J.":"Mo."}
           </div>
@@ -70,17 +70,17 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
         </div>
       )}
       {cf.effTarget != null && cf.effTarget > cf.rest && isCurrent && (
-        <div style={{ background:T.amber+"15", border:"1px solid "+T.amber+"44", borderRadius:8, padding:"9px 13px", fontSize:12, color:T.amber }}>
+        <div style={{ background:T.surfaceHigh, border:"none", borderRadius:14, padding:"9px 13px", fontSize:12, color:T.amber }}>
           Sparziel {full(cf.effTarget * vm)}/{annualView?"J.":"Mo."} übersteigt verfügbaren Überschuss {full(Math.max(0, cf.rest) * vm)}/{annualView?"J.":"Mo."} — Projektion verwendet {full(Math.max(0, cf.rest) * vm)}/{annualView?"J.":"Mo."}
         </div>
       )}
 
       {/* Haushaltspuffer status */}
       {cf.bufferBalance > 0 && isCurrent && (
-        <div style={{ background:T.surface, border:"1px solid "+T.green+"44", borderRadius:10, padding:"11px 14px" }}>
+        <div style={{ padding:"4px 0" }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
             <div>
-              <div style={{ fontSize:13, color:T.green, fontWeight:600, letterSpacing:0 }}>Haushaltspuffer</div>
+              <div style={{ fontSize:20, color:T.text, fontWeight:700, letterSpacing:"-0.02em" }}>Haushaltspuffer</div>
               <div style={{ fontSize:15, fontWeight:650, color:T.text, marginTop:2 }}>{full(cf.bufferBalance * vm)}</div>
               {cf.bound > 0 && (
                 <div style={{ fontSize:11, color:T.textDim, marginTop:1 }}>
@@ -110,8 +110,8 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
 
       {/* Cashflow-Vorschau chart */}
       {cashflowProjection?.length > 1 && (
-        <div style={{ background:T.surface, border:"1px solid "+T.border, boxShadow:T.shadow, borderRadius:14, padding:14 }}>
-          <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0, marginBottom:3 }}>Cashflow-Vorschau</div>
+        <div style={{ padding:"4px 0" }}>
+          <div style={{ fontSize:20, color:T.text, fontWeight:700, letterSpacing:"-0.02em", marginBottom:3 }}>Cashflow-Vorschau</div>
           <div style={{ fontSize:11, color:T.textDim, marginBottom:10 }}>Tippe auf ein Jahr für die Monatsübersicht dieses Jahres</div>
 
           <ResponsiveContainer width="100%" height={170}>
@@ -154,13 +154,13 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
       )}
 
       {/* Monatsübersicht — dynamic based on selectedYear */}
-      <div style={{ background:T.surface, border:"1px solid "+(isCurrent ? T.border : T.accent+"55"), borderRadius:10, padding:14 }}>
+      <div style={{ padding:"4px 0" }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:10 }}>
           <div>
             <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-              <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0 }}>{annualView ? "Jahresübersicht" : "Monatsübersicht"}</div>
+              <div style={{ fontSize:20, color:T.text, fontWeight:700, letterSpacing:"-0.02em" }}>{annualView ? "Jahresübersicht" : "Monatsübersicht"}</div>
               <button onClick={() => setAnnualView(v => !v)}
-                style={{ fontSize:11, padding:"2px 8px", borderRadius:5, border:"1px solid "+(annualView?T.amber:T.border), background:annualView?T.amber+"18":"transparent", color:annualView?T.amber:T.textMid, cursor:"pointer", fontWeight:600, WebkitTapHighlightColor:"transparent" }}>
+                style={{ fontSize:11, padding:"2px 8px", borderRadius:999, border:"none", background:annualView?T.accent:T.surfaceHigh, color:annualView?T.onAccent:T.text, cursor:"pointer", fontWeight:600, WebkitTapHighlightColor:"transparent" }}>
                 {annualView ? "p.a." : "pro Monat"}
               </button>
             </div>
@@ -173,7 +173,7 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
           </div>
           {!isCurrent && (
             <button onClick={() => setModal({ type:"checkin", year: selAbsYear })}
-              style={{ padding:"5px 10px", borderRadius:6, border:"1px solid "+T.accent+"44", background:T.accent+"15", color:T.accent, cursor:"pointer", fontSize:12, fontWeight:600, WebkitTapHighlightColor:"transparent", flexShrink:0 }}>
+              style={{ padding:"5px 10px", borderRadius:999, border:"none", background:T.surfaceHigh, color:T.accent, cursor:"pointer", fontSize:12, fontWeight:600, WebkitTapHighlightColor:"transparent", flexShrink:0 }}>
               {selCheckin ? "IST bearbeiten" : "+ IST erfassen"}
             </button>
           )}
@@ -249,7 +249,7 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
         {/* IST-Daten overlay if check-in exists for selected year */}
         {selCheckin && !isCurrent && (
           <div style={{ marginTop:10, paddingTop:10, borderTop:"1px solid "+T.border }}>
-            <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0, marginBottom:8 }}>IST-Daten {mlbl(selCheckin.month)}</div>
+            <div style={{ fontSize:20, color:T.text, fontWeight:700, letterSpacing:"-0.02em", marginBottom:8 }}>IST-Daten {mlbl(selCheckin.month)}</div>
             {[
               ["Einnahmen", selCheckin.inc_ist, selCF.avail, T.green, false],
               ["Ausgaben",  selCheckin.streamExp_ist ?? selCheckin.ausgaben_ist, selCF.bound, T.red, true],
@@ -275,87 +275,54 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
       </div>
 
       {/* ── KONFIGURATION ── */}
-      <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0, padding:"4px 2px" }}>Konfiguration</div>
-
-      {/* Income streams */}
-      <div style={{ background:T.surface, border:"1px solid "+T.border, boxShadow:T.shadow, borderRadius:14, padding:14 }}>
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
-          <div>
-            <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0 }}>Einkommensströme</div>
-            <div style={{ fontSize:11, color:T.textDim, marginTop:2 }}>Gesamt aktiv: <strong style={{ color:T.green }}>{full(cf.streamIncome)}/Mo.</strong></div>
-          </div>
-          <Btn sm color={T.green} T={T} onClick={() => setModal({ type:"incomeStream", data:null })}>+ Strom</Btn>
-        </div>
+      <Section title="Einnahmen" T={T}
+        action={<LinkBtn T={T} onClick={() => setModal({ type:"incomeStream", data:null })}><Icon name="plus" size={16} /> Hinzufügen</LinkBtn>}>
+        <div className="vp-num" style={{ fontSize:14, color:T.textLow, marginTop:-4, marginBottom:4 }}>Aktiv {full(cf.streamIncome)}/Mo.</div>
         {(s.incomeStreams||[]).length === 0 && (
-          <div style={{ fontSize:12, color:T.textDim, textAlign:"center", padding:"10px 0" }}>Noch keine Einkommensströme — bitte anlegen</div>
+          <div style={{ fontSize:14, color:T.textLow, padding:"8px 0" }}>Noch keine Einnahmen angelegt.</div>
         )}
-        {(s.incomeStreams||[]).map(st => {
+        {(s.incomeStreams||[]).map((st, i, arr) => {
           const owner  = (s.owners||[]).find(o => o.id === st.owner);
           const active = isActiveNow(st);
+          const sub = [st.type, owner?.label, (st.growthPct||0) > 0 ? "+"+st.growthPct+" %/J." : null,
+            st.startsAt > CY ? "ab "+st.startsAt : null, st.endsAt ? "bis "+st.endsAt : null, !active ? "inaktiv" : null].filter(Boolean);
           return (
-            <div key={st.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", borderBottom:"1px solid "+T.border, paddingBottom:9, marginBottom:9, opacity:active?1:0.4 }}>
-              <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ fontSize:12, fontWeight:600, color:T.text }}>{st.label}</div>
-                <div style={{ display:"flex", gap:5, flexWrap:"wrap", marginTop:2 }}>
-                  <span style={{ fontSize:11, color:T.textDim }}>{st.type}</span>
-                  {owner && <span style={{ fontSize:11, color:T.accent, background:T.accent+"15", padding:"1px 5px", borderRadius:3 }}>{owner.label}</span>}
-                  {(st.growthPct||0) > 0 && <span style={{ fontSize:11, color:T.green }}>+{st.growthPct}%/J.</span>}
-                  {st.startsAt > CY && <span style={{ fontSize:11, color:T.amber }}>ab {st.startsAt}</span>}
-                  {st.endsAt && <span style={{ fontSize:11, color:T.amber }}>bis {st.endsAt}</span>}
-                  {!active && <span style={{ fontSize:11, color:T.textDim }}>inaktiv</span>}
-                </div>
-              </div>
-              <div style={{ display:"flex", gap:6, alignItems:"center", flexShrink:0 }}>
-                <div style={{ fontSize:13, fontWeight:600, color:T.green }}>{full(st.amount)}/Mo.</div>
-                <Btn sm T={T} onClick={() => setModal({ type:"incomeStream", data:st })}>edit</Btn>
-                <Btn sm danger T={T} onClick={() => updArr("incomeStreams", (s.incomeStreams||[]).filter(x => x.id !== st.id))}>x</Btn>
-              </div>
+            <div key={st.id} style={{ opacity:active?1:0.45 }}>
+              <ListRow T={T} last={i === arr.length - 1} onClick={() => setModal({ type:"incomeStream", data:st })}
+                leading={<Avatar icon="arrowDown" color={T.surfaceHigh} fg={T.green} />}
+                title={st.label} subtitle={sub.join(" · ")}
+                value={"+"+full(st.amount)} valueSub="pro Monat" />
             </div>
           );
         })}
-      </div>
+      </Section>
 
-      {/* Expense streams */}
-      <div style={{ background:T.surface, border:"1px solid "+T.border, boxShadow:T.shadow, borderRadius:14, padding:14 }}>
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
-          <div>
-            <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0 }}>Ausgabenströme</div>
-            <div style={{ fontSize:11, color:T.textDim, marginTop:2 }}>Gesamt aktiv: <strong style={{ color:T.red }}>{full(cf.streamExpense)}/Mo.</strong></div>
-          </div>
-          <Btn sm color={T.red} T={T} onClick={() => setModal({ type:"expenseStream", data:null })}>+ Strom</Btn>
-        </div>
+      <Section title="Ausgaben" T={T}
+        action={<LinkBtn T={T} onClick={() => setModal({ type:"expenseStream", data:null })}><Icon name="plus" size={16} /> Hinzufügen</LinkBtn>}>
+        <div className="vp-num" style={{ fontSize:14, color:T.textLow, marginTop:-4, marginBottom:4 }}>Aktiv {full(cf.streamExpense)}/Mo.</div>
         {(s.expenseStreams||[]).length === 0 && (
-          <div style={{ fontSize:12, color:T.textDim, textAlign:"center", padding:"10px 0" }}>Noch keine Ausgabenströme</div>
+          <div style={{ fontSize:14, color:T.textLow, padding:"8px 0" }}>Noch keine Ausgaben angelegt.</div>
         )}
-        {(s.expenseStreams||[]).map(st => {
+        {(s.expenseStreams||[]).map((st, i, arr) => {
           const active = isActiveNow(st);
+          const sub = [st.category, st.startsAt > CY ? "ab "+st.startsAt : null, st.endsAt ? "endet "+st.endsAt : null, !active ? "inaktiv" : null].filter(Boolean);
           return (
-            <div key={st.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", borderBottom:"1px solid "+T.border, paddingBottom:9, marginBottom:9, opacity:active?1:0.4 }}>
-              <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ fontSize:12, fontWeight:600, color:T.text }}>{st.label}</div>
-                <div style={{ display:"flex", gap:5, flexWrap:"wrap", marginTop:2 }}>
-                  <span style={{ fontSize:11, color:T.textDim }}>{st.category}</span>
-                  {st.startsAt > CY && <span style={{ fontSize:11, color:T.amber }}>ab {st.startsAt}</span>}
-                  {st.endsAt && <span style={{ fontSize:11, color:T.green }}>endet {st.endsAt}</span>}
-                  {!active && <span style={{ fontSize:11, color:T.textDim }}>inaktiv</span>}
-                </div>
-              </div>
-              <div style={{ display:"flex", gap:6, alignItems:"center", flexShrink:0 }}>
-                <div style={{ fontSize:13, fontWeight:600, color:T.red }}>{full(st.amount)}/Mo.</div>
-                <Btn sm T={T} onClick={() => setModal({ type:"expenseStream", data:st })}>edit</Btn>
-                <Btn sm danger T={T} onClick={() => updArr("expenseStreams", (s.expenseStreams||[]).filter(x => x.id !== st.id))}>x</Btn>
-              </div>
+            <div key={st.id} style={{ opacity:active?1:0.45 }}>
+              <ListRow T={T} last={i === arr.length - 1} onClick={() => setModal({ type:"expenseStream", data:st })}
+                leading={<Avatar icon="arrowUp" color={T.surfaceHigh} fg={T.text} />}
+                title={st.label} subtitle={sub.join(" · ")}
+                value={"−"+full(st.amount)} valueSub="pro Monat" />
             </div>
           );
         })}
-      </div>
+      </Section>
 
       {/* Sparrate */}
-      <div style={{ background:T.surface, border:"1px solid "+T.border, boxShadow:T.shadow, borderRadius:14, padding:16 }}>
+      <div style={{ padding:"4px 0" }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
-          <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0 }}>Sparrate</div>
+          <div style={{ fontSize:20, color:T.text, fontWeight:700, letterSpacing:"-0.02em" }}>Sparrate</div>
           <button onClick={() => upd({ autoSpar:!s.autoSpar })}
-            style={{ fontSize:12, padding:"5px 12px", borderRadius:6, border:"1px solid "+(s.autoSpar?T.accent:T.border), background:s.autoSpar?T.accent+"18":"transparent", color:s.autoSpar?T.accent:T.textMid, cursor:"pointer", fontWeight:600, WebkitTapHighlightColor:"transparent" }}>
+            style={{ fontSize:12, padding:"5px 12px", borderRadius:999, border:"none", background:s.autoSpar?T.accent:T.surfaceHigh, color:s.autoSpar?T.onAccent:T.text, cursor:"pointer", fontWeight:600, WebkitTapHighlightColor:"transparent" }}>
             {s.autoSpar ? "Auto" : "Manuell"}
           </button>
         </div>
@@ -377,14 +344,14 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
 
       {/* Sparraten-Verteilung */}
       {cf.eff > 0 && (
-        <div style={{ background:T.surface, border:"1px solid "+T.border, boxShadow:T.shadow, borderRadius:14, padding:14 }}>
+        <div style={{ padding:"4px 0" }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
             <div>
-              <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0 }}>Sparraten-Verteilung</div>
+              <div style={{ fontSize:20, color:T.text, fontWeight:700, letterSpacing:"-0.02em" }}>Sparraten-Verteilung</div>
               <div style={{ fontSize:11, color:T.textDim, marginTop:2 }}>{s.sparDistMode==="auto" ? "Proportional zur Gewichtung" : "Manuell je Klasse"}</div>
             </div>
             <button onClick={() => upd({ sparDistMode:s.sparDistMode==="auto"?"manual":"auto" })}
-              style={{ fontSize:12, padding:"5px 12px", borderRadius:6, border:"1px solid "+(s.sparDistMode==="manual"?T.purple:T.border), background:s.sparDistMode==="manual"?T.purple+"18":"transparent", color:s.sparDistMode==="manual"?T.purple:T.textMid, cursor:"pointer", fontWeight:600, WebkitTapHighlightColor:"transparent" }}>
+              style={{ fontSize:12, padding:"5px 12px", borderRadius:999, border:"none", background:s.sparDistMode==="manual"?T.accent:T.surfaceHigh, color:s.sparDistMode==="manual"?T.onAccent:T.text, cursor:"pointer", fontWeight:600, WebkitTapHighlightColor:"transparent" }}>
               {s.sparDistMode==="auto" ? "Auto" : "Manuell"}
             </button>
           </div>
@@ -396,7 +363,7 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
                   <div style={{ fontSize:12, color:T.text, flex:1 }}>{cls}</div>
                   <input type="number" value={s.manualSparDist[cls]||0}
                     onChange={e => upd({ manualSparDist:{ ...s.manualSparDist, [cls]:parseFloat(e.target.value)||0 } })}
-                    style={{ width:90, background:T.bg, border:"1px solid "+T.border, borderRadius:7, padding:"7px 10px", color:T.text, fontSize:14, outline:"none", fontFamily:"inherit", WebkitAppearance:"none", textAlign:"right" }} />
+                    style={{ width:90, background:T.field, border:"1px solid transparent", borderRadius:10, padding:"9px 12px", color:T.text, fontSize:15, outline:"none", fontFamily:"inherit", WebkitAppearance:"none", textAlign:"right" }} />
                   <span style={{ fontSize:12, color:T.textDim, width:20 }}>/Mo</span>
                 </div>
               ))}
@@ -411,7 +378,7 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
                 </div>
               </div>
               {totalManual > cf.eff + 1 && (
-                <div style={{ background:T.amber+"12", border:"1px solid "+T.amber+"44", borderRadius:6, padding:"8px 10px", fontSize:12, color:T.amber, lineHeight:1.5 }}>
+                <div style={{ background:T.surfaceHigh, border:"none", borderRadius:14, padding:"8px 10px", fontSize:12, color:T.amber, lineHeight:1.5 }}>
                   Zuviel verteilt ({full(totalManual - cf.eff)}/Mo. über Sparrate) — Projektion verwendet nur {full(cf.eff)}/Mo. Bitte Verteilung auf max. {full(cf.eff)}/Mo. reduzieren.
                 </div>
               )}
@@ -436,7 +403,7 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
               ))}
             </>
           ) : (
-            <div style={{ background:T.amber+"12", border:"1px solid "+T.amber+"33", borderRadius:7, padding:"10px 12px" }}>
+            <div style={{ background:T.surfaceHigh, border:"none", borderRadius:14, padding:"10px 12px" }}>
               <div style={{ fontSize:12, fontWeight:600, color:T.amber, marginBottom:3 }}>Keine investierbaren Positionen</div>
               <div style={{ fontSize:12, color:T.textMid, lineHeight:1.5 }}>Wechsle zu "Manuell" oder leg eine investierbare Position an.</div>
             </div>
@@ -448,15 +415,15 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
       {(hasImmo || hasForderung || hasYield || hasRunCosts) && (
         <div>
           <button onClick={() => setDetailsOpen(!detailsOpen)}
-            style={{ width:"100%", background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:8, padding:"10px 14px", cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"center", WebkitTapHighlightColor:"transparent" }}>
-            <span style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0 }}>Details: Immo / Erträge / Kosten</span>
-            <span style={{ fontSize:12, color:T.textMid }}>{detailsOpen ? "▲" : "▼"}</span>
+            style={{ width:"100%", background:"none", border:"none", borderTop:"1px solid "+T.border, borderBottom:"1px solid "+T.border, padding:"14px 0", cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"center", color:T.text, WebkitTapHighlightColor:"transparent" }}>
+            <span style={{ fontSize:15, color:T.text, fontWeight:600 }}>Details: Immobilien, Erträge, Kosten</span>
+            <span style={{ fontSize:12, color:T.textMid }}><span style={{ display:"inline-block", transform:detailsOpen?"rotate(180deg)":"none", transition:"transform .2s" }}><Icon name="down" size={18} /></span></span>
           </button>
           {detailsOpen && (
             <div style={{ marginTop:8, display:"flex", flexDirection:"column", gap:8 }}>
               {hasImmo && (
-                <div style={{ background:T.surface, border:"1px solid "+T.border, boxShadow:T.shadow, borderRadius:14, padding:14 }}>
-                  <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0, marginBottom:10 }}>Immobilien-Cashflow</div>
+                <div style={{ padding:"4px 0" }}>
+                  <div style={{ fontSize:20, color:T.text, fontWeight:700, letterSpacing:"-0.02em", marginBottom:10 }}>Immobilien-Cashflow</div>
                   <Row label="Brutto-Mieteinnahmen" value={"+" + full(cf.immoGross)} type="in" sub="Kaltmiete aller Objekte" T={T} />
                   <Row label="Immo-Annuitäten" value={"-" + full(cf.immoAnnuitat)} type="out" sub="Zins + Tilgung" T={T} />
                   <Row label="Nebenkosten" value={"-" + full(cf.immoRunning)} type="out" sub="Hausgeld + Grundsteuer" T={T} />
@@ -464,16 +431,16 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
                 </div>
               )}
               {hasForderung && (
-                <div style={{ background:T.surface, border:"1px solid "+T.border, boxShadow:T.shadow, borderRadius:14, padding:14 }}>
-                  <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0, marginBottom:10 }}>Forderungen / Darlehenszuflüsse</div>
+                <div style={{ padding:"4px 0" }}>
+                  <div style={{ fontSize:20, color:T.text, fontWeight:700, letterSpacing:"-0.02em", marginBottom:10 }}>Forderungen / Darlehenszuflüsse</div>
                   {forderungen.map(a => (
                     <Row key={a.id} label={a.name} value={"+" + full(a.monthlyRepayment)} type="in" sub="Monatl. Rückzahlung" T={T} />
                   ))}
                 </div>
               )}
               {hasYield && (
-                <div style={{ background:T.surface, border:"1px solid "+T.border, boxShadow:T.shadow, borderRadius:14, padding:14 }}>
-                  <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0, marginBottom:10 }}>Kapitalerträge / Ausschüttungen</div>
+                <div style={{ padding:"4px 0" }}>
+                  <div style={{ fontSize:20, color:T.text, fontWeight:700, letterSpacing:"-0.02em", marginBottom:10 }}>Kapitalerträge / Ausschüttungen</div>
                   {yieldAssets.map(a => {
                     const monthly = (a.value||0) * (a.yieldPct||0) / 100 / 12;
                     return <Row key={a.id} label={a.name} value={"+" + full(monthly)} type="in" sub={a.yieldPct+"% · "+a.class} T={T} />;
@@ -481,8 +448,8 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
                 </div>
               )}
               {hasRunCosts && (
-                <div style={{ background:T.surface, border:"1px solid "+T.border, boxShadow:T.shadow, borderRadius:14, padding:14 }}>
-                  <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0, marginBottom:10 }}>Laufende Vermögenskosten</div>
+                <div style={{ padding:"4px 0" }}>
+                  <div style={{ fontSize:20, color:T.text, fontWeight:700, letterSpacing:"-0.02em", marginBottom:10 }}>Laufende Vermögenskosten</div>
                   {runCostAssets.map(a => (
                     <Row key={a.id} label={a.name} value={"-" + full(a.monthlyRunningCost)} type="out" sub={a.class} T={T} />
                   ))}
@@ -495,8 +462,8 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
 
       {/* ── VERLAUF ── */}
       {s.checkins?.length > 0 && (
-        <div style={{ background:T.surface, border:"1px solid "+T.border, boxShadow:T.shadow, borderRadius:14, padding:14 }}>
-          <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0, marginBottom:10 }}>Check-in Verlauf</div>
+        <div style={{ padding:"4px 0" }}>
+          <div style={{ fontSize:20, color:T.text, fontWeight:700, letterSpacing:"-0.02em", marginBottom:10 }}>Check-in Verlauf</div>
           {[...s.checkins].sort((a, b) => b.month.localeCompare(a.month)).slice(0, 8).map(ci => {
             const dS = (ci.sparrate_ist||0) - cf.eff;
             const dA = (ci.streamExp_ist ?? ci.ausgaben_ist ?? 0) - cf.streamExpense;

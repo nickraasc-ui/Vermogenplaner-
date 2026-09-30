@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { PieChart, Pie, Cell, Tooltip as ReTooltip } from "recharts";
-import { Sl, Tile, Btn, Card, CardLabel, fmtE, full } from "./ui.jsx";
+import { Sl, Tile, Btn, Section, ListRow, Avatar, LinkBtn, IconBtn, Icon, fmtE, full } from "./ui.jsx";
 import { ASSET_CLASSES, ASSET_CLASS_DEFAULTS, LIQUIDITY_CATS, LIQ_CLR } from "../constants.js";
 import { exportAssetsToExcel, parseImportFile } from "../utils/excelIO.js";
 
@@ -33,325 +33,173 @@ export default function TabVermogen({ s, T, updClass, updArr, setModal, agg, fil
     })
     .filter(d => d.value > 0);
 
-  return (
-    <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+  const ownerLabelsOf = (a) => (a.ownership || (a.owner ? [{ ownerId: a.owner, share: 1 }] : []))
+    .map(o => {
+      const own = (s.owners || []).find(x => x.id === o.ownerId);
+      if (!own) return null;
+      return a.ownership?.length > 1 ? `${own.label} ${Math.round(o.share * 100)} %` : own.label;
+    }).filter(Boolean);
 
-      {/* KPI-Kacheln */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8 }}>
-        <Tile label="Brutto" value={fmtE(agg.gross)} color={T.text} T={T} />
-        <Tile label="Schulden" value={"-"+fmtE(agg.debt)} color={T.red} T={T} />
-        <Tile label="Netto" value={fmtE(agg.net)} color={T.accent} T={T} />
+  const loans = s.standaloneLoans || [];
+  const sortedSnaps = [...(s.snapshots||[])].sort((a, b) => b.date.localeCompare(a.date));
+  const addAction = (onClick) => <LinkBtn T={T} onClick={onClick}><Icon name="plus" size={16} /> Hinzufügen</LinkBtn>;
+
+  return (
+    <div style={{ display:"flex", flexDirection:"column", gap:28 }}>
+
+      {/* Summary */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:12 }}>
+        <Tile label="Brutto" value={fmtE(agg.gross)} T={T} />
+        <Tile label="Schulden" value={(agg.debt > 0 ? "−" : "")+fmtE(agg.debt)} T={T} />
+        <Tile label="Netto" value={fmtE(agg.net)} T={T} />
       </div>
 
-      {/* Allokations-Donut */}
+      {/* Positionen */}
+      <Section title="Positionen" action={addAction(() => setModal({ type:"asset", data:null }))} T={T}>
+        <div className="vp-noscroll" style={{ display:"flex", gap:8, overflowX:"auto", marginBottom:6 }}>
+          <Btn sm color={T.textMid} T={T} onClick={() => setModal({ type:"owner" })}>Eigentümer</Btn>
+          <Btn sm color={T.textMid} T={T} onClick={() => exportAssetsToExcel(s.assets, s.owners || [])}>Excel-Export</Btn>
+          <Btn sm color={T.textMid} T={T} onClick={() => fileInputRef.current?.click()}>Import</Btn>
+        </div>
+        <input ref={fileInputRef} type="file" accept=".xlsx,.xls" style={{ display:"none" }} onChange={handleImport} />
+
+        {filteredAssets.length === 0 && (
+          <div style={{ padding:"28px 0 8px" }}>
+            <div style={{ fontSize:16, fontWeight:600, color:T.text, marginBottom:4 }}>Noch keine Positionen</div>
+            <div style={{ fontSize:14, color:T.textLow, marginBottom:16 }}>ETFs, Immobilien, Cash oder Beteiligungen hinzufügen.</div>
+            <Btn T={T} onClick={() => setModal({ type:"asset", data:null })}>Erste Position anlegen</Btn>
+          </div>
+        )}
+        {filteredAssets.map(a => {
+          const isFord    = a.class === "Forderung";
+          const stilleRes = a.tax?.acquisitionPrice > 0 ? (a.value || 0) - a.tax.acquisitionPrice : null;
+          const hasDebt   = !isFord && (a.debt||0) > 0;
+          const sub = [a.class, ...ownerLabelsOf(a)];
+          if (a.locked) sub.push("gesperrt");
+          if (isFord && (a.monthlyRepayment||0) > 0) sub.push("+"+full(a.monthlyRepayment)+"/Mo.");
+          return (
+            <ListRow key={a.id} T={T} onClick={() => setModal({ type:"asset", data:a })}
+              leading={<Avatar cls={a.class} color={ASSET_CLASS_DEFAULTS[a.class]?.color || T.textMid} />}
+              title={a.name}
+              subtitle={sub.join(" · ")}
+              value={full(a.value)}
+              valueSub={hasDebt ? "netto "+fmtE((a.value||0)-(a.debt||0))
+                : stilleRes !== null ? (stilleRes >= 0 ? "+" : "−")+full(Math.abs(stilleRes)) : undefined}
+              valueSubColor={!hasDebt && stilleRes !== null ? (stilleRes >= 0 ? T.green : T.red) : undefined} />
+          );
+        })}
+      </Section>
+
+      {/* Allokation */}
       {pieData.length > 0 && (
-        <Card T={T}>
-          <CardLabel T={T} mb={12}>Allokation nach Asset-Klasse</CardLabel>
-          <div style={{ display:"flex", alignItems:"center", gap:16 }}>
-            {/* Donut */}
-            <div style={{ position:"relative", flexShrink:0, width:130, height:130 }}>
-              <PieChart width={130} height={130}>
-                <Pie
-                  data={pieData}
-                  cx={65} cy={65}
-                  innerRadius={42} outerRadius={62}
-                  dataKey="value"
-                  stroke="none"
-                  startAngle={90} endAngle={-270}
-                >
+        <Section title="Allokation" T={T}>
+          <div style={{ display:"flex", alignItems:"center", gap:20 }}>
+            <div style={{ position:"relative", flexShrink:0, width:140, height:140 }}>
+              <PieChart width={140} height={140}>
+                <Pie data={pieData} cx={70} cy={70} innerRadius={50} outerRadius={68} paddingAngle={2}
+                  dataKey="value" stroke="none" startAngle={90} endAngle={-270} isAnimationActive={false}>
                   {pieData.map((e, i) => <Cell key={i} fill={e.color} />)}
                 </Pie>
-                <ReTooltip
-                  formatter={(v, n, props) => [fmtE(v), props.payload.cls]}
-                  contentStyle={{ background:T.surface, border:"1px solid "+T.border, borderRadius:6, fontSize:12, color:T.text }}
-                />
+                <ReTooltip formatter={(v, n, props) => [fmtE(v), props.payload.cls]}
+                  contentStyle={{ background:T.sheet, border:"1px solid "+T.border, borderRadius:10, fontSize:13, color:T.text }} />
               </PieChart>
-              {/* Mitte: Nettowert */}
               <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", pointerEvents:"none" }}>
-                <div style={{ fontSize:13, color:T.textMid, letterSpacing:0 }}>Netto</div>
-                <div style={{ fontSize:12, fontWeight:650, color:T.accent }}>{fmtE(agg.net)}</div>
+                <div style={{ fontSize:12, color:T.textLow }}>Netto</div>
+                <div className="vp-num" style={{ fontSize:15, fontWeight:700, color:T.text }}>{fmtE(agg.net)}</div>
               </div>
             </div>
-
-            {/* Legende */}
-            <div style={{ flex:1, display:"flex", flexDirection:"column", gap:6 }}>
+            <div style={{ flex:1, display:"flex", flexDirection:"column", gap:9, minWidth:0 }}>
               {pieData.map(e => (
-                <div key={e.cls} style={{ display:"flex", alignItems:"center", gap:7 }}>
-                  <div style={{ width:8, height:8, borderRadius:2, background:e.color, flexShrink:0 }} />
-                  <span style={{ fontSize:12, color:T.text, flex:1, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{e.cls}</span>
-                  <span style={{ fontSize:12, color:T.textMid, fontWeight:600, flexShrink:0 }}>{e.pct.toFixed(0)}%</span>
-                  <span style={{ fontSize:11, color:T.textDim, flexShrink:0 }}>{fmtE(e.value)}</span>
+                <div key={e.cls} style={{ display:"flex", alignItems:"center", gap:8 }}>
+                  <div style={{ width:8, height:8, borderRadius:"50%", background:e.color, flexShrink:0 }} />
+                  <span style={{ fontSize:14, color:T.text, flex:1, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{e.cls}</span>
+                  <span className="vp-num" style={{ fontSize:14, color:T.textLow, flexShrink:0 }}>{e.pct.toFixed(0)} %</span>
                 </div>
               ))}
             </div>
           </div>
-        </Card>
+        </Section>
       )}
 
+      {/* Verbindlichkeiten (standalone loans) */}
+      <Section title="Verbindlichkeiten" action={addAction(() => setModal({ type:"standaloneLoan", data:null }))} T={T}>
+        {!loans.length ? (
+          <div style={{ fontSize:14, color:T.textLow, padding:"4px 0" }}>Keine separaten Verbindlichkeiten.</div>
+        ) : (
+          <>
+            {loans.map(l => {
+              const ownerLabel = l.owner ? (s.owners||[]).find(o => o.id === l.owner)?.label : null;
+              const sub = [l.loanType === "endfaellig" ? "Endfällig" : "Annuität", (l.loanRate||0)+" %"];
+              if (ownerLabel) sub.push(ownerLabel);
+              if (l.loanTermYears) sub.push(l.loanTermYears+" J.");
+              return (
+                <ListRow key={l.id} T={T} onClick={() => setModal({ type:"standaloneLoan", data:l })}
+                  leading={<Avatar icon="card" color={T.surfaceHigh} fg={T.text} />}
+                  title={l.name} subtitle={sub.join(" · ")}
+                  value={"−"+fmtE(l.debt||0)} valueSub={full(l.loanAnnuitat||0)+"/Mo."} />
+              );
+            })}
+            <ListRow T={T} last title="Gesamt Restschuld" value={"−"+fmtE(loans.reduce((t,l) => t+(l.debt||0), 0))} />
+          </>
+        )}
+      </Section>
+
       {/* Renditeerwartungen */}
-      <Card T={T} style={{ padding:16 }}>
-        <CardLabel T={T} mb={4}>Renditeerwartungen nach Asset-Klasse</CardLabel>
-        <div style={{ fontSize:11, color:T.textDim, marginBottom:14 }}>
-          Gilt für alle Positionen der jeweiligen Klasse. Gewichteter Durchschnitt:{" "}
-          <strong style={{ color:T.amber }}>{agg.wavgReturn.toFixed(1)}% p.a.</strong>
+      <Section title="Renditeerwartung" T={T}>
+        <div style={{ fontSize:14, color:T.textLow, marginBottom:14 }}>
+          Pro Asset-Klasse · gewichteter Schnitt <span className="vp-num" style={{ color:T.text, fontWeight:600 }}>{agg.wavgReturn.toFixed(1)} % p.a.</span>
         </div>
         {ASSET_CLASSES.filter(cls => filteredAssets.some(a => a.class === cls)).map(cls => {
-          const clsAssets = filteredAssets.filter(a => a.class === cls);
-          const clsNet    = clsAssets.reduce((t, a) => t + (a.value||0) - (a.debt||0), 0);
-          const weight    = agg.net > 0 ? (clsNet / agg.net * 100) : 0;
-          const retVal    = s.classReturns[cls] ?? ASSET_CLASS_DEFAULTS[cls]?.return ?? 0;
-          const isNeg     = retVal < 0;
-          const clsColor  = ASSET_CLASS_DEFAULTS[cls]?.color || T.textMid;
+          const clsNet = filteredAssets.filter(a => a.class === cls).reduce((t, a) => t + (a.value||0) - (a.debt||0), 0);
+          const weight = agg.net > 0 ? (clsNet / agg.net * 100) : 0;
+          const retVal = s.classReturns[cls] ?? ASSET_CLASS_DEFAULTS[cls]?.return ?? 0;
           return (
-            <div key={cls} style={{ marginBottom:16 }}>
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 }}>
-                <div style={{ display:"flex", alignItems:"center", gap:7 }}>
-                  <div style={{ width:8, height:8, borderRadius:2, background:clsColor }} />
-                  <span style={{ fontSize:12, fontWeight:600, color:T.text }}>{cls}</span>
-                  <span style={{ fontSize:11, color:T.textDim }}>{fmtE(clsNet)} ({weight.toFixed(0)}%)</span>
-                </div>
-                {isNeg && <span style={{ fontSize:11, color:T.red, background:T.red+"15", padding:"1px 6px", borderRadius:4 }}>Wertverlust</span>}
+            <div key={cls} style={{ marginBottom:18 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:2 }}>
+                <Avatar cls={cls} color={ASSET_CLASS_DEFAULTS[cls]?.color || T.textMid} size={28} />
+                <span style={{ fontSize:15, fontWeight:600, color:T.text }}>{cls}</span>
+                <span className="vp-num" style={{ fontSize:13, color:T.textLow, flex:1 }}>{fmtE(clsNet)} · {weight.toFixed(0)} %</span>
+                <span className="vp-num" style={{ fontSize:16, fontWeight:650, color: retVal < 0 ? T.red : T.text }}>{retVal.toFixed(1)} %</span>
               </div>
               <Sl label="" value={retVal} min={sliderMin(cls)} max={sliderMax(cls)} step={0.5}
-                onChange={v => updClass(cls, v)} fmt={v => v.toFixed(1)+"%"}
-                color={isNeg ? T.red : clsColor} T={T} />
+                onChange={v => updClass(cls, v)} fmt={v => v.toFixed(1)+" %"} warn={retVal < 0} hideHead T={T} />
             </div>
           );
         })}
-      </Card>
-
-      {/* Liquidität */}
-      <Card T={T}>
-        <CardLabel T={T}>Liquidität</CardLabel>
-        <div style={{ display:"flex", borderRadius:6, overflow:"hidden", height:10, marginBottom:10 }}>
-          {LIQUIDITY_CATS.map(l => {
-            const w = agg.net > 0 ? ((agg.byLiquidity[l]||0) / agg.net * 100) : 0;
-            return w > 0 ? <div key={l} style={{ width:w+"%", background:LIQ_CLR[l] }} /> : null;
-          })}
-        </div>
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8 }}>
-          {LIQUIDITY_CATS.map(l => (
-            <div key={l} style={{ borderTop:"3px solid "+LIQ_CLR[l], paddingTop:6 }}>
-              <div style={{ fontSize:11, color:LIQ_CLR[l], fontWeight:600 }}>{l}</div>
-              <div style={{ fontSize:13, fontWeight:600, color:T.text }}>{fmtE(agg.byLiquidity[l]||0)}</div>
-              <div style={{ fontSize:11, color:T.textDim }}>
-                {agg.net > 0 ? ((agg.byLiquidity[l]||0) / agg.net * 100).toFixed(0)+"%" : "0%"}
-              </div>
-            </div>
-          ))}
-        </div>
-      </Card>
-
-      {/* Positionen */}
-      <Card T={T}>
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
-          <CardLabel T={T} mb={0}>Positionen</CardLabel>
-          <div style={{ display:"flex", gap:6, flexWrap:"wrap", justifyContent:"flex-end" }}>
-            <Btn sm color={T.textMid} T={T} onClick={() => setModal({ type:"owner" })}>Eigentümer</Btn>
-            <Btn sm color={T.textMid} T={T} onClick={() => exportAssetsToExcel(s.assets, s.owners || [])}>↓ Excel</Btn>
-            <Btn sm color={T.textMid} T={T} onClick={() => fileInputRef.current?.click()}>↑ Import</Btn>
-            <Btn sm color={T.accent} T={T} onClick={() => setModal({ type:"asset", data:null })}>+ Position</Btn>
-          </div>
-          <input ref={fileInputRef} type="file" accept=".xlsx,.xls" style={{ display:"none" }} onChange={handleImport} />
-        </div>
-
-        {filteredAssets.length === 0 && (
-          <div style={{ textAlign:"center", padding:"24px 0 12px" }}>
-            <div style={{ fontSize:32, color:T.textDim, marginBottom:8 }}>◈</div>
-            <div style={{ fontSize:12, fontWeight:600, color:T.textMid, marginBottom:4 }}>Noch keine Positionen</div>
-            <div style={{ fontSize:12, color:T.textDim, marginBottom:14, lineHeight:1.6 }}>Füge Assets hinzu — ETFs, Immobilien, Cash, Beteiligungen</div>
-            <Btn sm color={T.green} T={T} onClick={() => setModal({ type:"asset", data:null })}>+ Erste Position anlegen</Btn>
-          </div>
-        )}
-        {filteredAssets.map(a => {
-          const clsColor = ASSET_CLASS_DEFAULTS[a.class]?.color || T.textMid;
-          const ownershipLabels = (a.ownership || (a.owner ? [{ ownerId: a.owner, share: 1 }] : []))
-            .map(o => {
-              const own = (s.owners || []).find(x => x.id === o.ownerId);
-              if (!own) return null;
-              return a.ownership?.length > 1 ? `${own.label} ${Math.round(o.share * 100)}%` : own.label;
-            }).filter(Boolean);
-          const isFord       = a.class === "Forderung";
-          const stilleRes    = a.tax?.acquisitionPrice > 0 ? (a.value || 0) - a.tax.acquisitionPrice : null;
-
-          return (
-            <div key={a.id} style={{
-              display:"flex", justifyContent:"space-between", alignItems:"flex-start",
-              borderBottom:"1px solid "+T.border, paddingBottom:10, marginBottom:10,
-              borderLeft:"3px solid "+clsColor,
-              paddingLeft:10, marginLeft:-14,
-            }}>
-              <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ fontSize:12, color:T.text, fontWeight:600 }}>
-                  {a.name}
-                  {a.locked && (
-                    <span style={{ fontSize:10, color:T.amber, background:T.amber+"18", padding:"1px 4px", borderRadius:3, marginLeft:5 }}>
-                      GESPERRT
-                    </span>
-                  )}
-                </div>
-                <div style={{ display:"flex", gap:5, marginTop:3, flexWrap:"wrap", alignItems:"center" }}>
-                  <span style={{ fontSize:11, color:clsColor, fontWeight:600 }}>{a.class}</span>
-                  {ownershipLabels.map((lbl, i) => (
-                    <span key={i} style={{ fontSize:11, color:T.textDim }}>· {lbl}</span>
-                  ))}
-                  <span style={{ fontSize:11, color:LIQ_CLR[a.liquidity||"Semi-liquide"], background:LIQ_CLR[a.liquidity||"Semi-liquide"]+"18", padding:"1px 5px", borderRadius:3 }}>
-                    {a.liquidity||"Semi-liquide"}
-                  </span>
-                  <span style={{ fontSize:11, color:T.textDim }}>
-                    {(s.classReturns[a.class] ?? ASSET_CLASS_DEFAULTS[a.class]?.return ?? 0).toFixed(1)}% p.a.
-                  </span>
-                </div>
-
-                {stilleRes !== null && (
-                  <div style={{ fontSize:11, color:stilleRes >= 0 ? T.green : T.red, marginTop:3 }}>
-                    Stille Reserven: {stilleRes >= 0 ? "+" : ""}{full(stilleRes)}
-                  </div>
-                )}
-                {isFord && (a.monthlyRepayment||0) > 0 && (
-                  <div style={{ fontSize:11, color:T.green, marginTop:3 }}>
-                    Rückzahlung +{full(a.monthlyRepayment)}/Mo. | Zinssatz {a.loanRate||0}%
-                  </div>
-                )}
-                {(a.monthlyRunningCost||0) > 0 && (
-                  <div style={{ fontSize:11, color:T.red, marginTop:3 }}>
-                    Lfd. Kosten −{full(a.monthlyRunningCost)}/Mo.
-                  </div>
-                )}
-                {!isFord && (a.debt||0) > 0 && (
-                  <div style={{ fontSize:11, color:T.red, marginTop:3 }}>
-                    Schulden {full(a.debt)} | {full(a.loanAnnuitat||0)}/Mo. Annuität
-                  </div>
-                )}
-              </div>
-
-              <div style={{ display:"flex", gap:6, alignItems:"center", flexShrink:0, marginLeft:8 }}>
-                <div style={{ textAlign:"right" }}>
-                  <div style={{ fontSize:12, fontWeight:600, color:T.text }}>{fmtE(a.value)}</div>
-                  {!isFord && (a.debt||0) > 0 && (
-                    <div style={{ fontSize:11, color:T.green }}>netto {fmtE((a.value||0)-(a.debt||0))}</div>
-                  )}
-                  {isFord && <div style={{ fontSize:11, color:T.green }}>Forderung</div>}
-                </div>
-                <Btn sm T={T} onClick={() => setModal({ type:"asset", data:a })}>edit</Btn>
-                <Btn sm danger T={T} onClick={() => updArr("assets", s.assets.filter(x => x.id !== a.id))}>×</Btn>
-              </div>
-            </div>
-          );
-        })}
-
-        <div style={{ display:"flex", justifyContent:"space-between", paddingTop:8, borderTop:"1px solid "+T.border }}>
-          <span style={{ fontSize:12, color:T.textLow }}>Schulden <strong style={{ color:T.red }}>−{fmtE(agg.debt)}</strong></span>
-          <span style={{ fontSize:12, color:T.textLow }}>Netto <strong style={{ color:T.accent }}>{fmtE(agg.net)}</strong></span>
-        </div>
-      </Card>
-
-      {/* Verbindlichkeiten (standalone loans) */}
-      <Card T={T}>
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
-          <CardLabel T={T} mb={0}>Verbindlichkeiten</CardLabel>
-          <Btn sm color={T.red} T={T} onClick={() => setModal({ type:"standaloneLoan", data:null })}>+ Darlehen</Btn>
-        </div>
-        {!(s.standaloneLoans||[]).length ? (
-          <div style={{ fontSize:12, color:T.textDim, textAlign:"center", padding:"12px 0" }}>
-            Keine separaten Verbindlichkeiten
-          </div>
-        ) : (
-          (s.standaloneLoans||[]).map(l => {
-            const ownerLabel = l.owner ? (s.owners||[]).find(o => o.id === l.owner)?.label : null;
-            return (
-              <div key={l.id} style={{
-                display:"flex", justifyContent:"space-between", alignItems:"flex-start",
-                borderBottom:"1px solid "+T.border, paddingBottom:10, marginBottom:10,
-                borderLeft:"3px solid "+T.red, paddingLeft:10, marginLeft:-14,
-              }}>
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontSize:12, fontWeight:600, color:T.text }}>{l.name}</div>
-                  <div style={{ display:"flex", gap:5, marginTop:3, flexWrap:"wrap", alignItems:"center" }}>
-                    <span style={{ fontSize:11, color:T.red, fontWeight:600 }}>{l.loanType === "endfaellig" ? "Endfällig" : "Annuität"}</span>
-                    {ownerLabel && <span style={{ fontSize:11, color:T.textDim }}>· {ownerLabel}</span>}
-                    <span style={{ fontSize:11, color:T.textDim }}>{l.loanRate||0}% Zinssatz</span>
-                    {l.loanTermYears && <span style={{ fontSize:11, color:T.textDim }}>{l.loanTermYears} J. Laufzeit</span>}
-                  </div>
-                  <div style={{ fontSize:11, color:T.red, marginTop:3 }}>
-                    {full(l.loanAnnuitat||0)}/Mo. | Restschuld {fmtE(l.debt||0)}
-                  </div>
-                </div>
-                <div style={{ display:"flex", gap:6, alignItems:"center", flexShrink:0, marginLeft:8 }}>
-                  <Btn sm T={T} onClick={() => setModal({ type:"standaloneLoan", data:l })}>edit</Btn>
-                  <Btn sm danger T={T} onClick={() => updArr("standaloneLoans", (s.standaloneLoans||[]).filter(x => x.id !== l.id))}>×</Btn>
-                </div>
-              </div>
-            );
-          })
-        )}
-        {(s.standaloneLoans||[]).length > 0 && (
-          <div style={{ display:"flex", justifyContent:"flex-end", paddingTop:8, borderTop:"1px solid "+T.border }}>
-            <span style={{ fontSize:12, color:T.textLow }}>Gesamt Restschuld <strong style={{ color:T.red }}>−{fmtE((s.standaloneLoans||[]).reduce((t,l) => t+(l.debt||0), 0))}</strong></span>
-          </div>
-        )}
-      </Card>
+      </Section>
 
       {/* Snapshots */}
-      <Card T={T}>
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
-          <CardLabel T={T} mb={0}>Nettowert-Snapshots</CardLabel>
-          <Btn sm color={T.green} T={T} onClick={() => setModal({ type:"snapshot" })}>+ Snapshot</Btn>
-        </div>
-        {!s.snapshots?.length ? (
-          <div style={{ textAlign:"center", padding:"16px 0" }}>
-            <div style={{ width:36, height:36, borderRadius:"50%", border:"1px dashed "+T.border, display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 8px" }}>
-              <span style={{ fontSize:18, color:T.textDim }}>+</span>
-            </div>
-            <div style={{ fontSize:12, color:T.textDim }}>Noch kein Snapshot — einmal im Quartal eintragen</div>
-          </div>
-        ) : (
-          [...(s.snapshots||[])].sort((a, b) => b.date.localeCompare(a.date)).map(sn => {
-            const net        = sn.totalNet ?? sn.value;
-            const isExpanded = expandedSnap === sn.id;
-            const hasDetails = sn.assetValues?.length > 0;
-            return (
-              <div key={sn.id} style={{ borderBottom:"1px solid "+T.border, paddingBottom:8, marginBottom:8 }}>
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                  <div style={{ cursor: hasDetails ? "pointer" : "default" }}
-                    onClick={() => hasDetails && setExpandedSnap(isExpanded ? null : sn.id)}>
-                    <div style={{ fontSize:12, color:T.textMid, fontWeight:600 }}>
-                      {sn.date}
-                      {hasDetails && <span style={{ fontSize:11, color:T.textDim, marginLeft:5 }}>{isExpanded ? "▲" : "▼"}</span>}
+      <Section title="Snapshots" action={addAction(() => setModal({ type:"snapshot" }))} T={T}>
+        {!sortedSnaps.length ? (
+          <div style={{ fontSize:14, color:T.textLow, padding:"4px 0" }}>Noch kein Snapshot. Am besten einmal im Quartal festhalten.</div>
+        ) : sortedSnaps.map((sn, i) => {
+          const net        = sn.totalNet ?? sn.value;
+          const isExpanded = expandedSnap === sn.id;
+          const hasDetails = sn.assetValues?.length > 0;
+          return (
+            <div key={sn.id}>
+              <ListRow T={T} last={i === sortedSnaps.length - 1 && !isExpanded}
+                onClick={hasDetails ? () => setExpandedSnap(isExpanded ? null : sn.id) : undefined}
+                leading={<Avatar icon="camera" color={T.surfaceHigh} fg={T.text} />}
+                title={sn.date} subtitle={sn.note || (hasDetails ? sn.assetValues.length+" Positionen" : undefined)}
+                value={full(net)}
+                trailing={<IconBtn icon="trash" label="Snapshot löschen" T={T} danger onClick={() => updArr("snapshots", s.snapshots.filter(x => x.id !== sn.id))} />} />
+              {isExpanded && hasDetails && (
+                <div style={{ padding:"4px 0 10px 54px", borderBottom:"1px solid "+T.border }}>
+                  {sn.assetValues.map(av => (
+                    <div key={av.assetId} style={{ display:"flex", justifyContent:"space-between", gap:12, padding:"5px 0", fontSize:14 }}>
+                      <span style={{ color:T.textMid, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{av.name}</span>
+                      <span className="vp-num" style={{ color:T.text, fontWeight:500, flexShrink:0 }}>
+                        {fmtE(av.value)}{(av.debt||0) > 0 && <span style={{ color:T.textLow }}> · netto {fmtE((av.value||0)-(av.debt||0))}</span>}
+                      </span>
                     </div>
-                    {sn.note && <div style={{ fontSize:11, color:T.textDim }}>{sn.note}</div>}
-                  </div>
-                  <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-                    <div style={{ fontSize:13, fontWeight:600, color:T.accent }}>{fmtE(net)}</div>
-                    <Btn sm danger T={T} onClick={() => updArr("snapshots", s.snapshots.filter(x => x.id !== sn.id))}>×</Btn>
-                  </div>
+                  ))}
                 </div>
-                {isExpanded && hasDetails && (
-                  <div style={{ marginTop:8, background:T.surfaceHigh, borderRadius:7, padding:"8px 10px" }}>
-                    {sn.assetValues.map(av => {
-                      const color = ASSET_CLASS_DEFAULTS[av.class]?.color || T.textMid;
-                      const avNet = (av.value||0) - (av.debt||0);
-                      return (
-                        <div key={av.assetId} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:5 }}>
-                          <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                            <div style={{ width:6, height:6, borderRadius:"50%", background:color, flexShrink:0 }} />
-                            <span style={{ fontSize:12, color:T.textMid }}>{av.name}</span>
-                            <span style={{ fontSize:11, color:T.textDim }}>{av.class}</span>
-                          </div>
-                          <div style={{ textAlign:"right" }}>
-                            <span style={{ fontSize:12, fontWeight:600, color:T.text }}>{fmtE(av.value)}</span>
-                            {(av.debt||0) > 0 && <span style={{ fontSize:11, color:T.green, marginLeft:5 }}>netto {fmtE(avNet)}</span>}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })
-        )}
-      </Card>
+              )}
+            </div>
+          );
+        })}
+      </Section>
 
     </div>
   );

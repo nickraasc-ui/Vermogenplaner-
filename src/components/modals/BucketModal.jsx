@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { Sheet, Inp, SelEl, Btn, full, uid } from "../ui.jsx";
+import { Sheet, Inp, SelEl, Btn, Icon, full, uid } from "../ui.jsx";
 import { CY, BCK_CLRS, ASSET_CLASSES } from "../../constants.js";
 
 const SCENARIO_TYPES = [
-  { key:"ausgabe",  label:"Ausgabe",              icon:"↓", color:"#ec6a6a", desc:"Einmalige oder wiederkehrende Kosten aus dem Portfolio" },
-  { key:"zufluss",  label:"Zufluss",               icon:"↑", color:"#3cbf8a", desc:"Erbschaft, Bonus, Verkaufserlös — erhöht das Portfolio" },
-  { key:"sparrate", label:"Einnahmenänderung",     icon:"⇄", color:"#e3aa45", desc:"Gehaltserhöhung, Renteneintritt, Teilzeit — ändert den Spar-Cashflow" },
-  { key:"finanziert",label:"Finanziert",           icon:"≡", color:"#5b8def", desc:"Monatliche Rate reduziert Sparrate im Finanzierungszeitraum" },
+  { key:"ausgabe",  label:"Ausgabe",              icon:"arrowUp", color:"#ec6a6a", desc:"Einmalige oder wiederkehrende Kosten aus dem Portfolio" },
+  { key:"zufluss",  label:"Zufluss",               icon:"arrowDown", color:"#3cbf8a", desc:"Erbschaft, Bonus, Verkaufserlös — erhöht das Portfolio" },
+  { key:"sparrate", label:"Einnahmenänderung",     icon:"swap", color:"#e3aa45", desc:"Gehaltserhöhung, Renteneintritt, Teilzeit — ändert den Spar-Cashflow" },
+  { key:"finanziert",label:"Finanziert",           icon:"card", color:"#5b8def", desc:"Monatliche Rate reduziert Sparrate im Finanzierungszeitraum" },
 ];
 
 const INVESTABLE_CLASSES = ASSET_CLASSES.filter(c => !["Cash","Immobilien","Forderung","Sonstiges"].includes(c));
@@ -66,13 +66,13 @@ export default function BucketModal({ data, s, T, setModal, updArr }) {
     return null;
   })();
 
-  const sectionBox = { background: T.surfaceHigh, border: "1px solid "+T.border, borderRadius: 8, padding: 12, marginBottom: 12 };
+  const sectionBox = { background:"transparent", border:"1px solid "+T.border, borderRadius:16, padding: 12, marginBottom: 12 };
 
   return (
     <Sheet title={data?.id ? "Szenario bearbeiten" : "Szenario anlegen"} onClose={() => setModal(null)} T={T}>
 
       {/* Active toggle */}
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:8, padding:"10px 14px", marginBottom:14 }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", background:"transparent", border:"1px solid "+T.border, borderRadius:16, padding:"10px 14px", marginBottom:14 }}>
         <div>
           <div style={{ fontSize:12, fontWeight:600, color:T.text }}>Szenario aktiv</div>
           <div style={{ fontSize:11, color:T.textDim, marginTop:1 }}>Aktive Szenarien fließen in die Projektion ein</div>
@@ -87,15 +87,15 @@ export default function BucketModal({ data, s, T, setModal, updArr }) {
 
       {/* Category selector */}
       <div style={{ marginBottom:14 }}>
-        <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0, marginBottom:8 }}>Szenario-Typ</div>
+        <div style={{ fontSize:16, color:T.text, fontWeight:700, letterSpacing:"-0.02em", marginBottom:8 }}>Szenario-Typ</div>
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6 }}>
           {SCENARIO_TYPES.map(t => (
             <button key={t.key} onClick={() => setCategory(t.key)}
-              style={{ padding:"8px 10px", borderRadius:8, border:"1px solid "+(category===t.key ? t.color : T.border),
-                background: category===t.key ? t.color+"18" : "transparent",
-                color: category===t.key ? t.color : T.textMid,
+              style={{ padding:"8px 10px", borderRadius:8, border:"1px solid "+(category===t.key ? T.text : T.border),
+                background: category===t.key ? T.surfaceHigh : "transparent",
+                color: category===t.key ? T.text : T.textMid,
                 cursor:"pointer", textAlign:"left", WebkitTapHighlightColor:"transparent" }}>
-              <div style={{ fontSize:14, lineHeight:1 }}>{t.icon}</div>
+              <Icon name={t.icon} size={18} />
               <div style={{ fontSize:12, fontWeight:600, marginTop:3 }}>{t.label}</div>
             </button>
           ))}
@@ -139,7 +139,7 @@ export default function BucketModal({ data, s, T, setModal, updArr }) {
       {category === "sparrate" && (
         <div style={sectionBox}>
           <div style={{ marginBottom:10 }}>
-            <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0, marginBottom:6 }}>Monatliche Änderung</div>
+            <div style={{ fontSize:16, color:T.text, fontWeight:700, letterSpacing:"-0.02em", marginBottom:6 }}>Monatliche Änderung</div>
             <div style={{ display:"flex", gap:8, marginBottom:8 }}>
               {[["positiv","+ Erhöhung","#3cbf8a"],["negativ","− Reduktion","#ec6a6a"]].map(([k,l,c]) => {
                 const isPos = (+f.delta||0) >= 0;
@@ -172,7 +172,7 @@ export default function BucketModal({ data, s, T, setModal, updArr }) {
 
           {/* Spartöpfe */}
           <div style={{ marginTop:12, paddingTop:12, borderTop:"1px solid "+T.border }}>
-            <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0, marginBottom:8 }}>Spartöpfe</div>
+            <div style={{ fontSize:16, color:T.text, fontWeight:700, letterSpacing:"-0.02em", marginBottom:8 }}>Spartöpfe</div>
             <div style={{ display:"flex", gap:8, marginBottom:10 }}>
               {[["proportional","Proportional (auto)"],["manuell","Manuell je Klasse"]].map(([k,l]) => (
                 <button key={k} onClick={() => set("spartopfMode", k)}
@@ -246,7 +246,7 @@ export default function BucketModal({ data, s, T, setModal, updArr }) {
 
       {/* Color */}
       <div style={{ marginBottom:14 }}>
-        <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0, marginBottom:8 }}>Farbe</div>
+        <div style={{ fontSize:16, color:T.text, fontWeight:700, letterSpacing:"-0.02em", marginBottom:8 }}>Farbe</div>
         <div style={{ display:"flex", gap:8 }}>
           {BCK_CLRS.map(c => (
             <div key={c} onClick={() => set("color",c)}
@@ -279,6 +279,11 @@ export default function BucketModal({ data, s, T, setModal, updArr }) {
         else updArr("buckets", [...(s.buckets||[]), b]);
         setModal(null);
       }}>Speichern</Btn>
+      {data?.id && (s.buckets||[]).some(x => x.id === data.id) && (
+        <div style={{ marginTop:10 }}>
+          <Btn full danger T={T} onClick={() => { updArr("buckets", (s.buckets||[]).filter(x => x.id !== data.id)); setModal(null); }}>Szenario löschen</Btn>
+        </div>
+      )}
     </Sheet>
   );
 }

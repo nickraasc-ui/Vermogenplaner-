@@ -60,7 +60,7 @@ export default function SnapshotModal({ s, cf, agg, T, setModal, updArr }) {
         <Inp label="Notiz" value={note} onChange={setNote} placeholder="z.B. Q1 2025" T={T} />
       </div>
 
-      <div style={{ background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:8, padding:12, marginBottom:14 }}>
+      <div style={{ background:"transparent", border:"1px solid "+T.border, borderRadius:16, padding:12, marginBottom:14 }}>
         <div style={{ fontSize:11, color:T.textLow, marginBottom:3 }}>
           Nettowert {isFuture ? "hochgerechnet auf "+new Date(date).toLocaleDateString("de-DE") : "erfasst"}
         </div>
@@ -77,7 +77,7 @@ export default function SnapshotModal({ s, cf, agg, T, setModal, updArr }) {
         const net    = (av.value||0) - (av.debt||0);
         const color  = ASSET_CLASS_DEFAULTS[av.class]?.color || T.textMid;
         return (
-          <div key={av.assetId} style={{ background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:8, padding:"10px 12px", marginBottom:8 }}>
+          <div key={av.assetId} style={{ background:"transparent", border:"1px solid "+T.border, borderRadius:16, padding:"10px 12px", marginBottom:8 }}>
             <div style={{ display:"flex", alignItems:"center", gap:7, marginBottom:8 }}>
               <div style={{ width:7, height:7, borderRadius:"50%", background:color, flexShrink:0 }} />
               <div style={{ fontSize:12, fontWeight:600, color:T.text }}>{av.name}</div>

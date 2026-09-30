@@ -9,7 +9,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Vermögen" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="theme-color" content="#0d0e11" />
+    <meta name="theme-color" content="#000000" />
 
     <!-- Icons -->
     <link rel="apple-touch-icon" href="/icon-192.png" />
@@ -21,9 +21,10 @@
       * { box-sizing: border-box; margin: 0; padding: 0; }
       html { -webkit-text-size-adjust: 100%; }
       body {
-        background: #0d0e11; overscroll-behavior: none;
+        background: #000000; overscroll-behavior: none;
         font-family: "Inter Variable", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
-        font-feature-settings: "cv11", "ss01";
+        font-feature-settings: "cv11", "ss01", "ss03";
+        letter-spacing: -0.005em;
         -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
         line-height: 1.45;
       }
@@ -35,23 +36,26 @@
 
       /* Interaction states */
       button { transition: background-color .15s, border-color .15s, color .15s, opacity .15s; }
-      button:hover:not(:disabled) { filter: brightness(1.08); }
+      button:hover:not(:disabled) { opacity: .85; }
       button:active:not(:disabled) { transform: translateY(0.5px); }
       .vp-hover { transition: border-color .15s, transform .15s; }
       .vp-hover:hover { filter: brightness(1.04); }
-      :focus-visible { outline: 2px solid #6c9cff; outline-offset: 2px; border-radius: 6px; }
-      .vp-field:focus { border-color: #6c9cff !important; box-shadow: 0 0 0 3px #6c9cff33; }
+      :focus-visible { outline: 2px solid #8e8e93; outline-offset: 2px; border-radius: 6px; }
+      .vp-field:focus { border-color: #8e8e93 !important; }
+      .vp-row { transition: opacity .15s; }
+      .vp-row:active { opacity: .6; }
+      .vp-noscroll::-webkit-scrollbar { display: none; }
       .vp-select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a8f9c' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 34px !important; }
 
       /* Modal: bottom sheet on phones, centred dialog on larger screens */
       .vp-overlay { position: fixed; inset: 0; z-index: 200; display: flex; align-items: flex-end; justify-content: center;
-        background: rgba(8,10,14,0.55); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); animation: vp-fade .15s ease-out; }
-      .vp-sheet { width: 100%; max-height: 92vh; overflow-y: auto; border-radius: 18px 18px 0 0;
+        background: rgba(0,0,0,0.6); animation: vp-fade .15s ease-out; }
+      .vp-sheet { width: 100%; max-height: 92vh; overflow-y: auto; border-radius: 22px 22px 0 0;
         padding-bottom: env(safe-area-inset-bottom, 16px); box-shadow: 0 -8px 40px rgba(0,0,0,0.25); animation: vp-up .2s ease-out; }
       .vp-grabber { width: 36px; height: 4px; border-radius: 2px; margin: 0 auto 6px; }
       @media (min-width: 680px) {
         .vp-overlay { align-items: center; padding: 24px; }
-        .vp-sheet { max-width: 600px; border-radius: 16px; max-height: 88vh; padding-bottom: 0; box-shadow: 0 20px 60px rgba(0,0,0,0.35); animation: vp-pop .16s ease-out; }
+        .vp-sheet { max-width: 560px; border-radius: 22px; max-height: 88vh; padding-bottom: 0; box-shadow: 0 20px 60px rgba(0,0,0,0.35); animation: vp-pop .16s ease-out; }
         .vp-grabber { display: none; }
       }
       @keyframes vp-fade { from { opacity: 0 } to { opacity: 1 } }

@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { fmtE } from "./ui.jsx";
+import { fmtE, Icon } from "./ui.jsx";
 import { RELATION_TYPES } from "../constants.js";
 
 const NODE_W  = 114;
@@ -10,14 +10,8 @@ const NODE_GAP = 14;
 const RCOLOR = Object.fromEntries(RELATION_TYPES.map(r => [r.value, r.color]));
 
 const TYPE_ICON = {
-  "Person":           "👤",
-  "GmbH":             "🏢",
-  "GmbH & Co. KG":   "🏭",
-  "KG":               "🤝",
-  "GbR":              "🤝",
-  "Stiftung":         "🏛",
-  "AG":               "📈",
-  "Sonstiges":        "◆",
+  "Person":"user", "GmbH":"building", "GmbH & Co. KG":"building", "KG":"handshake",
+  "GbR":"handshake", "Stiftung":"bank", "AG":"trend", "Sonstiges":"layers",
 };
 
 // Corporate tier: depth in ownership chain (persons are not counted here).
@@ -394,8 +388,8 @@ export default function OrgChart({ s, T, setModal }) {
                     WebkitTapHighlightColor:"transparent",
                   }}>
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                    <div style={{ fontSize:8.5, color:borderClr, fontWeight:600, lineHeight:1 }}>
-                      {TYPE_ICON[o.type] || "◆"} {o.type}
+                    <div style={{ fontSize:10, color:borderClr, fontWeight:600, lineHeight:1, display:"flex", alignItems:"center", gap:3 }}>
+                      <Icon name={TYPE_ICON[o.type] || "layers"} size={11} stroke={2} /> {o.type}
                     </div>
                     <button
                       onClick={e => { e.stopPropagation(); setModal({ type:"relation", data:o }); }}

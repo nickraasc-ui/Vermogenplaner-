@@ -1,18 +1,18 @@
-import { fmtE, full } from "./ui.jsx";
+import { fmtE, full, Section, ListRow, Avatar, LinkBtn, Icon, Btn, Tile } from "./ui.jsx";
 import { CY } from "../constants.js";
 
 const TYPE_META = {
-  "Einmalig":  { icon:"↓", color:"#ec6a6a", label:"Ausgabe einmalig" },
-  "Jährlich":  { icon:"↓", color:"#ec6a6a", label:"Ausgabe jährlich" },
-  "Monatlich": { icon:"↓", color:"#ec6a6a", label:"Ausgabe monatlich" },
-  "Zufluss":   { icon:"↑", color:"#3cbf8a", label:"Zufluss" },
-  "Sparrate":  { icon:"⇄", color:"#e3aa45", label:"Einnahmenänderung" },
-  "financed":  { icon:"≡", color:"#5b8def", label:"Finanziert" },
+  "Einmalig":  { icon:"arrowUp",   label:"Ausgabe einmalig" },
+  "Jährlich":  { icon:"arrowUp",   label:"Ausgabe jährlich" },
+  "Monatlich": { icon:"arrowUp",   label:"Ausgabe monatlich" },
+  "Zufluss":   { icon:"arrowDown", label:"Zufluss" },
+  "Sparrate":  { icon:"swap",      label:"Einnahmenänderung" },
+  "financed":  { icon:"card",      label:"Finanziert" },
 };
 
 const getMeta = (b) => {
   if (b.fundingMode === "financed") return TYPE_META["financed"];
-  return TYPE_META[b.type] || { icon:"◎", color:"#9aa3b5", label:b.type };
+  return TYPE_META[b.type] || { icon:"layers", label:b.type };
 };
 
 const getDesc = (b, currentAge, s) => {
@@ -73,156 +73,77 @@ export default function TabBuckets({ s, T, upd, updArr, setModal, agg, final, cu
     updArr("buckets", buckets.map(b => b.id===id ? {...b, active: b.active===false} : b));
   };
 
-  const ScenarioCard = ({ b }) => {
+  const Switch = ({ on, onClick, label }) => (
+    <button type="button" role="switch" aria-checked={on} aria-label={label} onClick={e => { e.stopPropagation(); onClick(); }}
+      style={{ width:46, height:28, borderRadius:14, border:"none", padding:0, background:on?T.green:T.borderHigh, cursor:"pointer", position:"relative", transition:"background 0.2s", flexShrink:0 }}>
+      <span style={{ position:"absolute", top:3, left:on?21:3, width:22, height:22, borderRadius:"50%", background:"#fff", transition:"left 0.2s", boxShadow:"0 1px 3px rgba(0,0,0,0.3)" }}/>
+    </button>
+  );
+
+  const renderRow = (b, i, arr) => {
     const meta = getMeta(b);
     const impact = roughImpact(b, s, currentAge);
     const isActive = b.active !== false;
     return (
-      <div style={{ background:T.surface, border:"1px solid "+(isActive?b.color+"44":T.border), borderRadius:10, padding:"11px 13px", opacity:isActive?1:0.55, transition:"opacity 0.2s" }}>
-        <div style={{ display:"flex", alignItems:"flex-start", gap:10 }}>
-          {/* Color dot + type icon */}
-          <div style={{ width:32, height:32, borderRadius:8, background:meta.color+"18", border:"1px solid "+meta.color+"44", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, fontSize:14, color:meta.color }}>
-            {meta.icon}
-          </div>
-
-          {/* Content */}
-          <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>
-              <span style={{ fontSize:13, fontWeight:600, color:T.text }}>{b.name||"Unbenannt"}</span>
-              <span style={{ fontSize:11, padding:"1px 6px", borderRadius:4, background:meta.color+"18", color:meta.color, fontWeight:600 }}>{meta.label}</span>
-            </div>
-            <div style={{ fontSize:11, color:T.textDim, marginTop:3, lineHeight:1.5 }}>{getDesc(b, currentAge, s)}</div>
-            {Math.abs(impact) > 100 && (
-              <div style={{ fontSize:11, color:impact>0?T.green:T.red, marginTop:3, fontWeight:600 }}>
-                {impact>0?"+" : ""}{fmtE(impact)} am Horizont
-              </div>
-            )}
-          </div>
-
-          {/* Toggle + actions */}
-          <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:6, flexShrink:0 }}>
-            {/* Toggle */}
-            <div onClick={() => toggle(b.id)}
-              style={{ width:40, height:22, borderRadius:11, background:isActive?T.green:T.border, cursor:"pointer", position:"relative", transition:"background 0.2s", flexShrink:0 }}>
-              <div style={{ position:"absolute", top:2, left:isActive?20:2, width:18, height:18, borderRadius:"50%", background:"#fff", transition:"left 0.2s", boxShadow:"0 1px 3px rgba(0,0,0,0.25)" }}/>
-            </div>
-            {/* Edit/Delete */}
-            <div style={{ display:"flex", gap:4 }}>
-              <button onClick={() => setModal({ type:"bucket", data:b })}
-                style={{ background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:5, padding:"3px 8px", cursor:"pointer", fontSize:11, color:T.textMid, fontWeight:600 }}>edit</button>
-              <button onClick={() => updArr("buckets", buckets.filter(x => x.id !== b.id))}
-                style={{ background:T.red+"10", border:"1px solid "+T.red+"22", borderRadius:5, padding:"3px 8px", cursor:"pointer", fontSize:11, color:T.red, fontWeight:600 }}>x</button>
-            </div>
-          </div>
-        </div>
+      <div key={b.id} style={{ opacity:isActive?1:0.5, transition:"opacity 0.2s" }}>
+        <ListRow T={T} last={i === arr.length - 1} onClick={() => setModal({ type:"bucket", data:b })}
+          leading={<Avatar icon={meta.icon} color={T.surfaceHigh} fg={T.text} />}
+          title={b.name || "Unbenannt"}
+          subtitle={meta.label+" · "+getDesc(b, currentAge, s)}
+          valueSub={Math.abs(impact) > 100 ? (impact > 0 ? "+" : "")+fmtE(impact) : undefined}
+          valueSubColor={impact > 0 ? T.green : T.red}
+          trailing={<Switch on={isActive} onClick={() => toggle(b.id)} label={(isActive ? "Deaktivieren: " : "Aktivieren: ")+(b.name||"Szenario")} />} />
       </div>
     );
   };
 
+  const addAction = <LinkBtn T={T} onClick={() => setModal({ type:"bucket", data:null })}><Icon name="plus" size={16} /> Hinzufügen</LinkBtn>;
+
   return (
-    <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+    <div style={{ display:"flex", flexDirection:"column", gap:28 }}>
 
-      {/* Header */}
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
-        <div>
-          <div style={{ fontWeight:650, color:T.text, fontSize:15 }}>Szenario-Planer</div>
-          <div style={{ fontSize:12, color:T.textDim, marginTop:2 }}>
-            Aktive Szenarien fließen in die Projektion ein — toggle zum Vergleichen
-          </div>
-        </div>
-        <button onClick={() => setModal({ type:"bucket", data:null })}
-          style={{ padding:"7px 14px", borderRadius:8, border:"1px solid "+T.green+"44", background:T.green+"15", color:T.green, cursor:"pointer", fontSize:12, fontWeight:600, WebkitTapHighlightColor:"transparent", flexShrink:0 }}>
-          + Szenario
-        </button>
-      </div>
-
-      {/* Summary bar */}
       {buckets.length > 0 && (
-        <div style={{ background:T.surface, border:"1px solid "+T.border, boxShadow:T.shadow, borderRadius:14, padding:"12px 14px" }}>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8 }}>
-            <div>
-              <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0, marginBottom:3 }}>Szenarien</div>
-              <div style={{ fontSize:16, fontWeight:650, color:T.text }}>{active.length}<span style={{ fontSize:11, color:T.textDim, fontWeight:400 }}>/{buckets.length}</span></div>
-              <div style={{ fontSize:13, color:T.textMid }}>aktiv</div>
-            </div>
-            <div>
-              <div style={{ fontSize:11, color:T.textLow, fontWeight:600, letterSpacing:0, marginBottom:3 }}>Gesamteffekt</div>
-              <div style={{ fontSize:16, fontWeight:650, color:totalImpact>=0?T.green:T.red }}>
-                {totalImpact>=0?"+":""}{fmtE(totalImpact)}
-              </div>
-              <div style={{ fontSize:13, color:T.textMid }}>am Horizont (ca.)</div>
-            </div>
-            <div>
-              <div style={{ fontSize:11, color:T.textLow, fontWeight:600, letterSpacing:0, marginBottom:3 }}>Mit Szenarien</div>
-              <div style={{ fontSize:16, fontWeight:650, color:T.accent }}>
-                {fmtE((final?.base||0) )}
-              </div>
-              <div style={{ fontSize:11, color:T.textDim }}>Basis-Prognose</div>
-            </div>
-          </div>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:12 }}>
+          <Tile label="Aktiv" value={active.length+" / "+buckets.length} T={T} />
+          <Tile label="Effekt (ca.)" value={(totalImpact>=0?"+":"")+fmtE(totalImpact)} T={T} />
+          <Tile label="Prognose" value={fmtE(final?.base||0)} T={T} />
         </div>
       )}
 
-      {/* Hint box */}
-      {buckets.length === 0 && (
-        <div style={{ background:T.surface, border:"1px dashed "+T.border, borderRadius:10, padding:32, textAlign:"center" }}>
-          <div style={{ fontSize:28, marginBottom:10 }}>⇄</div>
-          <div style={{ fontSize:13, fontWeight:600, color:T.textMid, marginBottom:6 }}>Noch keine Szenarien</div>
-          <div style={{ fontSize:12, color:T.textDim, marginBottom:6, lineHeight:1.7 }}>
-            Definiere Ereignisse und vergleiche deren Auswirkung auf dein Vermögen.
+      {buckets.length === 0 ? (
+        <Section title="Szenarien" action={addAction} T={T}>
+          <div style={{ fontSize:14, color:T.textLow, marginBottom:8, lineHeight:1.5 }}>
+            Plane Ereignisse und sieh, wie sie dein Vermögen verändern.
           </div>
-          <div style={{ display:"flex", flexDirection:"column", gap:5, marginBottom:20, textAlign:"left", background:T.surfaceHigh, borderRadius:8, padding:"10px 14px" }}>
-            {[
-              ["↓","Ausgabe","Autokauf, Renovierung, Schulgeld"],
-              ["↑","Zufluss","Erbschaft, Bonus, Immobilienverkauf"],
-              ["⇄","Einnahmenänderung","Gehaltserhöhung, Rente, Teilzeit"],
-              ["≡","Finanziert","Kreditrate reduziert Sparrate"],
-            ].map(([icon, label, ex]) => (
-              <div key={label} style={{ display:"flex", gap:8, alignItems:"center" }}>
-                <span style={{ fontSize:12, width:18, textAlign:"center" }}>{icon}</span>
-                <div>
-                  <span style={{ fontSize:12, fontWeight:600, color:T.textMid }}>{label}</span>
-                  <span style={{ fontSize:11, color:T.textDim }}> — {ex}</span>
-                </div>
-              </div>
-            ))}
+          {[
+            ["arrowUp","Ausgabe","Autokauf, Renovierung, Schulgeld"],
+            ["arrowDown","Zufluss","Erbschaft, Bonus, Immobilienverkauf"],
+            ["swap","Einnahmenänderung","Gehaltserhöhung, Rente, Teilzeit"],
+            ["card","Finanziert","Kreditrate reduziert die Sparrate"],
+          ].map(([icon, label, ex], i, arr) => (
+            <ListRow key={label} T={T} last={i === arr.length - 1}
+              leading={<Avatar icon={icon} color={T.surfaceHigh} fg={T.text} />} title={label} subtitle={ex} />
+          ))}
+          <div style={{ marginTop:20 }}>
+            <Btn full T={T} onClick={() => setModal({ type:"bucket", data:null })}>Erstes Szenario anlegen</Btn>
           </div>
-          <button onClick={() => setModal({ type:"bucket", data:null })}
-            style={{ padding:"10px 24px", borderRadius:8, border:"none", background:T.accent, color:T.onAccent, cursor:"pointer", fontSize:13, fontWeight:600 }}>
-            Erstes Szenario anlegen
-          </button>
-        </div>
-      )}
-
-      {/* Active scenarios */}
-      {active.length > 0 && (
-        <div>
-          <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0, marginBottom:8 }}>
-            Aktiv ({active.length}) — fließen in Projektion ein
+        </Section>
+      ) : (
+        <>
+          {active.length > 0 && (
+            <Section title="Aktiv" action={addAction} T={T}>
+              {active.map(renderRow)}
+            </Section>
+          )}
+          {inactive.length > 0 && (
+            <Section title="Deaktiviert" action={active.length === 0 ? addAction : undefined} T={T}>
+              {inactive.map(renderRow)}
+            </Section>
+          )}
+          <div style={{ fontSize:13, color:T.textLow, lineHeight:1.5 }}>
+            Aktive Szenarien fließen in die Projektion ein. Zum Vergleich einfach aus- und wieder einschalten.
           </div>
-          <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-            {active.map(b => <ScenarioCard key={b.id} b={b} />)}
-          </div>
-        </div>
-      )}
-
-      {/* Inactive scenarios */}
-      {inactive.length > 0 && (
-        <div>
-          <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0, marginBottom:8 }}>
-            Deaktiviert ({inactive.length}) — ausgeblendet aus Projektion
-          </div>
-          <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-            {inactive.map(b => <ScenarioCard key={b.id} b={b} />)}
-          </div>
-        </div>
-      )}
-
-      {/* Tip */}
-      {buckets.length > 0 && (
-        <div style={{ background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:8, padding:"10px 13px", fontSize:11, color:T.textDim, lineHeight:1.6 }}>
-          Tip: Deaktiviere ein Szenario, wechsle in den Tab <strong style={{ color:T.text }}>Projektion</strong> und vergleiche den Endwert — dann aktiviere wieder. So siehst du den direkten Einfluss.
-        </div>
+        </>
       )}
     </div>
   );

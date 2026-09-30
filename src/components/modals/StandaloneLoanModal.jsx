@@ -37,7 +37,7 @@ export default function StandaloneLoanModal({ data, s, T, setModal, updArr }) {
       </div>
 
       {debt > 0 && ann > 0 && (
-        <div style={{ background: T.surfaceHigh, border: "1px solid " + T.border, borderRadius: 8, padding: "10px 13px", marginBottom: 12 }}>
+        <div style={{ background:"transparent", border:"1px solid "+T.border, borderRadius:16, padding: "10px 13px", marginBottom: 12 }}>
           <div style={{ fontSize:13, color: T.textMid, fontWeight:600, letterSpacing:0, marginBottom: 6 }}>Vorschau</div>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
             <span style={{ fontSize:12, color: T.textMid }}>Monatsrate</span>
@@ -69,6 +69,11 @@ export default function StandaloneLoanModal({ data, s, T, setModal, updArr }) {
         else updArr("standaloneLoans", [...(s.standaloneLoans||[]), st]);
         setModal(null);
       }}>Speichern</Btn>
+      {data?.id && (s.standaloneLoans||[]).some(x => x.id === data.id) && (
+        <div style={{ marginTop:10 }}>
+          <Btn full danger T={T} onClick={() => { updArr("standaloneLoans", (s.standaloneLoans||[]).filter(x => x.id !== data.id)); setModal(null); }}>Darlehen löschen</Btn>
+        </div>
+      )}
     </Sheet>
   );
 }

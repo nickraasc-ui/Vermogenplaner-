@@ -68,24 +68,21 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
 
   const rowStyle = { display: "flex", gap: 8, marginBottom: 8, alignItems: "center" };
   const nativeSelect = {
-    flex: 2, background: T.surface, border: "1px solid " + T.border,
-    borderRadius: 6, color: T.text, padding: "6px 8px", fontSize:12,
+    flex: 2, background: T.field, border: "1px solid transparent", borderRadius: 10, color: T.text, padding: "10px 12px", fontSize:15,
   };
   const nativeInput = {
-    flex: 1, background: T.surface, border: "1px solid " + T.border,
-    borderRadius: 6, color: T.text, padding: "6px 8px", fontSize:12, minWidth: 0,
+    flex: 1, background: T.field, border: "1px solid transparent", borderRadius: 10, color: T.text, padding: "10px 12px", fontSize:15, minWidth: 0,
   };
   const sectionBox = {
-    background: T.surfaceHigh, border: "1px solid " + T.border,
-    borderRadius: 8, padding: 12, marginBottom: 12,
+    background: "transparent", border: "1px solid " + T.border, borderRadius: 16, padding: 14, marginBottom: 12,
   };
   const sectionLabel = {
-    fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0, marginBottom: 10,
+    fontSize:16, color:T.text, fontWeight:700, letterSpacing:"-0.02em", marginBottom: 10,
   };
   const addRowBtn = {
-    background: "transparent", border: "1px solid " + T.border,
-    borderRadius: 6, color: T.textMid, padding: "5px 12px",
-    cursor: "pointer", fontSize:12, width: "100%", marginTop: 4,
+    background: T.field, border: "none",
+    borderRadius: 999, color: T.text, padding: "10px 14px", fontWeight: 600,
+    cursor: "pointer", fontSize:14, width: "100%", marginTop: 4,
   };
 
   return (
@@ -144,8 +141,8 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
       <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
         {LIQUIDITY_CATS.map(l => (
           <div key={l} onClick={() => set({ liquidity: l })}
-            style={{ flex: 1, padding: "7px 4px", borderRadius: 7, border: "2px solid " + (f.liquidity === l ? LIQ_CLR[l] : T.border), background: f.liquidity === l ? LIQ_CLR[l] + "18" : "transparent", cursor: "pointer", textAlign: "center" }}>
-            <div style={{ fontSize:11, fontWeight:600, color: f.liquidity === l ? LIQ_CLR[l] : T.textLow }}>{l}</div>
+            style={{ flex: 1, padding: "10px 4px", borderRadius: 999, border: "none", background: f.liquidity === l ? T.accent : T.field, cursor: "pointer", textAlign: "center" }}>
+            <div style={{ fontSize:14, fontWeight:600, color: f.liquidity === l ? T.onAccent : T.text }}>{l}</div>
           </div>
         ))}
       </div>
@@ -220,11 +217,11 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
           {/* Calculated results */}
           {(+f.manualAnnuitat || calcAnnuitat) > 0 && (
             <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:6, marginTop:4 }}>
-              <div style={{ background:T.bg, borderRadius:6, padding:"7px 8px" }}>
+              <div style={{ background:T.field, borderRadius:10, padding:"9px 10px" }}>
                 <div style={{ fontSize:11, color:T.textDim, marginBottom:2 }}>Annuität/Mo.{+f.manualAnnuitat > 0 ? " (manuell)" : ""}</div>
                 <div style={{ fontSize:12, fontWeight:600, color:T.accent }}>{full(+f.manualAnnuitat || calcAnnuitat)}</div>
               </div>
-              <div style={{ background:T.bg, borderRadius:6, padding:"7px 8px" }}>
+              <div style={{ background:T.field, borderRadius:10, padding:"9px 10px" }}>
                 <div style={{ fontSize:11, color:T.textDim, marginBottom:2 }}>
                   {f.loanType==="endfaellig" ? "Zinsen/Mo." : "Tilgung/Mo."}
                 </div>
@@ -232,7 +229,7 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
                   {f.loanType==="endfaellig" ? full(calcMonthlyInterest) : full(calcTilgung)}
                 </div>
               </div>
-              <div style={{ background:T.bg, borderRadius:6, padding:"7px 8px" }}>
+              <div style={{ background:T.field, borderRadius:10, padding:"9px 10px" }}>
                 <div style={{ fontSize:11, color:T.textDim, marginBottom:2 }}>
                   {f.loanType==="endfaellig" ? "Gesamtzinsen" : "Tilgung % p.a."}
                 </div>
@@ -257,8 +254,8 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
 
       {/* Ausschüttungsrendite (Dividenden, Kupons) — nur für Finanzassets */}
       {!isImmo && !isFord && (
-        <div style={{ background: T.surfaceHigh, border: "1px solid " + T.border, borderRadius: 8, padding: 12, marginBottom: 12 }}>
-          <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0, marginBottom: 8 }}>Ausschüttungen / Cashflow</div>
+        <div style={{ background:"transparent", border:"1px solid "+T.border, borderRadius:16, padding: 12, marginBottom: 12 }}>
+          <div style={{ fontSize:16, color:T.text, fontWeight:700, letterSpacing:"-0.02em", marginBottom: 8 }}>Ausschüttungen / Cashflow</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <Inp label="Ausschüttungsrendite %/J." value={f.yieldPct ?? "0"}
               onChange={v => set({ yieldPct: v })} type="number" placeholder="0 = thesaurierend" T={T} />
@@ -407,6 +404,11 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
         else updArr("assets", [...s.assets, asset]);
         setModal(null);
       }}>Speichern</Btn>
+      {data?.id && (s.assets||[]).some(x => x.id === data.id) && (
+        <div style={{ marginTop:10 }}>
+          <Btn full danger T={T} onClick={() => { updArr("assets", (s.assets||[]).filter(x => x.id !== data.id)); setModal(null); }}>Position löschen</Btn>
+        </div>
+      )}
     </Sheet>
   );
 }

@@ -41,8 +41,8 @@ export default function CheckinModal({ s, cf, T, setModal, updArr, cashflowProje
 
       {/* Prognose-Referenz für das gewählte Jahr */}
       {proj.avail !== undefined && (
-        <div style={{ background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:8, padding:"10px 12px", marginBottom:14 }}>
-          <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0, marginBottom:8 }}>
+        <div style={{ background:"transparent", border:"1px solid "+T.border, borderRadius:16, padding:"10px 12px", marginBottom:14 }}>
+          <div style={{ fontSize:16, color:T.text, fontWeight:700, letterSpacing:"-0.02em", marginBottom:8 }}>
             Prognose {year}{proj.age ? ` · Alter ${proj.age}` : ""}
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:10 }}>
@@ -85,7 +85,7 @@ export default function CheckinModal({ s, cf, T, setModal, updArr, cashflowProje
         </div>
       )}
 
-      <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0, marginBottom:12 }}>IST-Werte erfassen</div>
+      <div style={{ fontSize:16, color:T.text, fontWeight:700, letterSpacing:"-0.02em", marginBottom:12 }}>IST-Werte erfassen</div>
 
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:4 }}>
         <div>

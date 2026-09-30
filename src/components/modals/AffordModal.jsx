@@ -87,8 +87,8 @@ export default function AffordModal({ s, cf, agg, final, T, setModal, updArr }) 
       <Inp label="Betrag (EUR)" value={amt} onChange={setAmt} type="number" placeholder="0" T={T} />
 
       {/* Wachstumsbasis immer zeigen */}
-      <div style={{ background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:8, padding:"10px 13px", marginBottom:10 }}>
-        <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0, marginBottom:8 }}>Dein Vermögenswachstum</div>
+      <div style={{ background:"transparent", border:"1px solid "+T.border, borderRadius:16, padding:"10px 13px", marginBottom:10 }}>
+        <div style={{ fontSize:16, color:T.text, fontWeight:700, letterSpacing:"-0.02em", marginBottom:8 }}>Dein Vermögenswachstum</div>
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
           <div>
             <div style={{ fontSize:11, color:T.textDim }}>Jahreswachstum ({agg.wavgReturn.toFixed(1)}%)</div>
@@ -116,16 +116,16 @@ export default function AffordModal({ s, cf, agg, final, T, setModal, updArr }) 
 
           {/* Details je nach Typ */}
           {type === "Einmalig" && (
-            <div style={{ background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:8, padding:13, marginBottom:10 }}>
-              <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0, marginBottom:8 }}>Finanzierungswege</div>
+            <div style={{ background:"transparent", border:"1px solid "+T.border, borderRadius:16, padding:13, marginBottom:10 }}>
+              <div style={{ fontSize:16, color:T.text, fontWeight:700, letterSpacing:"-0.02em", marginBottom:8 }}>Finanzierungswege</div>
               <Row label="Aus Wachstum (Monate)" value={monthlyGrowthEUR > 0 ? (amount/monthlyGrowthEUR).toFixed(1)+" Mo." : "—"} type={amount <= annualGrowthEUR ? "in" : "warn"} T={T} />
               <Row label="Aus Sparrate ansparen" value={(cf.eff||0) > 0 ? Math.ceil(amount/cf.eff)+" Mo." : "—"} T={T} />
               <Row label="Cash vorhanden" value={fmtE(liquidCash)} type={liquidCash >= amount ? "in" : "out"} T={T} />
             </div>
           )}
           {(type === "Monatlich" || type === "Jährlich") && (
-            <div style={{ background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:8, padding:13, marginBottom:10 }}>
-              <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0, marginBottom:8 }}>Cashflow-Impact</div>
+            <div style={{ background:"transparent", border:"1px solid "+T.border, borderRadius:16, padding:13, marginBottom:10 }}>
+              <div style={{ fontSize:16, color:T.text, fontWeight:700, letterSpacing:"-0.02em", marginBottom:8 }}>Cashflow-Impact</div>
               <Row label="Kosten/Mo." value={full(monthly)} type="out" T={T} />
               <Row label="Wachstum/Mo." value={full(monthlyGrowthEUR)} type="in" T={T} />
               <Row label="Aktueller Saldo" value={full(cf.saldo||0)} type={cf.saldo >= 0 ? "in" : "out"} T={T} />
@@ -134,8 +134,8 @@ export default function AffordModal({ s, cf, agg, final, T, setModal, updArr }) 
           )}
 
           {/* Langfristiger Effekt */}
-          <div style={{ background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:8, padding:13, marginBottom:12 }}>
-            <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0, marginBottom:4 }}>Langfristiger Effekt ({s.horizon} J.)</div>
+          <div style={{ background:"transparent", border:"1px solid "+T.border, borderRadius:16, padding:13, marginBottom:12 }}>
+            <div style={{ fontSize:16, color:T.text, fontWeight:700, letterSpacing:"-0.02em", marginBottom:4 }}>Langfristiger Effekt ({s.horizon} J.)</div>
             <div style={{ fontSize:11, color:T.textDim, marginBottom:8 }}>Opportunitätskosten bei {agg.wavgReturn.toFixed(1)}% gew. Ø-Rendite</div>
             <Row label="Projektion ohne" value={fmtE(baseEnd)} T={T} />
             <Row label="Entgangenes Wachstum" value={"−"+fmtE(impact)} type="out" T={T} />

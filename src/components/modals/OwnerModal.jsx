@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sheet, Inp, SelEl, Btn, uid, IconBtn } from "../ui.jsx";
+import { Sheet, Inp, SelEl, Btn, uid, IconBtn, Icon } from "../ui.jsx";
 import { OWNER_TYPES, MARITAL_PROPERTY_OPTIONS, CY } from "../../constants.js";
 
 export default function OwnerModal({ s, T, setModal, upd }) {
@@ -34,11 +34,11 @@ export default function OwnerModal({ s, T, setModal, upd }) {
     upd({ owners: owners.map(o => o.id === ownerId ? { ...o, ...patch } : o) });
   };
 
-  const sectionBox = { background: T.surfaceHigh, border: "1px solid " + T.border, borderRadius: 8, padding: 12, marginBottom: 14 };
+  const sectionBox = { background:"transparent", border:"1px solid "+T.border, borderRadius:16, padding: 12, marginBottom: 14 };
   const sectionLabel = { fontSize:13, color: T.textMid, fontWeight:600, letterSpacing:0, marginBottom: 10 };
-  const nativeSelect = { flex: 2, background: T.surface, border: "1px solid " + T.border, borderRadius: 6, color: T.text, padding: "6px 8px", fontSize:12 };
-  const nativeInput = { flex: 1, background: T.surface, border: "1px solid " + T.border, borderRadius: 6, color: T.text, padding: "6px 8px", fontSize:12, minWidth: 0 };
-  const addRowBtn = { background: "transparent", border: "1px solid " + T.border, borderRadius: 6, color: T.textMid, padding: "5px 12px", cursor: "pointer", fontSize:12, width: "100%", marginTop: 4 };
+  const nativeSelect = { flex: 2, background: T.field, border: "1px solid transparent", borderRadius: 10, color: T.text, padding: "10px 12px", fontSize:15 };
+  const nativeInput = { flex: 1, background: T.field, border: "1px solid transparent", borderRadius: 10, color: T.text, padding: "10px 12px", fontSize:15, minWidth: 0 };
+  const addRowBtn = { background: T.field, border: "none", borderRadius: 999, color: T.text, padding: "10px 14px", fontWeight: 600, cursor: "pointer", fontSize:14, width: "100%", marginTop: 4 };
 
   return (
     <Sheet title="Eigentümer verwalten" onClose={() => setModal(null)} T={T}>
@@ -73,7 +73,7 @@ export default function OwnerModal({ s, T, setModal, upd }) {
         const otherOwners = owners.filter(x => x.id !== o.id);
 
         return (
-          <div key={o.id} style={{ background: T.surfaceHigh, border: "1px solid " + T.border, borderRadius: 8, padding: 12, marginBottom: 10 }}>
+          <div key={o.id} style={{ background:"transparent", border:"1px solid "+T.border, borderRadius:16, padding: 12, marginBottom: 10 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}
               onClick={() => setExpanded(isExpanded ? null : o.id)}>
               <div>
@@ -82,7 +82,7 @@ export default function OwnerModal({ s, T, setModal, upd }) {
                   <span style={{ fontSize:11, color: T.textDim, background: T.surface, padding: "1px 5px", borderRadius: 3 }}>{o.type || "Person"}</span>
                 </div>
                 <div style={{ fontSize:11, color: T.textDim, marginTop: 1 }}>
-                  {inUse ? assetCount + " Position(en)" : "Keine Positionen"} {isExpanded ? "▲" : "▼"}
+                  {inUse ? assetCount + " Position(en)" : "Keine Positionen"} <span style={{ display:"inline-block", transform:(isExpanded)?"rotate(180deg)":"none", transition:"transform .2s" }}><Icon name="down" size={18} /></span>
                 </div>
               </div>
               {!inUse && (

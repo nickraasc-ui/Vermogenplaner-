@@ -1,21 +1,24 @@
 import { ASSET_CLASS_DEFAULTS, CY } from "./constants.js";
 
 // Design tokens. Values must stay 6-digit hex: components append 2-digit alpha (e.g. T.accent+"22").
+// Monochrome, Trade-Republic-like: content sits directly on the background; colour only carries meaning.
 export const DARK = {
-  bg:"#0d0e11", surface:"#15171b", surfaceHigh:"#1c1e23",
-  border:"#25282e", borderHigh:"#32363e",
-  text:"#ececf0", textMid:"#a4a8b3", textLow:"#878b97", textDim:"#6a6e7a",
-  accent:"#6c9cff", green:"#3cbf8a", red:"#ec6a6a", amber:"#e3aa45",
-  purple:"#a28bf6", pink:"#e27aa8", tabBar:"#111316", tabBorder:"#22252b", header:"#0d0e11",
-  shadow:"0 1px 2px rgba(0,0,0,0.4)", onAccent:"#0b1226",
+  bg:"#000000", surface:"#000000", surfaceHigh:"#141414", field:"#1c1c1e", sheet:"#0f0f10",
+  border:"#1f1f21", borderHigh:"#2c2c2e",
+  text:"#ffffff", textMid:"#a1a1a6", textLow:"#8e8e93", textDim:"#6c6c70",
+  accent:"#ffffff", onAccent:"#000000",
+  green:"#2fce75", red:"#ff5b52", amber:"#f5a623", purple:"#a594ff", pink:"#ff82b4",
+  tabBar:"#000000", tabBorder:"#1f1f21", header:"#000000",
+  shadow:"none",
 };
 export const LIGHT = {
-  bg:"#f4f5f7", surface:"#ffffff", surfaceHigh:"#f8f9fb",
-  border:"#e4e6eb", borderHigh:"#d3d7de",
-  text:"#12151c", textMid:"#4a5160", textLow:"#666d7b", textDim:"#949aa6",
-  accent:"#2f63d6", green:"#14865a", red:"#cf3f3f", amber:"#b27418",
-  purple:"#6a4cd6", pink:"#c0407e", tabBar:"#ffffff", tabBorder:"#e4e6eb", header:"#f4f5f7",
-  shadow:"0 1px 2px rgba(16,24,40,0.05)", onAccent:"#ffffff",
+  bg:"#ffffff", surface:"#ffffff", surfaceHigh:"#f4f4f5", field:"#f2f2f4", sheet:"#ffffff",
+  border:"#ececee", borderHigh:"#dcdce0",
+  text:"#0a0a0a", textMid:"#636366", textLow:"#6e6e73", textDim:"#a1a1a6",
+  accent:"#0a0a0a", onAccent:"#ffffff",
+  green:"#0d9c55", red:"#e0342b", amber:"#c27a0a", purple:"#6b52e0", pink:"#c0407e",
+  tabBar:"#ffffff", tabBorder:"#ececee", header:"#ffffff",
+  shadow:"none",
 };
 
 export const DEFAULT_CLASS_RETURNS = Object.fromEntries(

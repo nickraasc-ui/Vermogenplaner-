@@ -1,3 +1,9 @@
+import {
+  Pencil, X, Trash2, ChevronLeft, ChevronRight, ChevronDown, Plus, Sun, Moon, CircleHelp,
+  House, Wallet, PieChart as PieIcon, ChartLine, Layers, TrendingUp, Landmark, Gem, Bitcoin,
+  Briefcase, HandCoins, Package, Download, Upload, Users, Camera, CalendarCheck, ArrowDown, ArrowUp,
+  ArrowLeftRight, CreditCard, User, Building2, Handshake,
+} from "lucide-react";
 export const fmtE = (v) => {
   if (!v && v !== 0) return "\u20AC0";
   const a = Math.abs(v);
@@ -13,82 +19,139 @@ export const mlbl = (ym) => {
 };
 export const pct = (v) => (v >= 0 ? "+" : "") + v.toFixed(1) + "%";
 
-// Shared label style: sentence case, readable size
-export const labelStyle = (T) => ({ fontSize:12, color:T.textMid, fontWeight:500, display:"block", marginBottom:6 });
+
+
+// Shared label style for form fields
+export const labelStyle = (T) => ({ fontSize:13, color:T.textMid, fontWeight:500, display:"block", marginBottom:6 });
 
 const ICONS = {
-  edit:  "M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17v3zM13.5 6.5l3 3",
-  close: "M6 6l12 12M18 6L6 18",
-  trash: "M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3",
-  back:  "M15 18l-6-6 6-6",
-  plus:  "M12 5v14M5 12h14",
-  sun:   "M12 4V2M12 22v-2M4.9 4.9 3.5 3.5M20.5 20.5l-1.4-1.4M4 12H2M22 12h-2M4.9 19.1l-1.4 1.4M20.5 3.5l-1.4 1.4M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0z",
-  moon:  "M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z",
-  home:  "M3 11l9-7 9 7M5 10v10h14V10",
-  wallet:"M3 7h15a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V7zm0 0V6a2 2 0 0 1 2-2h11M16 14h.01",
-  pie:   "M12 3v9h9M21 12a9 9 0 1 1-9-9",
-  chart: "M3 20h18M6 16l4-5 4 3 5-7",
-  layers:"M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5",
-  help:  "M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z",
-  chevron:"M9 18l6-6-6-6",
+  edit:Pencil, close:X, trash:Trash2, back:ChevronLeft, chevron:ChevronRight, down:ChevronDown, plus:Plus,
+  sun:Sun, moon:Moon, help:CircleHelp, home:House, wallet:Wallet, pie:PieIcon, chart:ChartLine, layers:Layers,
+  download:Download, upload:Upload, users:Users, camera:Camera, checkin:CalendarCheck,
+  arrowDown:ArrowDown, arrowUp:ArrowUp, swap:ArrowLeftRight, card:CreditCard, user:User, building:Building2,
+  handshake:Handshake, trend:TrendingUp, bank:Landmark,
 };
-export const Icon = ({ name, size=18, color="currentColor", stroke=1.8 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={stroke}
-    strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink:0, display:"block" }}>
-    <path d={ICONS[name]} />
-  </svg>
-);
+export const Icon = ({ name, size=18, color="currentColor", stroke=1.8 }) => {
+  const C = ICONS[name] || Package;
+  return <C size={size} color={color} strokeWidth={stroke} aria-hidden="true" style={{ flexShrink:0, display:"block" }} />;
+};
+
+// Asset-class "logo": filled circle with an icon, like broker app instrument logos
+const CLASS_ICONS = {
+  "Aktien":TrendingUp, "Aktien-ETF":PieIcon, "Anleihen":Landmark, "Anleihen-ETF":Layers, "Immobilien":House,
+  "Cash":Wallet, "Rohstoffe":Gem, "Krypto":Bitcoin, "Private Equity":Briefcase, "Forderung":HandCoins, "Sonstiges":Package,
+};
+export const Avatar = ({ cls, icon, text, color, fg="#fff", size=40 }) => {
+  const C = icon ? (ICONS[icon] || Package) : (CLASS_ICONS[cls] || null);
+  return (
+    <div style={{ width:size, height:size, borderRadius:"50%", background:color, color:fg, flexShrink:0,
+      display:"flex", alignItems:"center", justifyContent:"center", fontSize:size*0.36, fontWeight:700 }}>
+      {C ? <C size={size*0.46} strokeWidth={2} aria-hidden="true" /> : text}
+    </div>
+  );
+};
 
 export const IconBtn = ({ icon, onClick, label, danger=false, T, size=32 }) => (
-  <button type="button" onClick={onClick} aria-label={label} title={label} className="vp-iconbtn"
+  <button type="button" onClick={e => { e.stopPropagation(); onClick?.(e); }} aria-label={label} title={label}
     style={{ width:size, height:size, display:"inline-flex", alignItems:"center", justifyContent:"center",
-      borderRadius:8, border:"1px solid "+T.border, background:T.surface, cursor:"pointer", flexShrink:0,
-      color: danger ? T.red : T.textMid, padding:0, WebkitTapHighlightColor:"transparent" }}>
-    <Icon name={icon} size={15} />
+      borderRadius:"50%", border:"none", background:"transparent", cursor:"pointer", flexShrink:0,
+      color: danger ? T.textDim : T.textMid, padding:0, WebkitTapHighlightColor:"transparent" }}>
+    <Icon name={icon} size={17} />
   </button>
 );
 
-export const Sl = ({ label, value, min, max, step, onChange, fmt: f, color, note, warn, T, sub }) => (
-  <div>
-    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:4 }}>
-      <label style={{ fontSize:13, color:T.textMid, fontWeight:500 }}>{label}</label>
-      <span className="vp-num" style={{ fontSize:15, fontWeight:600, color: warn ? T.red : (color || T.text) }}>{f(value)}</span>
+// Round filled icon button (header actions, quick actions)
+export const RoundBtn = ({ icon, onClick, label, T, size=40 }) => (
+  <button type="button" onClick={onClick} aria-label={label} title={label}
+    style={{ width:size, height:size, borderRadius:"50%", border:"none", background:T.surfaceHigh, color:T.text,
+      display:"inline-flex", alignItems:"center", justifyContent:"center", cursor:"pointer", flexShrink:0, padding:0,
+      WebkitTapHighlightColor:"transparent" }}>
+    <Icon name={icon} size={18} />
+  </button>
+);
+
+// Section: bold heading on the page background, optional action on the right
+export const Section = ({ title, action, children, T, style={} }) => (
+  <section style={{ marginTop:8, ...style }}>
+    {(title || action) && (
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:12, marginBottom:8, minHeight:32 }}>
+        <h2 style={{ fontSize:20, fontWeight:700, color:T.text, letterSpacing:"-0.02em", margin:0 }}>{title}</h2>
+        {action}
+      </div>
+    )}
+    {children}
+  </section>
+);
+
+// Flat list row: leading avatar, title/subtitle, value on the right
+export const ListRow = ({ leading, title, subtitle, value, valueSub, valueSubColor, onClick, trailing, T, last=false }) => (
+  <div onClick={onClick} className={onClick ? "vp-row" : undefined}
+    style={{ display:"flex", alignItems:"center", gap:14, padding:"12px 0", cursor:onClick?"pointer":"default",
+      borderBottom: last ? "none" : "1px solid "+T.border, WebkitTapHighlightColor:"transparent" }}>
+    {leading}
+    <div style={{ flex:1, minWidth:0 }}>
+      <div style={{ fontSize:15, fontWeight:600, color:T.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{title}</div>
+      {subtitle && <div style={{ fontSize:13, color:T.textLow, marginTop:2, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{subtitle}</div>}
     </div>
-    {note && <div style={{ fontSize:12, color:T.textLow, marginBottom:4 }}>{note}</div>}
-    {sub && <div style={{ fontSize:12, color:T.accent, marginBottom:4 }}>{sub}</div>}
+    {(value !== undefined || valueSub) && (
+      <div style={{ textAlign:"right", flexShrink:0 }}>
+        {value !== undefined && <div className="vp-num" style={{ fontSize:15, fontWeight:600, color:T.text }}>{value}</div>}
+        {valueSub && <div className="vp-num" style={{ fontSize:13, color:valueSubColor || T.textLow, marginTop:2 }}>{valueSub}</div>}
+      </div>
+    )}
+    {trailing}
+  </div>
+);
+
+// Text-style action in section headers ("Hinzufügen")
+export const LinkBtn = ({ children, onClick, T }) => (
+  <button type="button" onClick={onClick}
+    style={{ background:"none", border:"none", padding:"6px 0", color:T.text, fontSize:14, fontWeight:600, cursor:"pointer", display:"inline-flex", alignItems:"center", gap:4 }}>
+    {children}
+  </button>
+);
+
+export const Sl = ({ label, value, min, max, step, onChange, fmt: f, color, note, warn, T, sub, hideHead=false }) => (
+  <div>
+    {!hideHead && <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:4 }}>
+      <label style={{ fontSize:14, color:T.textMid, fontWeight:500 }}>{label}</label>
+      <span className="vp-num" style={{ fontSize:15, fontWeight:600, color: warn ? T.red : T.text }}>{f(value)}</span>
+    </div>}
+    {note && <div style={{ fontSize:13, color:T.textLow, marginBottom:4 }}>{note}</div>}
+    {sub && <div style={{ fontSize:13, color:T.textMid, marginBottom:4 }}>{sub}</div>}
     <input type="range" min={min} max={max} step={step} value={value}
       onChange={e => onChange(Number(e.target.value))}
       className="vp-range"
       style={{
-        "--vp-fill": warn ? T.red : (color || T.accent),
-        "--vp-track": T.border,
+        "--vp-fill": warn ? T.red : T.text,
+        "--vp-track": T.borderHigh,
         "--vp-pct": `${Math.min(100, Math.max(0, ((value - min) / ((max - min) || 1)) * 100))}%`,
-        "--vp-thumb-ring": T.surface,
+        "--vp-thumb-ring": T.bg,
       }} />
-    <div className="vp-num" style={{ display:"flex", justifyContent:"space-between", fontSize:11, color:T.textDim, marginTop:2 }}>
+    <div className="vp-num" style={{ display:"flex", justifyContent:"space-between", fontSize:12, color:T.textDim, marginTop:2 }}>
       <span>{f(min)}</span><span>{f(max)}</span>
     </div>
   </div>
 );
 
-export const Tile = ({ label, value, sub, color, warn=false, onClick, T }) => (
-  <div onClick={onClick} className={onClick ? "vp-hover" : undefined}
-    style={{ background:T.surface, border:"1px solid "+(warn?T.red+"55":T.border), borderRadius:12, padding:"12px 14px", cursor:onClick?"pointer":"default", boxShadow:T.shadow, minWidth:0 }}>
-    <div style={{ fontSize:12, color:T.textLow, fontWeight:500, marginBottom:4 }}>{label}</div>
-    <div className="vp-num" style={{ fontSize:17, fontWeight:600, letterSpacing:"-0.01em", color: warn ? T.red : (color || T.text) }}>{value}</div>
-    {sub && <div style={{ fontSize:12, color:T.textLow, marginTop:3, lineHeight:1.4 }}>{sub}</div>}
+// Stat: plain label + number, no box
+export const Tile = ({ label, value, sub, warn=false, onClick, T }) => (
+  <div onClick={onClick} style={{ padding:"4px 0", cursor:onClick?"pointer":"default", minWidth:0 }}>
+    <div style={{ fontSize:13, color:T.textLow, fontWeight:500, marginBottom:3 }}>{label}</div>
+    <div className="vp-num" style={{ fontSize:18, fontWeight:650, letterSpacing:"-0.015em", color: warn ? T.red : T.text }}>{value}</div>
+    {sub && <div style={{ fontSize:13, color:T.textLow, marginTop:2, lineHeight:1.4 }}>{sub}</div>}
   </div>
 );
 
 export const ChTip = ({ active, payload, label, T }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div style={{ background:T.surface, border:"1px solid "+T.border, boxShadow:T.shadow, borderRadius:14, padding:"10px 12px", fontSize:12, boxShadow:"0 8px 24px rgba(0,0,0,0.18)" }}>
+    <div style={{ background:T.sheet, border:"1px solid "+T.border, borderRadius:12, padding:"10px 12px", fontSize:13, boxShadow:"0 8px 24px rgba(0,0,0,0.25)" }}>
       <div style={{ fontWeight:600, color:T.text, marginBottom:6 }}>Alter {label}</div>
       {payload.map(p => (
         <div key={p.name} style={{ display:"flex", justifyContent:"space-between", gap:16, marginBottom:3 }}>
           <span style={{ display:"flex", alignItems:"center", gap:6, color:T.textMid }}>
-            <span style={{ width:8, height:8, borderRadius:2, background:p.color }} />{p.name}
+            <span style={{ width:8, height:8, borderRadius:"50%", background:p.color }} />{p.name}
           </span>
           <span className="vp-num" style={{ fontWeight:600, color:T.text }}>{fmtE(p.value)}</span>
         </div>
@@ -100,20 +163,20 @@ export const ChTip = ({ active, payload, label, T }) => {
 export const Sheet = ({ title, onClose, children, T }) => (
   <div className="vp-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
     <div className="vp-sheet" role="dialog" aria-label={typeof title === "string" ? title : undefined}
-      style={{ background:T.surface, border:"1px solid "+T.border }}>
-      <div style={{ padding:"10px 20px 0", position:"sticky", top:0, background:T.surface, zIndex:1 }}>
+      style={{ background:T.sheet }}>
+      <div style={{ padding:"10px 20px 0", position:"sticky", top:0, background:T.sheet, zIndex:1 }}>
         <div className="vp-grabber" style={{ background:T.borderHigh }} />
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:12, padding:"6px 0 14px" }}>
-          <div style={{ fontWeight:600, fontSize:17, color:T.text, letterSpacing:"-0.01em" }}>{title}</div>
-          <IconBtn icon="close" label="Schließen" onClick={onClose} T={T} />
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:12, padding:"8px 0 16px" }}>
+          <div style={{ fontWeight:700, fontSize:22, color:T.text, letterSpacing:"-0.02em" }}>{title}</div>
+          <RoundBtn icon="close" label="Schließen" onClick={onClose} T={T} size={34} />
         </div>
       </div>
-      <div style={{ padding:"4px 20px 24px" }}>{children}</div>
+      <div style={{ padding:"0 20px 28px" }}>{children}</div>
     </div>
   </div>
 );
 
-const fieldStyle = (T) => ({ width:"100%", background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:10, padding:"11px 12px", color:T.text, fontSize:16, outline:"none", fontFamily:"inherit", WebkitAppearance:"none" });
+const fieldStyle = (T) => ({ width:"100%", background:T.field, border:"1px solid transparent", borderRadius:12, padding:"13px 14px", color:T.text, fontSize:16, outline:"none", fontFamily:"inherit", WebkitAppearance:"none" });
 
 export const Inp = ({ label, value, onChange, type="text", placeholder="", T, ...rest }) => (
   <div style={{ marginBottom:14 }}>
@@ -138,45 +201,47 @@ export const SelEl = ({ label, value, onChange, options, T }) => (
 
 // Legacy call sites pass "edit" / "x" / "×" as children — render those as icons
 const ICON_CHILD = { edit:"edit", x:"close", "×":"close" };
+// Legacy labels start with text arrows / plus signs — drop them, pills carry no glyph prefixes
+const cleanLabel = (c) => typeof c === "string" ? c.replace(/^[+↓↑]\s*/, "") : c;
 
+// Pill button. Primary (accent/default) = solid; others = neutral grey fill; danger = red text.
 export const Btn = ({ children, onClick, color, full=false, sm=false, danger=false, T }) => {
   const iconName = typeof children === "string" ? ICON_CHILD[children] : null;
   if (iconName) {
-    return <IconBtn icon={iconName} danger={danger} label={iconName === "edit" ? "Bearbeiten" : "Entfernen"}
+    return <IconBtn icon={iconName === "close" ? "trash" : "edit"} danger={danger} label={iconName === "edit" ? "Bearbeiten" : "Entfernen"}
       onClick={onClick} T={T} size={sm ? 32 : 40} />;
   }
-  const c = danger ? T.red : (color || T.accent);
+  const primary = !danger && (full || !color || color === T.accent);
   return (
-    <button type="button" onClick={onClick} className="vp-btn" style={{
-      padding: sm ? "6px 12px" : "11px 18px", borderRadius: sm ? 8 : 10,
-      border:"1px solid "+c+"33",
-      background: c+"14",
-      color: c,
-      cursor:"pointer", fontSize:sm?13:15, fontWeight:600, fontFamily:"inherit", lineHeight:1.3,
+    <button type="button" onClick={onClick} style={{
+      padding: sm ? "7px 14px" : "14px 20px", borderRadius:999, border:"none",
+      background: primary ? T.accent : danger && full ? "transparent" : T.surfaceHigh,
+      color: primary ? T.onAccent : danger ? T.red : T.text,
+      cursor:"pointer", fontSize:sm?13:16, fontWeight:600, fontFamily:"inherit", lineHeight:1.25,
       width:full?"100%":"auto", WebkitTapHighlightColor:"transparent", whiteSpace:"nowrap",
-    }}>{children}</button>
+    }}>{cleanLabel(children)}</button>
   );
 };
 
-export const Card = ({ children, T, style={} }) => (
-  <div style={{ background:T.surface, border:"1px solid "+T.border, borderRadius:14, padding:16, boxShadow:T.shadow, ...style }}>
-    {children}
-  </div>
-);
+// Former card container: now an unboxed block (spacing does the grouping)
+export const Card = ({ children, T, style={} }) => {
+  const { padding, border, background, borderRadius, boxShadow, ...rest } = style;
+  return <div style={{ padding:"4px 0", ...rest }}>{children}</div>;
+};
 
-export const CardLabel = ({ children, T, mb=12 }) => (
-  <div style={{ fontSize:14, color:T.text, fontWeight:600, marginBottom:mb, letterSpacing:"-0.005em" }}>
+export const CardLabel = ({ children, T, mb=10 }) => (
+  <h2 style={{ fontSize:20, color:T.text, fontWeight:700, margin:0, marginBottom:mb, letterSpacing:"-0.02em" }}>
     {children}
-  </div>
+  </h2>
 );
 
 export const Row = ({ label, value, type="neutral", bold=false, sub, T }) => (
-  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", padding:"9px 0", borderBottom:"1px solid "+T.border }}>
+  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", padding:"11px 0", borderBottom:"1px solid "+T.border }}>
     <div style={{ minWidth:0 }}>
-      <div style={{ fontSize:14, color:bold?T.text:T.textMid, fontWeight:bold?600:400 }}>{label}</div>
-      {sub && <div style={{ fontSize:12, color:T.textLow, marginTop:2 }}>{sub}</div>}
+      <div style={{ fontSize:15, color:bold?T.text:T.textMid, fontWeight:bold?650:400 }}>{label}</div>
+      {sub && <div style={{ fontSize:13, color:T.textLow, marginTop:2 }}>{sub}</div>}
     </div>
-    <div className="vp-num" style={{ fontSize:bold?15:14, fontWeight:bold?650:500, color:type==="in"?T.green:type==="out"?T.red:type==="warn"?T.red:(bold?T.text:T.text), marginLeft:12, whiteSpace:"nowrap" }}>
+    <div className="vp-num" style={{ fontSize:15, fontWeight:bold?700:500, color:type==="in"?T.green:(type==="out"||type==="warn")?T.red:T.text, marginLeft:12, whiteSpace:"nowrap" }}>
       {value}
     </div>
   </div>

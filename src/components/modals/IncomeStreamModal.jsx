@@ -27,8 +27,8 @@ export default function IncomeStreamModal({ data, s, T, setModal, updArr }) {
         <Inp label="Endjahr (leer = dauerhaft)" value={f.endsAt} onChange={v => set("endsAt",v)} type="number" placeholder="offen" T={T} />
       </div>
       {amt > 0 && (
-        <div style={{ background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:8, padding:"10px 13px", marginBottom:12 }}>
-          <div style={{ fontSize:13, color:T.textMid, fontWeight:600, letterSpacing:0, marginBottom:6 }}>Vorschau</div>
+        <div style={{ background:"transparent", border:"1px solid "+T.border, borderRadius:16, padding:"10px 13px", marginBottom:12 }}>
+          <div style={{ fontSize:16, color:T.text, fontWeight:700, letterSpacing:"-0.02em", marginBottom:6 }}>Vorschau</div>
           <div style={{ display:"flex", justifyContent:"space-between" }}>
             <span style={{ fontSize:12, color:T.textMid }}>Heute</span>
             <span style={{ fontSize:13, fontWeight:600, color:T.green }}>{full(amt)}/Mo.</span>
@@ -48,6 +48,11 @@ export default function IncomeStreamModal({ data, s, T, setModal, updArr }) {
         else updArr("incomeStreams", [...(s.incomeStreams||[]), st]);
         setModal(null);
       }}>Speichern</Btn>
+      {data?.id && (s.incomeStreams||[]).some(x => x.id === data.id) && (
+        <div style={{ marginTop:10 }}>
+          <Btn full danger T={T} onClick={() => { updArr("incomeStreams", (s.incomeStreams||[]).filter(x => x.id !== data.id)); setModal(null); }}>Einnahme löschen</Btn>
+        </div>
+      )}
     </Sheet>
   );
 }

@@ -95,7 +95,7 @@ export default function ImportPreviewModal({ preview, s, T, setModal, updArr }) 
               Abbrechen
             </button>
             <button onClick={apply} disabled={selectedCount === 0}
-              style={{ flex:2, padding:"12px", borderRadius:8, border:"1px solid "+T.green+"44", background:T.green+"15", color:T.green, cursor: selectedCount===0?"not-allowed":"pointer", fontSize:13, fontWeight:600, fontFamily:"inherit", opacity: selectedCount===0 ? 0.5 : 1 }}>
+              style={{ flex:2, padding:"12px", borderRadius:8, border:"none", background:T.surfaceHigh, color:T.green, cursor: selectedCount===0?"not-allowed":"pointer", fontSize:13, fontWeight:600, fontFamily:"inherit", opacity: selectedCount===0 ? 0.5 : 1 }}>
               {selectedCount} Position{selectedCount !== 1 ? "en" : ""} übernehmen
             </button>
           </div>

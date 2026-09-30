@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import { DARK, LIGHT } from "./theme.js";
 import { IMMO_CF_GROSS, IMMO_HAUSGELD, IMMO_GRUNDSTEUER, LIQUIDITY_DEFAULT, CY } from "./constants.js";
 import { saveState, loadProfileState } from "./storage.js";
-import { fmtE, Icon, IconBtn } from "./components/ui.jsx";
+import { fmtE, Icon, RoundBtn } from "./components/ui.jsx";
 import TabDashboard     from "./components/TabDashboard.jsx";
 import TabHaushalt      from "./components/TabHaushalt.jsx";
 import TabVermogen      from "./components/TabVermogen.jsx";
@@ -556,14 +556,12 @@ export default function AppInner({ profileId, profileName, profileColor, darkMod
     [...(s.snapshots||[])].sort((a,b) => a.date.localeCompare(b.date)).map(sn => ({ ...sn, value:sn.totalNet??sn.value })), [s.snapshots]);
 
   const chipStyle = (active) => ({
-    fontSize:12, padding:"4px 11px", borderRadius:999,
-    border:"1px solid "+(active ? T.accent+"66" : T.border),
-    background: active ? T.accent+"1f" : T.surface,
-    color: active ? T.accent : T.textMid,
-    cursor:"pointer", fontWeight: active ? 600 : 500,
-    WebkitTapHighlightColor:"transparent", whiteSpace:"nowrap",
+    fontSize:14, padding:"7px 14px", borderRadius:999, border:"none",
+    background: active ? T.accent : T.surfaceHigh,
+    color: active ? T.onAccent : T.text,
+    cursor:"pointer", fontWeight:600,
+    WebkitTapHighlightColor:"transparent", whiteSpace:"nowrap", flexShrink:0,
   });
-  const quoteColor = cf.quote>=20 ? T.green : cf.quote>=10 ? T.amber : T.red;
 
   return (
     <div style={{ minHeight:"100vh", background:T.bg, color:T.text, fontFamily:"inherit", paddingBottom:"calc(76px + env(safe-area-inset-bottom,0px))", transition:"background 0.2s,color 0.2s" }}>
@@ -580,29 +578,17 @@ export default function AppInner({ profileId, profileName, profileColor, darkMod
       {modal?.type==="standaloneLoan"  && <StandaloneLoanModal   data={modal.data} s={s} T={T} setModal={setModal} updArr={updArr} />}
       {modal?.type==="relation"        && <RelationModal         data={modal.data} s={s} T={T} setModal={setModal} updArr={updArr} />}
 
-      <div style={{ background:T.header+"e6", backdropFilter:"blur(12px)", WebkitBackdropFilter:"blur(12px)", borderBottom:"1px solid "+T.tabBorder, padding:"10px 16px 12px", paddingTop:"calc(10px + env(safe-area-inset-top,0px))", position:"sticky", top:0, zIndex:50 }}>
+      <div style={{ background:T.header+"f0", backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", padding:"10px 16px 10px", paddingTop:"calc(10px + env(safe-area-inset-top,0px))", position:"sticky", top:0, zIndex:50 }}>
         <div style={{ maxWidth:600, margin:"0 auto" }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:10 }}>
-            <div style={{ display:"flex", alignItems:"center", gap:8, minWidth:0 }}>
-              {onBack && <IconBtn icon="back" label="Zurück zu den Profilen" onClick={onBack} T={T} size={34} />}
-              <div style={{ fontSize:13, color:T.textMid, fontWeight:500, display:"flex", alignItems:"center", gap:7, minWidth:0 }}>
-                {profileColor && <span style={{ width:8, height:8, borderRadius:"50%", background:profileColor, flexShrink:0 }} />}
-                <span style={{ overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{profileName || "Vermögensplaner"}</span>
-              </div>
+            {onBack ? <RoundBtn icon="back" label="Zurück zu den Profilen" onClick={onBack} T={T} size={36} /> : <span style={{ width:36 }} />}
+            <div style={{ fontSize:16, color:T.text, fontWeight:650, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+              {profileName || "Vermögensplaner"}
             </div>
-            <IconBtn icon={s.dark ? "sun" : "moon"} label={s.dark ? "Helles Design" : "Dunkles Design"} onClick={() => upd({ dark:!s.dark })} T={T} size={34} />
+            <RoundBtn icon={s.dark ? "sun" : "moon"} label={s.dark ? "Helles Design" : "Dunkles Design"} onClick={() => upd({ dark:!s.dark })} T={T} size={36} />
           </div>
-          <div style={{ display:"flex", alignItems:"baseline", gap:12, marginTop:10, flexWrap:"wrap" }}>
-            <div className="vp-num" style={{ fontSize:28, fontWeight:650, color:T.text, letterSpacing:"-0.03em", lineHeight:1.1 }}>{fmtE(agg.net)}</div>
-            <div style={{ fontSize:12, color:quoteColor, fontWeight:600, background:quoteColor+"1a", padding:"3px 8px", borderRadius:999 }}>
-              {cf.quote.toFixed(1)}% Sparquote
-            </div>
-          </div>
-          <div style={{ fontSize:12, color:T.textLow, marginTop:4 }}>
-            Nettovermögen · Gew. Ø-Rendite {agg.wavgReturn.toFixed(1)}%{s.taxOnReturns ? " (nach KeSt)" : ""}
-          </div>
-          {s.owners?.length > 0 && (
-            <div style={{ display:"flex", gap:6, overflowX:"auto", marginTop:10, paddingBottom:2, scrollbarWidth:"none" }}>
+          {s.owners?.length > 1 && (
+            <div className="vp-noscroll" style={{ display:"flex", gap:8, overflowX:"auto", marginTop:12, scrollbarWidth:"none" }}>
               <button onClick={() => setOwnerFilter([])} style={chipStyle(ownerFilter.length===0)}>Alle</button>
               {s.owners.map(o => (
                 <button key={o.id} onClick={() => toggleOwner(o.id)} style={chipStyle(ownerFilter.includes(o.id))}>{o.label}</button>
@@ -612,7 +598,7 @@ export default function AppInner({ profileId, profileName, profileColor, darkMod
         </div>
       </div>
 
-      <div style={{ padding:"16px 14px 8px", maxWidth:600, margin:"0 auto" }}>
+      <div style={{ padding:"8px 20px 24px", maxWidth:600, margin:"0 auto" }}>
         {tab==="dashboard"  && <TabDashboard  s={s} T={T} setModal={setModal} setTab={setTab} agg={agg} cf={cf} loanSummary={loanSummary} lastCI={lastCI} snaps={snaps} totalMonthlyLoanPayment={totalMonthlyLoanPayment} projection={projection} final={final} currentAge={currentAge} />}
         {tab==="haushalt"   && <TabHaushalt   s={s} T={T} upd={upd} updArr={updArr} setModal={setModal} cf={cf} sparDist={sparDist} ownerFilter={ownerFilter} filteredAssets={filteredAssets} cashflowProjection={cashflowProjection} />}
         {tab==="vermogen"   && <TabVermogen   s={s} T={T} updClass={updClass} updArr={updArr} setModal={setModal} agg={agg} filteredAssets={filteredAssets} loanSummary={loanSummary} ownerFilter={ownerFilter} />}
@@ -620,17 +606,15 @@ export default function AppInner({ profileId, profileName, profileColor, darkMod
         {tab==="buckets"    && <TabBuckets    s={s} T={T} upd={upd} updArr={updArr} setModal={setModal} agg={agg} final={final} currentAge={currentAge} />}
       </div>
 
-      <nav style={{ position:"fixed", bottom:0, left:0, right:0, background:T.tabBar+"f2", backdropFilter:"blur(12px)", WebkitBackdropFilter:"blur(12px)", borderTop:"1px solid "+T.tabBorder, zIndex:50, paddingBottom:"env(safe-area-inset-bottom,0px)" }}>
+      <nav style={{ position:"fixed", bottom:0, left:0, right:0, background:T.tabBar+"f2", backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", borderTop:"1px solid "+T.tabBorder, zIndex:50, paddingBottom:"env(safe-area-inset-bottom,0px)" }}>
         <div style={{ display:"flex", maxWidth:600, margin:"0 auto" }}>
           {TABS.map(({ k, lbl, icon }) => {
             const on = tab===k;
             return (
               <button key={k} onClick={() => setTab(k)} aria-current={on ? "page" : undefined}
-                style={{ flex:1, padding:"8px 2px 7px", border:"none", cursor:"pointer", background:"transparent", color:on?T.accent:T.textLow, display:"flex", flexDirection:"column", alignItems:"center", gap:3, WebkitTapHighlightColor:"transparent" }}>
-                <span style={{ padding:"3px 14px", borderRadius:999, background:on ? T.accent+"1f" : "transparent", transition:"background .15s" }}>
-                  <Icon name={icon} size={19} stroke={on ? 2 : 1.7} />
-                </span>
-                <span style={{ fontSize:11, fontWeight:on?600:500 }}>{lbl}</span>
+                style={{ flex:1, padding:"9px 2px 8px", border:"none", cursor:"pointer", background:"transparent", color:on?T.text:T.textDim, display:"flex", flexDirection:"column", alignItems:"center", gap:3, WebkitTapHighlightColor:"transparent" }}>
+                <Icon name={icon} size={22} stroke={on ? 2.2 : 1.7} />
+                <span style={{ fontSize:11, fontWeight:on?650:500 }}>{lbl}</span>
               </button>
             );
           })}

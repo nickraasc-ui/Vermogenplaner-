@@ -20,8 +20,7 @@ export default function RelationModal({ data: owner, s, T, setModal, updArr }) {
   };
 
   const nativeSelect = {
-    flex:1, background:T.surface, border:"1px solid "+T.border,
-    borderRadius:6, color:T.text, padding:"6px 8px", fontSize:12,
+    flex:1, background: T.field, border: "1px solid transparent", borderRadius: 10, color: T.text, padding: "10px 12px", fontSize:15,
     WebkitAppearance:"none",
   };
   const removeBtn = {
@@ -34,7 +33,7 @@ export default function RelationModal({ data: owner, s, T, setModal, updArr }) {
   return (
     <Sheet title={`Beziehungen: ${owner.label}`} onClose={() => setModal(null)} T={T}>
       <div style={{ fontSize:12, color:T.textDim, marginBottom:16, lineHeight:1.7,
-        background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:8, padding:"9px 12px" }}>
+        background:"transparent", border:"1px solid "+T.border, borderRadius:16, padding:"9px 12px" }}>
         Familienbeziehungen und persönliche Verbindungen werden im Organogramm als
         gestrichelte Linien dargestellt. Beteiligungsanteile (wer besitzt welche Gesellschaft)
         werden im Eigentümer-Modal gepflegt.
