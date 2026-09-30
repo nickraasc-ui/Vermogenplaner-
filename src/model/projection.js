@@ -118,11 +118,18 @@ export function projectWealth({ s, projAssets, ownerFilter, includeStandaloneLoa
       const tv = targets.reduce((t, p) => t + p.v, 0);
       targets.forEach(p => { p.v += amount * share * (tv > 0 ? p.v / tv : 1 / targets.length); });
     });
+    // Withdrawals: liquid, unlocked positions first, "Sonstiges" (e.g. a boat) only if those are exhausted,
+    // locked positions never. A shortfall beyond that is not modelled (wealth cannot go below the untouched pots).
+    const withdrawFrom = (group, amount) => {
+      const tv = group.reduce((t, p) => t + Math.max(0, p.v), 0);
+      if (tv <= 0 || amount <= 0) return amount;
+      const take = Math.min(amount, tv), f = take / tv;
+      group.forEach(p => { p.v = Math.max(0, p.v - Math.max(0, p.v) * f); });
+      return amount - take;
+    };
     const withdraw = (amount) => {
-      const tv = pots.reduce((t, p) => t + Math.max(0, p.v), 0);
-      if (tv <= 0) return;
-      const f = Math.min(1, amount / tv);
-      pots.forEach(p => { p.v = Math.max(0, p.v - Math.max(0, p.v) * f); });
+      const rest = withdrawFrom(pots.filter(p => !p.locked && p.cls !== "Sonstiges"), amount);
+      withdrawFrom(pots.filter(p => !p.locked && p.cls === "Sonstiges"), rest);
     };
     const total = (y) => pots.reduce((t, p) => t + p.v, 0) + props.reduce((t, p) => t + p.v, 0)
       + bufferV + receivableAt(y) - debtAt(y);

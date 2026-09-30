@@ -131,3 +131,20 @@ describe("projection breakdown", () => {
     }
   });
 });
+
+describe("withdrawals", () => {
+  it("never sell locked positions and use 'Sonstiges' only as a last resort", () => {
+    const s = profile({
+      assets: [
+        { id: "l", name: "Gesperrt", class: "Aktien", ownership: [{ ownerId: "a", share: 1 }], value: 100000, debt: 0, locked: true },
+        { id: "d", name: "Depot", class: "Aktien-ETF", ownership: [{ ownerId: "a", share: 1 }], value: 20000, debt: 0 },
+        { id: "b", name: "Boot", class: "Sonstiges", ownership: [{ ownerId: "a", share: 1 }], value: 30000, debt: 0 },
+      ],
+      buckets: [{ id: "o", name: "Auto", type: "Einmalig", amount: 35000, year: 2027, fundingMode: "lump_sum", active: true }],
+    });
+    const v = deriveAll(s).projection[1].breakdown.values;
+    expect(v.l).toBeCloseTo(100000);   // untouched
+    expect(v.d).toBeCloseTo(0);        // depot used first
+    expect(v.b).toBeCloseTo(15000);    // remaining 15.000 from the boat
+  });
+});

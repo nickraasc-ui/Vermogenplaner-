@@ -9,8 +9,13 @@ function projectedValues(s, yearsFromNow) {
   const y = Math.min(projection.length - 1, Math.max(0, Math.round(yearsFromNow)));
   const bd = projection[y].breakdown;
   return {
-    assetVals: s.assets.map(a => ({ assetId:a.id, name:a.name, class:a.class,
-      value: Math.round(bd.values[a.id] ?? a.value ?? 0), debt: Math.round(bd.debts[a.id] ?? 0) })),
+    assetVals: [
+      ...s.assets.map(a => ({ assetId:a.id, name:a.name, class:a.class,
+        value: Math.round(bd.values[a.id] ?? a.value ?? 0), debt: Math.round(bd.debts[a.id] ?? 0) })),
+      // savings invested in classes without a position today
+      ...Object.keys(bd.values).filter(id => id.startsWith("virtual:")).map(id => ({
+        assetId:id, name:"Neue Sparanlage "+id.slice(8), class:id.slice(8), value: Math.round(bd.values[id]), debt:0 })),
+    ],
     standaloneDebt: Math.round(bd.standaloneDebt || 0),
   };
 }
