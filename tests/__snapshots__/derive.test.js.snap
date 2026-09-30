@@ -1,0 +1,646 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`deriveAll – characterisation > auto: all owners 1`] = `
+{
+  "cashflowSample": [
+    {
+      "avail": 9179.67,
+      "bound": 5340.83,
+      "deficitMonthly": 0,
+      "sp": 3838.84,
+      "year": 2026,
+    },
+    {
+      "avail": 10591.18,
+      "bound": 3550,
+      "deficitMonthly": 0,
+      "sp": 6241.18,
+      "year": 2031,
+    },
+    {
+      "avail": 12815.87,
+      "bound": 3550,
+      "deficitMonthly": 0,
+      "sp": 9265.87,
+      "year": 2036,
+    },
+  ],
+  "cf": {
+    "assetYieldIncome": 300,
+    "avail": 9179.67,
+    "bound": 5340.83,
+    "deficitMonthly": 0,
+    "eff": 3838.84,
+    "immoNetCF": -720.33,
+    "quote": 41.82,
+    "saldo": 0,
+    "streamExpense": 3850,
+    "streamIncome": 9100,
+  },
+  "debt": 658000,
+  "gross": 1500000,
+  "loans": [
+    {
+      "annuitat": 920.83,
+      "id": "x1",
+      "yrsLeft": 6,
+    },
+    {
+      "annuitat": 1842,
+      "id": "x3",
+      "yrsLeft": 39,
+    },
+    {
+      "annuitat": 633.33,
+      "id": "x4",
+      "yrsLeft": 10,
+    },
+    {
+      "annuitat": 420,
+      "id": "l1",
+      "yrsLeft": 5,
+    },
+    {
+      "annuitat": 0,
+      "id": "l2",
+      "yrsLeft": null,
+    },
+  ],
+  "net": 842000,
+  "projection": [
+    {
+      "age": 40,
+      "base": 920000,
+      "cons": 920000,
+      "opt": 920000,
+      "sp": 3839,
+    },
+    {
+      "age": 45,
+      "base": 1162274,
+      "cons": 1065261,
+      "opt": 1268983,
+      "sp": 6241,
+    },
+    {
+      "age": 50,
+      "base": 1649871,
+      "cons": 1420577,
+      "opt": 1925099,
+      "sp": 9266,
+    },
+    {
+      "age": 55,
+      "base": 2362473,
+      "cons": 1947627,
+      "opt": 2901414,
+      "sp": 11062,
+    },
+    {
+      "age": 60,
+      "base": 2972077,
+      "cons": 2301741,
+      "opt": 3908943,
+      "sp": 9134,
+    },
+    {
+      "age": 65,
+      "base": 3432875,
+      "cons": 2455500,
+      "opt": 4910563,
+      "sp": 3124,
+    },
+    {
+      "age": 70,
+      "base": 3865316,
+      "cons": 2543378,
+      "opt": 6041268,
+      "sp": 3896,
+    },
+  ],
+  "sparDist": [
+    {
+      "cls": "Aktien-ETF",
+      "monthly": 3656.04,
+    },
+    {
+      "cls": "Krypto",
+      "monthly": 182.8,
+    },
+  ],
+  "wavgReturn": 4.63,
+}
+`;
+
+exports[`deriveAll – characterisation > complex: all owners 1`] = `
+{
+  "cashflowSample": [
+    {
+      "avail": 9144.5,
+      "bound": 5340.83,
+      "deficitMonthly": 0,
+      "sp": 2500,
+      "year": 2026,
+    },
+    {
+      "avail": 10534.14,
+      "bound": 3550,
+      "deficitMonthly": 0,
+      "sp": 1831.38,
+      "year": 2031,
+    },
+    {
+      "avail": 12730.93,
+      "bound": 3550,
+      "deficitMonthly": 0,
+      "sp": 2901.35,
+      "year": 2036,
+    },
+  ],
+  "cf": {
+    "assetYieldIncome": 264.83,
+    "avail": 9144.5,
+    "bound": 5340.83,
+    "deficitMonthly": 0,
+    "eff": 2500,
+    "immoNetCF": -720.33,
+    "quote": 27.34,
+    "saldo": 1303.67,
+    "streamExpense": 3850,
+    "streamIncome": 9100,
+  },
+  "debt": 658000,
+  "gross": 1500000,
+  "loans": [
+    {
+      "annuitat": 920.83,
+      "id": "x1",
+      "yrsLeft": 6,
+    },
+    {
+      "annuitat": 1842,
+      "id": "x3",
+      "yrsLeft": 39,
+    },
+    {
+      "annuitat": 633.33,
+      "id": "x4",
+      "yrsLeft": 10,
+    },
+    {
+      "annuitat": 420,
+      "id": "l1",
+      "yrsLeft": 5,
+    },
+    {
+      "annuitat": 0,
+      "id": "l2",
+      "yrsLeft": null,
+    },
+  ],
+  "net": 842000,
+  "projection": [
+    {
+      "age": 40,
+      "base": 920000,
+      "cons": 920000,
+      "opt": 920000,
+      "sp": 2500,
+    },
+    {
+      "age": 45,
+      "base": 1130790,
+      "cons": 1039858,
+      "opt": 1230008,
+      "sp": 1831,
+    },
+    {
+      "age": 50,
+      "base": 1481124,
+      "cons": 1266585,
+      "opt": 1736306,
+      "sp": 2901,
+    },
+    {
+      "age": 55,
+      "base": 2088857,
+      "cons": 1702733,
+      "opt": 2587572,
+      "sp": 3126,
+    },
+    {
+      "age": 60,
+      "base": 2676965,
+      "cons": 2043053,
+      "opt": 3559479,
+      "sp": 3367,
+    },
+    {
+      "age": 65,
+      "base": 3347097,
+      "cons": 2385808,
+      "opt": 4792561,
+      "sp": 2900,
+    },
+    {
+      "age": 70,
+      "base": 4207496,
+      "cons": 2821707,
+      "opt": 6460586,
+      "sp": 3598,
+    },
+  ],
+  "sparDist": [
+    {
+      "cls": "Aktien-ETF",
+      "monthly": 1500,
+    },
+    {
+      "cls": "Anleihen-ETF",
+      "monthly": 500,
+    },
+    {
+      "cls": "Krypto",
+      "monthly": 200,
+    },
+  ],
+  "wavgReturn": 4.63,
+}
+`;
+
+exports[`deriveAll – characterisation > complex: filtered to one owner 1`] = `
+{
+  "cashflowSample": [
+    {
+      "avail": 4749,
+      "bound": 4552.5,
+      "deficitMonthly": 0,
+      "sp": 196.5,
+      "year": 2026,
+    },
+    {
+      "avail": 5494.77,
+      "bound": 3550,
+      "deficitMonthly": 0,
+      "sp": 1831.38,
+      "year": 2031,
+    },
+    {
+      "avail": 6336.84,
+      "bound": 3550,
+      "deficitMonthly": 0,
+      "sp": 2786.84,
+      "year": 2036,
+    },
+  ],
+  "cf": {
+    "assetYieldIncome": 0,
+    "avail": 4749,
+    "bound": 4552.5,
+    "deficitMonthly": 0,
+    "eff": 196.5,
+    "immoNetCF": -451,
+    "quote": 4.14,
+    "saldo": 0,
+    "streamExpense": 3850,
+    "streamIncome": 5200,
+  },
+  "debt": 230000,
+  "gross": 560000,
+  "loans": [
+    {
+      "annuitat": 552.5,
+      "id": "x1",
+      "yrsLeft": 6,
+    },
+    {
+      "annuitat": 921,
+      "id": "x3",
+      "yrsLeft": 39,
+    },
+    {
+      "annuitat": 0,
+      "id": "l2",
+      "yrsLeft": null,
+    },
+  ],
+  "net": 330000,
+  "projection": [
+    {
+      "age": 40,
+      "base": 370000,
+      "cons": 370000,
+      "opt": 370000,
+      "sp": 197,
+    },
+    {
+      "age": 45,
+      "base": 420774,
+      "cons": 385280,
+      "opt": 459619,
+      "sp": 1831,
+    },
+    {
+      "age": 50,
+      "base": 636016,
+      "cons": 551516,
+      "opt": 736641,
+      "sp": 2787,
+    },
+    {
+      "age": 55,
+      "base": 1084569,
+      "cons": 923677,
+      "opt": 1290947,
+      "sp": 3126,
+    },
+    {
+      "age": 60,
+      "base": 1484043,
+      "cons": 1194587,
+      "opt": 1878049,
+      "sp": 3367,
+    },
+    {
+      "age": 65,
+      "base": 1750163,
+      "cons": 1282809,
+      "opt": 2430685,
+      "sp": 0,
+    },
+    {
+      "age": 70,
+      "base": 1932815,
+      "cons": 1248038,
+      "opt": 3013683,
+      "sp": 0,
+    },
+  ],
+  "sparDist": [
+    {
+      "cls": "Aktien-ETF",
+      "monthly": 1500,
+    },
+    {
+      "cls": "Anleihen-ETF",
+      "monthly": 500,
+    },
+    {
+      "cls": "Krypto",
+      "monthly": 200,
+    },
+  ],
+  "wavgReturn": 4.14,
+}
+`;
+
+exports[`deriveAll – characterisation > complex: projection limited to one asset class 1`] = `
+{
+  "cashflowSample": [
+    {
+      "avail": 9100,
+      "bound": 5190.83,
+      "deficitMonthly": 0,
+      "sp": 2500,
+      "year": 2026,
+    },
+    {
+      "avail": 10189.24,
+      "bound": 3400,
+      "deficitMonthly": 0,
+      "sp": 1831.38,
+      "year": 2031,
+    },
+    {
+      "avail": 11410.52,
+      "bound": 3400,
+      "deficitMonthly": 0,
+      "sp": 2901.35,
+      "year": 2036,
+    },
+  ],
+  "cf": {
+    "assetYieldIncome": 264.83,
+    "avail": 9144.5,
+    "bound": 5340.83,
+    "deficitMonthly": 0,
+    "eff": 2500,
+    "immoNetCF": -720.33,
+    "quote": 27.34,
+    "saldo": 1303.67,
+    "streamExpense": 3850,
+    "streamIncome": 9100,
+  },
+  "debt": 658000,
+  "gross": 1500000,
+  "loans": [
+    {
+      "annuitat": 920.83,
+      "id": "x1",
+      "yrsLeft": 6,
+    },
+    {
+      "annuitat": 1842,
+      "id": "x3",
+      "yrsLeft": 39,
+    },
+    {
+      "annuitat": 633.33,
+      "id": "x4",
+      "yrsLeft": 10,
+    },
+    {
+      "annuitat": 420,
+      "id": "l1",
+      "yrsLeft": 5,
+    },
+    {
+      "annuitat": 0,
+      "id": "l2",
+      "yrsLeft": null,
+    },
+  ],
+  "net": 842000,
+  "projection": [
+    {
+      "age": 40,
+      "base": 300000,
+      "cons": 300000,
+      "opt": 300000,
+      "sp": 2500,
+    },
+    {
+      "age": 45,
+      "base": 469416,
+      "cons": 434703,
+      "opt": 506944,
+      "sp": 1831,
+    },
+    {
+      "age": 50,
+      "base": 771247,
+      "cons": 676915,
+      "opt": 881149,
+      "sp": 2901,
+    },
+    {
+      "age": 55,
+      "base": 1342094,
+      "cons": 1144787,
+      "opt": 1588329,
+      "sp": 3126,
+    },
+    {
+      "age": 60,
+      "base": 1952837,
+      "cons": 1573736,
+      "opt": 2454932,
+      "sp": 3367,
+    },
+    {
+      "age": 65,
+      "base": 2606283,
+      "cons": 1948426,
+      "opt": 3536088,
+      "sp": 0,
+    },
+    {
+      "age": 70,
+      "base": 3331423,
+      "cons": 2273969,
+      "opt": 4937171,
+      "sp": 0,
+    },
+  ],
+  "sparDist": [
+    {
+      "cls": "Aktien-ETF",
+      "monthly": 1500,
+    },
+    {
+      "cls": "Anleihen-ETF",
+      "monthly": 500,
+    },
+    {
+      "cls": "Krypto",
+      "monthly": 200,
+    },
+  ],
+  "wavgReturn": 4.63,
+}
+`;
+
+exports[`deriveAll – characterisation > demo: all owners 1`] = `
+{
+  "cashflowSample": [
+    {
+      "avail": 10036.67,
+      "bound": 2500,
+      "deficitMonthly": 0,
+      "sp": 7536.67,
+      "year": 2026,
+    },
+    {
+      "avail": 11616.53,
+      "bound": 2500,
+      "deficitMonthly": 0,
+      "sp": 9116.53,
+      "year": 2031,
+    },
+    {
+      "avail": 13531.04,
+      "bound": 2500,
+      "deficitMonthly": 0,
+      "sp": 11031.04,
+      "year": 2036,
+    },
+  ],
+  "cf": {
+    "assetYieldIncome": 1416.67,
+    "avail": 10036.67,
+    "bound": 2500,
+    "deficitMonthly": 0,
+    "eff": 7536.67,
+    "immoNetCF": 120,
+    "quote": 75.09,
+    "saldo": 0,
+    "streamExpense": 2500,
+    "streamIncome": 8500,
+  },
+  "debt": 130000,
+  "gross": 1560000,
+  "loans": [
+    {
+      "annuitat": 850,
+      "id": "a7",
+      "yrsLeft": 25,
+    },
+  ],
+  "net": 1430000,
+  "projection": [
+    {
+      "age": 35,
+      "base": 1430000,
+      "cons": 1430000,
+      "opt": 1430000,
+      "sp": 7537,
+    },
+    {
+      "age": 40,
+      "base": 2544527,
+      "cons": 2330807,
+      "opt": 2779185,
+      "sp": 9117,
+    },
+    {
+      "age": 45,
+      "base": 4190751,
+      "cons": 3562527,
+      "opt": 4944899,
+      "sp": 11031,
+    },
+    {
+      "age": 50,
+      "base": 6590683,
+      "cons": 5229565,
+      "opt": 8371310,
+      "sp": 13384,
+    },
+    {
+      "age": 55,
+      "base": 10102503,
+      "cons": 7513716,
+      "opt": 13785803,
+      "sp": 17166,
+    },
+    {
+      "age": 60,
+      "base": 15148471,
+      "cons": 10574736,
+      "opt": 22216748,
+      "sp": 20873,
+    },
+    {
+      "age": 65,
+      "base": 22341179,
+      "cons": 14645670,
+      "opt": 35251641,
+      "sp": 25624,
+    },
+    {
+      "age": 70,
+      "base": 32553746,
+      "cons": 20048844,
+      "opt": 55324190,
+      "sp": 31794,
+    },
+  ],
+  "sparDist": [
+    {
+      "cls": "Aktien-ETF",
+      "monthly": 7536.67,
+    },
+  ],
+  "wavgReturn": 7.44,
+}
+`;
