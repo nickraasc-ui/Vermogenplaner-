@@ -38,10 +38,11 @@ export function cashflowAt(y, { s, assets, incomeStreams, ownerFilter }) {
   const expenseStreams = (s.expenseStreams || []).filter(st => activeInYear(st, year) && ownerMatches(ownerFilter, st.owner));
   const streamExpense = expenseStreams.reduce((t, st) => t + (st.amount || 0), 0);
 
-  // Real estate: rent (with rent growth) − running costs − loan payments while the loan is outstanding
+  // Real estate: rent (with rent growth) − running costs − loan payments while the loan is outstanding.
+  // `??`: an entered 0 (owner-occupied, no Hausgeld) stays 0; defaults only fill fields that don't exist.
   const immoAssets   = assets.filter(a => a.class === "Immobilien");
-  const immoGross    = immoAssets.reduce((t, a) => t + (a.monthlyRent || IMMO_CF_GROSS) * Math.pow(1 + rentGrowth / 100, y) * sh(a), 0);
-  const immoRunning  = immoAssets.reduce((t, a) => t + ((a.hausgeld || IMMO_HAUSGELD) + (a.grundsteuer || IMMO_GRUNDSTEUER)) * sh(a), 0);
+  const immoGross    = immoAssets.reduce((t, a) => t + (a.monthlyRent ?? IMMO_CF_GROSS) * Math.pow(1 + rentGrowth / 100, y) * sh(a), 0);
+  const immoRunning  = immoAssets.reduce((t, a) => t + ((a.hausgeld ?? IMMO_HAUSGELD) + (a.grundsteuer ?? IMMO_GRUNDSTEUER)) * sh(a), 0);
   const immoAnnuitat = immoAssets.filter(a => (a.debt || 0) > 0)
     .reduce((t, a) => t + (computeRemDebt(a, y) > 0 ? (a.loanAnnuitat || 0) * sh(a) : 0), 0);
   const immoNetCF    = immoGross - immoRunning - immoAnnuitat;

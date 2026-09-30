@@ -48,3 +48,29 @@ describe("deriveAll – invariants", () => {
     expect(last.base).toBeLessThanOrEqual(last.opt);
   });
 });
+
+describe("bug fixes", () => {
+  const base = () => migrateProfileState({
+    owners: [{ id: "a", label: "A", type: "Person" }],
+    incomeStreams: [{ id: "i", owner: null, label: "Gehalt", type: "Gehalt", amount: 4000, growthPct: 0, startsAt: 2026, endsAt: null }],
+    expenseStreams: [{ id: "e", label: "Leben", category: "Lebenshaltung", amount: 1500, startsAt: 2026, endsAt: null }],
+    assets: [], buckets: [], standaloneLoans: [],
+  }, true);
+
+  it("an owner-occupied property with 0 € rent adds no rental income", () => {
+    const s = base();
+    s.assets = [{ id: "h", name: "Eigenheim", class: "Immobilien", ownership: [{ ownerId: "a", share: 1 }], value: 500000, debt: 0,
+      monthlyRent: 0, hausgeld: 0, grundsteuer: 0 }];
+    const { cf } = deriveAll(s);
+    expect(cf.immoGross).toBe(0);
+    expect(cf.immoNetCF).toBe(0);
+    expect(cf.avail).toBe(4000);
+  });
+
+  it("a property stored without rent fields still gets the documented defaults (legacy data)", () => {
+    const s = base();
+    s.assets = [{ id: "h", name: "Alt", class: "Immobilien", ownership: [{ ownerId: "a", share: 1 }], value: 300000, debt: 0 }];
+    const { cf } = deriveAll(migrateProfileState(s, true));
+    expect(cf.immoGross).toBe(1200);
+  });
+});

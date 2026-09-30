@@ -157,9 +157,9 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
         <div style={sectionBox}>
           <div style={sectionLabel}>Mieteinnahmen & Nebenkosten</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-            <Inp label="Kaltmiete/Mo." value={f.monthlyRent} onChange={v => set({ monthlyRent: v })} type="number" placeholder={String(IMMO_CF_GROSS)} T={T} />
-            <Inp label="Hausgeld/Mo." value={f.hausgeld} onChange={v => set({ hausgeld: v })} type="number" placeholder={String(IMMO_HAUSGELD)} T={T} />
-            <Inp label="Grundsteuer/Mo." value={f.grundsteuer} onChange={v => set({ grundsteuer: v })} type="number" placeholder={String(IMMO_GRUNDSTEUER)} T={T} />
+            <Inp label="Kaltmiete/Mo." value={f.monthlyRent} onChange={v => set({ monthlyRent: v })} type="number" placeholder="0" T={T} />
+            <Inp label="Hausgeld/Mo." value={f.hausgeld} onChange={v => set({ hausgeld: v })} type="number" placeholder="0" T={T} />
+            <Inp label="Grundsteuer/Mo." value={f.grundsteuer} onChange={v => set({ grundsteuer: v })} type="number" placeholder="0" T={T} />
           </div>
           <div style={{ fontSize:11, color: immoNetCF >= 0 ? T.green : T.red, marginTop: 6 }}>
             Netto-CF vor Annuität: {full((parseFloat(f.monthlyRent) || 0) - (parseFloat(f.hausgeld) || 0) - (parseFloat(f.grundsteuer) || 0))}/Mo.
@@ -376,7 +376,7 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
           value: +f.value || 0,
           debt: saveDebt,
           loanType: saveType,
-          loanRate: saveRate || 3.5,
+          loanRate: saveRate,
           loanTermYears: saveTerm,
           loanTilgung: savedTilgung,
           loanAnnuitat: savedAnnuitat,
