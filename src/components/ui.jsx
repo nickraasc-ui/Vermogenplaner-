@@ -211,7 +211,8 @@ export const Btn = ({ children, onClick, color, full=false, sm=false, danger=fal
     return <IconBtn icon={iconName === "close" ? "trash" : "edit"} danger={danger} label={iconName === "edit" ? "Bearbeiten" : "Entfernen"}
       onClick={onClick} T={T} size={sm ? 32 : 40} />;
   }
-  const primary = !danger && (full || !color || color === T.accent);
+  // textMid marks a deliberately neutral (secondary) button; other colours on full-width buttons are legacy "save" styling
+  const primary = !danger && color !== T.textMid && (full || !color || color === T.accent);
   return (
     <button type="button" onClick={onClick} style={{
       padding: sm ? "7px 14px" : "14px 20px", borderRadius:999, border:"none",

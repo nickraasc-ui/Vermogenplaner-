@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import AppInner from "./AppInner.jsx";
 import GuideModal from "./components/GuideModal.jsx";
 import { DARK, LIGHT } from "./theme.js";
-import { Sheet, Inp, Btn, Icon, IconBtn, labelStyle } from "./components/ui.jsx";
+import { Sheet, Inp, Btn, Icon, IconBtn, RoundBtn, ListRow, Avatar, labelStyle } from "./components/ui.jsx";
 
 // ----------------------------------------------------------------- utils ---
 const uid = () => Math.random().toString(36).slice(2, 9);
@@ -103,33 +103,38 @@ export default function App() {
           </div>
         </div>
         {existing && (
-          <div style={{ background:T.surfaceHigh, border:"1px solid "+T.border, borderRadius:10, padding:"10px 13px", marginBottom:16, fontSize:13, color:T.textMid, lineHeight:1.5 }}>
+          <div style={{ marginBottom:16, fontSize:13, color:T.textLow, lineHeight:1.5 }}>
             Alle gespeicherten Vermögensdaten dieses Profils bleiben erhalten. Nur Name, Kürzel und Farbe werden geändert.
           </div>
         )}
         <Btn full color={T.accent} T={T} onClick={save}>
           {existing ? "Änderungen speichern" : "Profil erstellen"}
         </Btn>
+        {existing && (
+          <div style={{ marginTop:10 }}>
+            <Btn full danger T={T} onClick={() => setModal("delete:"+existing.id)}>Profil löschen</Btn>
+          </div>
+        )}
       </Sheet>
     );
   };
 
   const DeleteConfirm = ({ profile }) => (
     <Sheet title="Profil löschen?" onClose={() => setModal(null)} T={T}>
-      <div style={{ background:T.red+"10", border:"1px solid "+T.red+"33", borderRadius:12, padding:16, marginBottom:20 }}>
-        <div style={{ fontSize:15, fontWeight:600, color:T.text, marginBottom:6 }}>{profile.name}</div>
-        <div style={{ fontSize:13, color:T.textMid, lineHeight:1.6 }}>
+      <div style={{ marginBottom:24 }}>
+        <div style={{ fontSize:17, fontWeight:650, color:T.text, marginBottom:6 }}>{profile.name}</div>
+        <div style={{ fontSize:15, color:T.textMid, lineHeight:1.55 }}>
           Alle Vermögensdaten, Positionen, Check-ins und Szenarien dieses Profils werden dauerhaft gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.
         </div>
       </div>
-      <div style={{ display:"flex", gap:10 }}>
-        <Btn full color={T.textMid} T={T} onClick={() => setModal(null)}>Abbrechen</Btn>
+      <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
         <Btn full danger T={T} onClick={() => {
           // Remove profile data from localStorage
           localStorage.removeItem("wealth-pwa-v3-" + profile.id);
           setProfiles(ps => ps.filter(p => p.id !== profile.id));
           setModal(null);
         }}>Endgültig löschen</Btn>
+        <Btn full T={T} onClick={() => setModal(null)}>Abbrechen</Btn>
       </div>
     </Sheet>
   );
@@ -156,109 +161,63 @@ export default function App() {
   const editTarget = modal?.startsWith("edit:") ? profiles.find(p=>p.id===modal.slice(5)) : null;
   const delTarget  = modal?.startsWith("delete:") ? profiles.find(p=>p.id===modal.slice(7)) : null;
 
-  const pillBtn = { display:"inline-flex", alignItems:"center", gap:6, background:T.surface, border:"1px solid "+T.border, borderRadius:10, padding:"7px 12px", cursor:"pointer", fontSize:13, fontWeight:500, color:T.textMid, WebkitTapHighlightColor:"transparent" };
-
   return (
-    <div style={{ minHeight:"100vh", background:T.bg, color:T.text, paddingBottom:"env(safe-area-inset-bottom,24px)" }}>
+    <div style={{ minHeight:"100vh", background:T.bg, color:T.text, paddingBottom:"calc(24px + env(safe-area-inset-bottom,0px))" }}>
 
       {modal==="new"    && <ProfileForm/>}
       {editTarget       && <ProfileForm existing={editTarget}/>}
       {delTarget        && <DeleteConfirm profile={delTarget}/>}
       {modal==="guide"  && <GuideModal T={T} onClose={() => setModal(null)} onCreateProfile={() => setModal("new")} />}
 
-      {/* Header */}
-      <div style={{ background:T.header+"e6", backdropFilter:"blur(12px)", WebkitBackdropFilter:"blur(12px)", borderBottom:"1px solid "+T.border, padding:"14px 16px", paddingTop:"calc(14px + env(safe-area-inset-top,0px))", position:"sticky", top:0, zIndex:50 }}>
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", maxWidth:600, margin:"0 auto" }}>
-          <div>
-            <div style={{ fontSize:12, color:T.textLow, fontWeight:500 }}>Vermögensplaner</div>
-            <div style={{ fontSize:22, fontWeight:650, color:T.text, letterSpacing:"-0.02em", marginTop:1 }}>Profile</div>
-          </div>
-          <div style={{ display:"flex", gap:8 }}>
-            <button onClick={() => setModal("guide")} style={pillBtn}>
-              <Icon name="help" size={16} /> Anleitung
-            </button>
-            <IconBtn icon={darkMode ? "sun" : "moon"} label={darkMode ? "Helles Design" : "Dunkles Design"} onClick={() => setDarkMode(d=>!d)} T={T} size={36} />
-          </div>
-        </div>
-      </div>
+      <div style={{ maxWidth:600, margin:"0 auto", padding:"0 20px", minHeight:"100vh", display:"flex", flexDirection:"column" }}>
 
-      <div style={{ padding:"20px 16px", maxWidth:600, margin:"0 auto" }}>
-
-        {/* Empty state */}
-        {profiles.length === 0 && (
-          <div style={{ background:T.surface, border:"1px solid "+T.border, borderRadius:16, padding:"32px 24px", textAlign:"center", marginBottom:16, boxShadow:T.shadow }}>
-            <div style={{ width:52, height:52, borderRadius:14, background:T.accent+"18", color:T.accent, display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 16px" }}>
-              <Icon name="pie" size={26} />
-            </div>
-            <div style={{ fontSize:19, fontWeight:650, color:T.text, marginBottom:8, letterSpacing:"-0.015em" }}>Willkommen im Vermögensplaner</div>
-            <div style={{ fontSize:14, color:T.textMid, marginBottom:24, lineHeight:1.6, maxWidth:400, marginLeft:"auto", marginRight:"auto" }}>
-              Ein privates Tool für komplexe Vermögensstrukturen — Immobilien, ETFs, Beteiligungen, mehrere Eigentümer, 35-Jahres-Projektion.
-            </div>
-            <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-              <Btn full color={T.accent} T={T} onClick={() => setModal("guide")}>
-                Anleitung ansehen (empfohlen)
-              </Btn>
-              <Btn full color={T.textMid} T={T} onClick={() => setModal("new")}>
-                Direkt Profil anlegen
-              </Btn>
-            </div>
-          </div>
-        )}
-
-        {profiles.length > 0 && (
-          <div style={{ fontSize:13, color:T.textLow, fontWeight:500, margin:"0 2px 10px" }}>
-            {profiles.length} {profiles.length === 1 ? "Profil" : "Profile"}
-          </div>
-        )}
-
-        <div style={{ display:"flex", flexDirection:"column", gap:10, marginBottom:12 }}>
-          {profiles.map(p => {
-            const net = totalAssets(p.id);
-            return (
-              <div key={p.id} className="vp-hover"
-                style={{ background:T.surface, border:"1px solid "+T.border, borderRadius:14, padding:"14px 14px 14px 16px", display:"flex", alignItems:"center", gap:14, cursor:"pointer", WebkitTapHighlightColor:"transparent", boxShadow:T.shadow }}
-                onClick={() => setActiveId(p.id)}>
-
-                {/* Avatar */}
-                <div style={{ width:44, height:44, borderRadius:12, background:p.color+"22", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-                  <span style={{ fontSize:15, fontWeight:650, color:p.color }}>{p.kuerzel}</span>
-                </div>
-
-                {/* Info */}
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontSize:15, fontWeight:600, color:T.text, letterSpacing:"-0.01em", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{p.name}</div>
-                  <div style={{ display:"flex", gap:8, marginTop:2, alignItems:"baseline", flexWrap:"wrap" }}>
-                    <div className="vp-num" style={{ fontSize:14, fontWeight:600, color:T.text }}>{fmtNet(net)}</div>
-                    {p.note && <div style={{ fontSize:12, color:T.textLow }}>· {p.note}</div>}
-                  </div>
-                  <div style={{ fontSize:12, color:T.textDim, marginTop:2 }}>
-                    Erstellt {new Date(p.createdAt).toLocaleDateString("de-DE")}
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div style={{ display:"flex", gap:6, flexShrink:0 }} onClick={e => e.stopPropagation()}>
-                  <IconBtn icon="edit"  label="Profil bearbeiten" onClick={() => setModal("edit:"+p.id)} T={T} />
-                  <IconBtn icon="trash" label="Profil löschen" danger onClick={() => setModal("delete:"+p.id)} T={T} />
-                </div>
-
-                <div style={{ color:T.textDim, flexShrink:0 }}><Icon name="chevron" size={18} /></div>
-              </div>
-            );
-          })}
+        {/* Top bar */}
+        <div style={{ display:"flex", justifyContent:"flex-end", gap:8, paddingTop:"calc(12px + env(safe-area-inset-top,0px))" }}>
+          <RoundBtn icon="help" label="Anleitung" onClick={() => setModal("guide")} T={T} size={38} />
+          <RoundBtn icon={darkMode ? "sun" : "moon"} label={darkMode ? "Helles Design" : "Dunkles Design"} onClick={() => setDarkMode(d=>!d)} T={T} size={38} />
         </div>
 
-        {/* Add new profile button */}
-        {profiles.length > 0 && (
-          <button onClick={() => setModal("new")}
-            style={{ width:"100%", background:"transparent", border:"1px dashed "+T.borderHigh, borderRadius:14, padding:16, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8, color:T.textMid, fontSize:14, fontWeight:500, WebkitTapHighlightColor:"transparent" }}>
-            <Icon name="plus" size={16} /> Neues Profil anlegen
-          </button>
-        )}
+        {/* Title */}
+        <div style={{ marginTop:28, marginBottom:24 }}>
+          <h1 style={{ fontSize:34, fontWeight:700, letterSpacing:"-0.035em", lineHeight:1.1, margin:0, color:T.text }}>
+            {profiles.length === 0 ? "Willkommen" : "Profile"}
+          </h1>
+          <div style={{ fontSize:16, color:T.textLow, marginTop:8, lineHeight:1.5 }}>
+            {profiles.length === 0
+              ? "Plane Vermögen, Haushalt und Zukunft – für Immobilien, Depots, Beteiligungen und mehrere Eigentümer."
+              : "Wähle ein Profil, um fortzufahren."}
+          </div>
+        </div>
 
-        {/* Info box */}
-        <div style={{ marginTop:20, fontSize:12, color:T.textLow, lineHeight:1.6, textAlign:"center", padding:"0 12px" }}>
-          Alle Daten werden lokal auf diesem Gerät gespeichert. Jedes Profil ist vollständig isoliert. Kein Cloud-Sync, kein Passwortschutz.
+        {/* Profile list */}
+        {profiles.map((p, i) => {
+          const net = totalAssets(p.id);
+          return (
+            <ListRow key={p.id} T={T} last={i === profiles.length - 1} onClick={() => setActiveId(p.id)}
+              leading={<Avatar text={p.kuerzel} color={p.color} size={46} />}
+              title={p.name}
+              subtitle={p.note || "Erstellt "+new Date(p.createdAt).toLocaleDateString("de-DE")}
+              value={fmtNet(net)}
+              trailing={<IconBtn icon="edit" label={"„"+p.name+"“ bearbeiten"} onClick={() => setModal("edit:"+p.id)} T={T} />} />
+          );
+        })}
+
+        <div style={{ flex:1 }} />
+
+        {/* Actions */}
+        <div style={{ display:"flex", flexDirection:"column", gap:10, marginTop:32 }}>
+          {profiles.length === 0 ? (
+            <>
+              <Btn full T={T} onClick={() => setModal("guide")}>Anleitung ansehen</Btn>
+              <Btn full color={T.textMid} T={T} onClick={() => setModal("new")}>Direkt Profil anlegen</Btn>
+            </>
+          ) : (
+            <Btn full T={T} onClick={() => setModal("new")}>Neues Profil anlegen</Btn>
+          )}
+        </div>
+
+        <div style={{ marginTop:16, fontSize:12, color:T.textDim, lineHeight:1.5, textAlign:"center" }}>
+          Alle Daten bleiben lokal auf diesem Gerät. Kein Cloud-Sync, kein Passwortschutz.
         </div>
       </div>
     </div>
