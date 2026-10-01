@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
-import { Tile, Section, ListRow, Avatar, Icon, fmtE, full, mlbl } from "./ui.jsx";
+import { Tile, Section, ListRow, Avatar, Icon, fmtE, full, mlbl, fmtNum, fmtDate } from "./ui.jsx";
 import { LIQUIDITY_CATS, LIQ_CLR, CY } from "../constants.js";
 import OrgChart from "./OrgChart.jsx";
 
@@ -88,8 +88,8 @@ export default function TabDashboard({ s, T, setModal, setTab, agg, cf, loanSumm
       <Section title="Kennzahlen" T={T}>
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"18px 16px" }}>
           <Tile label={"Prognose mit "+(final.age ?? "")} value={fmtE(final.base)} sub={"Konservativ "+fmtE(final.cons)} T={T} />
-          <Tile label="Sparrate" value={full(cf.eff)+"/Mo."} sub={"Sparquote "+cf.quote.toFixed(1)+" %"} T={T} />
-          <Tile label="Ø Rendite" value={agg.wavgReturn.toFixed(1)+" %"} sub="aktuelle Allokation" T={T} />
+          <Tile label="Sparrate" value={full(cf.eff)+"/Mo."} sub={"Sparquote "+fmtNum(cf.quote, 1)+" %"} T={T} />
+          <Tile label="Ø Rendite" value={fmtNum(agg.wavgReturn, 1)+" %"} sub="aktuelle Allokation" T={T} />
           <Tile label="Szenarien" value={String(activeBuckets)} sub={activeBuckets ? "in Projektion" : "keine aktiv"} onClick={() => setTab("buckets")} T={T} />
         </div>
       </Section>
@@ -106,7 +106,7 @@ export default function TabDashboard({ s, T, setModal, setTab, agg, cf, loanSumm
             leading={<span style={{ width:10, height:10, borderRadius:"50%", background:LIQ_CLR[l], flexShrink:0 }} />}
             title={l}
             value={full(agg.byLiquidity[l]||0)}
-            valueSub={pctOf(agg.byLiquidity[l]||0).toFixed(0)+" %"} />
+            valueSub={fmtNum(pctOf(agg.byLiquidity[l]||0), 0)+" %"} />
         ))}
       </Section>
 
@@ -155,7 +155,7 @@ export default function TabDashboard({ s, T, setModal, setTab, agg, cf, loanSumm
           <div style={{ height:120, margin:"0 -4px" }}>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={snaps} margin={{ top:4, right:4, left:4, bottom:0 }}>
-                <XAxis dataKey="date" tick={{ fill:T.textDim, fontSize:11 }} axisLine={false} tickLine={false} />
+                <XAxis dataKey="date" tickFormatter={fmtDate} tick={{ fill:T.textDim, fontSize:11 }} axisLine={false} tickLine={false} />
                 <YAxis hide domain={["dataMin", "dataMax"]} />
                 <Tooltip formatter={v => [full(v), "Nettovermögen"]} contentStyle={{ background:T.sheet, border:"1px solid "+T.border, borderRadius:10, fontSize:13, color:T.text }} />
                 <Area type="monotone" dataKey="value" stroke={T.text} fill="none" strokeWidth={2} dot={{ fill:T.text, r:2.5 }} />

@@ -4,20 +4,13 @@ import {
   Briefcase, HandCoins, Package, Download, Upload, Users, Camera, CalendarCheck, ArrowDown, ArrowUp,
   ArrowLeftRight, CreditCard, User, Building2, Handshake,
 } from "lucide-react";
-export const fmtE = (v) => {
-  if (!v && v !== 0) return "\u20AC0";
-  const a = Math.abs(v);
-  if (a >= 1_000_000) return "\u20AC" + (v / 1_000_000).toFixed(2) + "M";
-  if (a >= 1_000) return "\u20AC" + (v / 1_000).toFixed(0) + "k";
-  return "\u20AC" + Math.round(v);
-};
-export const full = (v) => "\u20AC" + Math.round(v ?? 0).toLocaleString("de-DE");
+export { fmtE, full, fmtNum, fmtPct, pct, fmtDec, fmtAxis, fmtDate } from "../format.js";
+import { fmtE } from "../format.js";
 export { uid } from "../model/ids.js";
 export const mlbl = (ym) => {
   const [y, m] = ym.split("-");
   return ["","Jan","Feb","Mar","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"][+m] + " " + y;
 };
-export const pct = (v) => (v >= 0 ? "+" : "") + v.toFixed(1) + "%";
 
 
 

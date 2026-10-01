@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sheet, Inp, SelEl, Btn, full, IconBtn } from "../ui.jsx";
+import { Sheet, Inp, SelEl, Btn, full, IconBtn, fmtNum } from "../ui.jsx";
 import { normalizeAsset, sharesValid } from "../../model/schema.js";
 import { ASSET_CLASSES, LIQUIDITY_CATS, LIQUIDITY_DEFAULT, ASSET_TAX_TYPES, VALUATION_METHODS, LOAN_TYPES } from "../../constants.js";
 
@@ -117,7 +117,7 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
             <div style={{ display:"flex", justifyContent:"space-between", marginBottom:3 }}>
               <span style={{ fontSize:11, color:T.textDim }}>Anteilsverteilung</span>
               <span style={{ fontSize:11, fontWeight:600, color:shareOk ? T.green : T.red }}>
-                {Math.round(ownerShareTotal * 100)}% / 100%
+                {Math.round(ownerShareTotal * 100)} % / 100 %
               </span>
             </div>
             <div style={{ background:T.border, borderRadius:3, height:5, overflow:"hidden" }}>
@@ -125,7 +125,7 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
             </div>
             {!shareOk && (
               <div style={{ fontSize:11, color:T.red, marginTop:3 }}>
-                {ownerShareTotal < 1 ? `+${Math.round((1-ownerShareTotal)*100)}% noch nicht vergeben` : `−${Math.round((ownerShareTotal-1)*100)}% zu viel`}
+                {ownerShareTotal < 1 ? `+${Math.round((1-ownerShareTotal)*100)} % noch nicht vergeben` : `−${Math.round((ownerShareTotal-1)*100)} % zu viel`}
               </div>
             )}
           </div>
@@ -235,7 +235,7 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
                   {f.loanType==="endfaellig" ? "Gesamtzinsen" : "Tilgung % p.a."}
                 </div>
                 <div style={{ fontSize:12, fontWeight:600, color:T.textMid }}>
-                  {f.loanType==="endfaellig" ? full(calcTotalInterest) : calcTilgungPct.toFixed(2)+"%"}
+                  {f.loanType==="endfaellig" ? full(calcTotalInterest) : fmtNum(calcTilgungPct, 2)+" %"}
                 </div>
               </div>
             </div>
@@ -272,7 +272,7 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
             );
           })()}
           {(parseFloat(f.yieldPct) || 0) === 0 && (
-            <div style={{ fontSize:11, color: T.textDim, marginTop: 4 }}>0% = thesaurierend / keine Ausschüttung</div>
+            <div style={{ fontSize:11, color: T.textDim, marginTop: 4 }}>0 % = thesaurierend / keine Ausschüttung</div>
           )}
         </div>
       )}
@@ -319,7 +319,7 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
           const isOverride = byType !== null && byType !== undefined && byType !== CLASS_KEST[f.class];
           return (
             <div style={{ fontSize:11, color: rate===0 ? T.green : isOverride ? T.amber : T.textDim, marginBottom:8 }}>
-              Effektive KeSt: <strong>{rate.toFixed(2)}%</strong>
+              Effektive KeSt: <strong>{fmtNum(rate, 2)} %</strong>
               {isOverride && " (überschreibt Klassenstandard)"}
               {rate === 0 && " — keine Steuer auf Erträge und Zuwachs"}
             </div>
@@ -333,7 +333,7 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
         </div>
         {(parseFloat(f.value) || 0) > 0 && (parseFloat(f.tax?.acquisitionPrice) || 0) > 0 && (
           <div style={{ fontSize:11, color: stilleReserven >= 0 ? T.green : T.red, marginTop: 4 }}>
-            Stille Reserven: {full(stilleReserven)} ({stilleReserven >= 0 ? "+" : ""}{(stilleReserven / (parseFloat(f.tax?.acquisitionPrice) || 1) * 100).toFixed(1)}%)
+            Stille Reserven: {full(stilleReserven)} ({stilleReserven >= 0 ? "+" : ""}{fmtNum((stilleReserven / (parseFloat(f.tax?.acquisitionPrice) || 1) * 100), 1)} %)
           </div>
         )}
       </div>

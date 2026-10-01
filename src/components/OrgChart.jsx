@@ -337,7 +337,7 @@ export default function OrgChart({ s, T, setModal }) {
                   {share > 0 && share < 1 && (
                     <text x={(x1+x2)/2} y={my} fontSize={8} fill={T.accent}
                       textAnchor="middle" dy={-4} fontWeight={700}>
-                      {Math.round(share * 100)}%
+                      {Math.round(share * 100)} %
                     </text>
                   )}
                 </g>
@@ -445,7 +445,7 @@ export default function OrgChart({ s, T, setModal }) {
                       {a.name}
                     </div>
                     <div style={{ fontSize:8.5, color:T.textDim, marginTop:1 }}>
-                      {a.class} · {Math.round(a._share * 100)}% Anteil
+                      {a.class} · {Math.round(a._share * 100)} % Anteil
                     </div>
                   </div>
                   <div style={{ textAlign:"right", flexShrink:0, marginLeft:8 }}>

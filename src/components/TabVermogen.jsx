@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { PieChart, Pie, Cell, Tooltip as ReTooltip } from "recharts";
-import { Sl, Tile, Btn, Section, ListRow, Avatar, LinkBtn, IconBtn, Icon, fmtE, full } from "./ui.jsx";
+import { Sl, Tile, Btn, Section, ListRow, Avatar, LinkBtn, IconBtn, Icon, fmtE, full, fmtNum, fmtDec, fmtDate } from "./ui.jsx";
 import { primaryOwnerId } from "../model/schema.js";
 import { ASSET_CLASSES, ASSET_CLASS_DEFAULTS } from "../constants.js";
 import { exportAssetsToExcel, parseImportFile } from "../utils/excelIO.js";
@@ -114,7 +114,7 @@ export default function TabVermogen({ s, T, updClass, updArr, setModal, agg, fil
                 <div key={e.cls} style={{ display:"flex", alignItems:"center", gap:8 }}>
                   <div style={{ width:8, height:8, borderRadius:"50%", background:e.color, flexShrink:0 }} />
                   <span style={{ fontSize:14, color:T.text, flex:1, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{e.cls}</span>
-                  <span className="vp-num" style={{ fontSize:14, color:T.textLow, flexShrink:0 }}>{e.pct.toFixed(0)} %</span>
+                  <span className="vp-num" style={{ fontSize:14, color:T.textLow, flexShrink:0 }}>{fmtNum(e.pct, 0)} %</span>
                 </div>
               ))}
             </div>
@@ -130,7 +130,7 @@ export default function TabVermogen({ s, T, updClass, updArr, setModal, agg, fil
           <>
             {loans.map(l => {
               const ownerLabel = (s.owners||[]).find(o => o.id === primaryOwnerId(l))?.label || null;
-              const sub = [l.loanType === "endfaellig" ? "Endfällig" : "Annuität", (l.loanRate||0)+" %"];
+              const sub = [l.loanType === "endfaellig" ? "Endfällig" : "Annuität", fmtDec(l.loanRate||0)+" %"];
               if (ownerLabel) sub.push(ownerLabel);
               if (l.loanTermYears) sub.push(l.loanTermYears+" J.");
               return (
@@ -148,7 +148,7 @@ export default function TabVermogen({ s, T, updClass, updArr, setModal, agg, fil
       {/* Renditeerwartungen */}
       <Section title="Renditeerwartung" T={T}>
         <div style={{ fontSize:14, color:T.textLow, marginBottom:14 }}>
-          Pro Asset-Klasse · gewichteter Schnitt <span className="vp-num" style={{ color:T.text, fontWeight:600 }}>{agg.wavgReturn.toFixed(1)} % p.a.</span>
+          Pro Asset-Klasse · gewichteter Schnitt <span className="vp-num" style={{ color:T.text, fontWeight:600 }}>{fmtNum(agg.wavgReturn, 1)} % p.a.</span>
         </div>
         {ASSET_CLASSES.filter(cls => filteredAssets.some(a => a.class === cls)).map(cls => {
           const clsNet = filteredAssets.filter(a => a.class === cls).reduce((t, a) => t + (a.value||0) - (a.debt||0), 0);
@@ -159,11 +159,11 @@ export default function TabVermogen({ s, T, updClass, updArr, setModal, agg, fil
               <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:2 }}>
                 <Avatar cls={cls} color={ASSET_CLASS_DEFAULTS[cls]?.color || T.textMid} size={28} />
                 <span style={{ fontSize:15, fontWeight:600, color:T.text }}>{cls}</span>
-                <span className="vp-num" style={{ fontSize:13, color:T.textLow, flex:1 }}>{fmtE(clsNet)} · {weight.toFixed(0)} %</span>
-                <span className="vp-num" style={{ fontSize:16, fontWeight:650, color: retVal < 0 ? T.red : T.text }}>{retVal.toFixed(1)} %</span>
+                <span className="vp-num" style={{ fontSize:13, color:T.textLow, flex:1 }}>{fmtE(clsNet)} · {fmtNum(weight, 0)} %</span>
+                <span className="vp-num" style={{ fontSize:16, fontWeight:650, color: retVal < 0 ? T.red : T.text }}>{fmtNum(retVal, 1)} %</span>
               </div>
               <Sl label="" value={retVal} min={sliderMin(cls)} max={sliderMax(cls)} step={0.5}
-                onChange={v => updClass(cls, v)} fmt={v => v.toFixed(1)+" %"} warn={retVal < 0} hideHead T={T} />
+                onChange={v => updClass(cls, v)} fmt={v => fmtNum(v, 1)+" %"} warn={retVal < 0} hideHead T={T} />
             </div>
           );
         })}
@@ -182,7 +182,7 @@ export default function TabVermogen({ s, T, updClass, updArr, setModal, agg, fil
               <ListRow T={T} last={i === sortedSnaps.length - 1 && !isExpanded}
                 onClick={hasDetails ? () => setExpandedSnap(isExpanded ? null : sn.id) : undefined}
                 leading={<Avatar icon="camera" color={T.surfaceHigh} fg={T.text} />}
-                title={sn.date} subtitle={sn.note || (hasDetails ? sn.assetValues.length+" Positionen" : undefined)}
+                title={fmtDate(sn.date)} subtitle={sn.note || (hasDetails ? sn.assetValues.length+" Positionen" : undefined)}
                 value={full(net)}
                 trailing={<IconBtn icon="trash" label="Snapshot löschen" T={T} danger onClick={() => updArr("snapshots", s.snapshots.filter(x => x.id !== sn.id))} />} />
               {isExpanded && hasDetails && (

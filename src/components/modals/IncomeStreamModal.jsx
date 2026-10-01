@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sheet, Inp, SelEl, Btn, full } from "../ui.jsx";
+import { Sheet, Inp, SelEl, Btn, full, fmtDec } from "../ui.jsx";
 import { normalizeIncomeStream, singleOwner, primaryOwnerId } from "../../model/schema.js";
 import { INCOME_TYPES, CY } from "../../constants.js";
 
@@ -36,7 +36,7 @@ export default function IncomeStreamModal({ data, s, T, setModal, updArr }) {
           </div>
           {(+f.growthPct||0) > 0 && (
             <div style={{ display:"flex", justifyContent:"space-between", marginTop:4 }}>
-              <span style={{ fontSize:12, color:T.textMid }}>In 10 Jahren (+{f.growthPct}%/J.)</span>
+              <span style={{ fontSize:12, color:T.textMid }}>In 10 Jahren (+{fmtDec(f.growthPct)} %/J.)</span>
               <span style={{ fontSize:13, fontWeight:600, color:T.green }}>{full(amt * Math.pow(1+(+f.growthPct)/100, 10))}/Mo.</span>
             </div>
           )}

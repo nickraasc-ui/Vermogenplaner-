@@ -4,7 +4,7 @@ import GuideModal from "./components/GuideModal.jsx";
 import { DARK, LIGHT } from "./theme.js";
 import { uid } from "./model/ids.js";
 import { deleteProfileData, profileKey } from "./storage.js";
-import { Sheet, Inp, Btn, IconBtn, RoundBtn, ListRow, Avatar, labelStyle } from "./components/ui.jsx";
+import { Sheet, Inp, Btn, IconBtn, RoundBtn, ListRow, Avatar, labelStyle, fmtE } from "./components/ui.jsx";
 
 // ----------------------------------------------------------------- utils ---
 
@@ -152,12 +152,7 @@ export default function App() {
     } catch { return null; }
   };
 
-  const fmtNet = (v) => {
-    if (v === null) return "Neu";
-    if (Math.abs(v) >= 1_000_000) return "€"+(v/1_000_000).toFixed(1)+"M";
-    if (Math.abs(v) >= 1_000) return "€"+(v/1_000).toFixed(0)+"k";
-    return "€"+Math.round(v);
-  };
+  const fmtNet = (v) => v === null ? "Neu" : fmtE(v);
 
   const editTarget = modal?.startsWith("edit:") ? profiles.find(p=>p.id===modal.slice(5)) : null;
   const delTarget  = modal?.startsWith("delete:") ? profiles.find(p=>p.id===modal.slice(7)) : null;

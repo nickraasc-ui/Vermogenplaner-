@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sheet, Inp, SelEl, Btn, Row, fmtE, full, uid } from "../ui.jsx";
+import { Sheet, Inp, SelEl, Btn, Row, fmtE, full, uid, fmtNum } from "../ui.jsx";
 import { CY, BCK_CLRS } from "../../constants.js";
 
 function Verdict({ label, sub, color, T }) {
@@ -45,7 +45,7 @@ export default function AffordModal({ s, cf, agg, final, T, setModal, updArr }) 
     const monthsOfSaving = (cf.eff || 0) > 0 ? amount / cf.eff : Infinity;
     if (amount <= annualGrowthEUR) {
       verdictLabel = "Aus Wachstum finanzierbar";
-      verdictSub   = `Entspricht ${monthsOfGrowth.toFixed(1)} Monaten Vermögenswachstum — keine Substanz betroffen`;
+      verdictSub   = `Entspricht ${fmtNum(monthsOfGrowth, 1)} Monaten Vermögenswachstum — keine Substanz betroffen`;
       verdictColor = T.green;
     } else if (amount <= liquidCash) {
       verdictLabel = "Aus Liquidität finanzierbar";
@@ -91,7 +91,7 @@ export default function AffordModal({ s, cf, agg, final, T, setModal, updArr }) 
         <div style={{ fontSize:16, color:T.text, fontWeight:700, letterSpacing:"-0.02em", marginBottom:8 }}>Dein Vermögenswachstum</div>
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
           <div>
-            <div style={{ fontSize:11, color:T.textDim }}>Jahreswachstum ({agg.wavgReturn.toFixed(1)}%)</div>
+            <div style={{ fontSize:11, color:T.textDim }}>Jahreswachstum ({fmtNum(agg.wavgReturn, 1)} %)</div>
             <div style={{ fontSize:15, fontWeight:600, color:T.green }}>{fmtE(annualGrowthEUR)}/J.</div>
           </div>
           <div>
@@ -118,7 +118,7 @@ export default function AffordModal({ s, cf, agg, final, T, setModal, updArr }) 
           {type === "Einmalig" && (
             <div style={{ background:"transparent", border:"1px solid "+T.border, borderRadius:16, padding:13, marginBottom:10 }}>
               <div style={{ fontSize:16, color:T.text, fontWeight:700, letterSpacing:"-0.02em", marginBottom:8 }}>Finanzierungswege</div>
-              <Row label="Aus Wachstum (Monate)" value={monthlyGrowthEUR > 0 ? (amount/monthlyGrowthEUR).toFixed(1)+" Mo." : "—"} type={amount <= annualGrowthEUR ? "in" : "warn"} T={T} />
+              <Row label="Aus Wachstum (Monate)" value={monthlyGrowthEUR > 0 ? fmtNum((amount/monthlyGrowthEUR), 1)+" Mo." : "—"} type={amount <= annualGrowthEUR ? "in" : "warn"} T={T} />
               <Row label="Aus Sparrate ansparen" value={(cf.eff||0) > 0 ? Math.ceil(amount/cf.eff)+" Mo." : "—"} T={T} />
               <Row label="Cash vorhanden" value={fmtE(liquidCash)} type={liquidCash >= amount ? "in" : "out"} T={T} />
             </div>
@@ -136,7 +136,7 @@ export default function AffordModal({ s, cf, agg, final, T, setModal, updArr }) 
           {/* Langfristiger Effekt */}
           <div style={{ background:"transparent", border:"1px solid "+T.border, borderRadius:16, padding:13, marginBottom:12 }}>
             <div style={{ fontSize:16, color:T.text, fontWeight:700, letterSpacing:"-0.02em", marginBottom:4 }}>Langfristiger Effekt ({s.horizon} J.)</div>
-            <div style={{ fontSize:11, color:T.textDim, marginBottom:8 }}>Opportunitätskosten bei {agg.wavgReturn.toFixed(1)}% gew. Ø-Rendite</div>
+            <div style={{ fontSize:11, color:T.textDim, marginBottom:8 }}>Opportunitätskosten bei {fmtNum(agg.wavgReturn, 1)} % gew. Ø-Rendite</div>
             <Row label="Projektion ohne" value={fmtE(baseEnd)} T={T} />
             <Row label="Entgangenes Wachstum" value={"−"+fmtE(impact)} type="out" T={T} />
             <Row label="Projektion mit" value={fmtE(newEnd)} type={pctI < 5 ? "in" : "warn"} bold T={T} />
@@ -144,7 +144,7 @@ export default function AffordModal({ s, cf, agg, final, T, setModal, updArr }) 
               <div style={{ background:T.border, borderRadius:5, overflow:"hidden", height:7, marginBottom:5 }}>
                 <div style={{ height:"100%", background:pctI < 5 ? T.green : pctI < 20 ? T.amber : T.red, width:Math.max(2, 100-pctI)+"%", transition:"width 0.4s" }} />
               </div>
-              <div style={{ fontSize:12, color:T.textLow, textAlign:"center" }}>Kostet {pctI.toFixed(1)}% des projizierten Endvermoegens</div>
+              <div style={{ fontSize:12, color:T.textLow, textAlign:"center" }}>Kostet {fmtNum(pctI, 1)} % des projizierten Endvermögens</div>
             </div>
           </div>
 

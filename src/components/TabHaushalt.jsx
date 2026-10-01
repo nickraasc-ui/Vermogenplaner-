@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
-import { Sl, Tile, Row, Btn, Icon, Section, ListRow, Avatar, LinkBtn, full, mlbl, ChTip } from "./ui.jsx";
+import { Sl, Tile, Row, Btn, Icon, Section, ListRow, Avatar, LinkBtn, full, mlbl, ChTip, fmtNum, fmtDec, fmtAxis } from "./ui.jsx";
 import { primaryOwnerId } from "../model/schema.js";
 import { ASSET_CLASS_DEFAULTS, ASSET_CLASSES, CY } from "../constants.js";
 
@@ -63,7 +63,7 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
           </div>
           <div style={{ fontSize:12, color:T.textMid, lineHeight:1.7 }}>
             {cf.bufferBalance > 0 && cf.bound > 0 && (
-              <div>· Puffer deckt ca. <strong style={{ color:T.amber }}>{(cf.bufferBalance / Math.abs(cf.rest)).toFixed(0)} Monate</strong></div>
+              <div>· Puffer deckt ca. <strong style={{ color:T.amber }}>{fmtNum((cf.bufferBalance / Math.abs(cf.rest)), 0)} Monate</strong></div>
             )}
             <div>· Ausgaben um <strong>{full(Math.abs(cf.rest))}/Mo.</strong> reduzieren</div>
             <div>· oder neue Einnahmequelle anlegen</div>
@@ -85,7 +85,7 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
               <div style={{ fontSize:15, fontWeight:650, color:T.text, marginTop:2 }}>{full(cf.bufferBalance * vm)}</div>
               {cf.bound > 0 && (
                 <div style={{ fontSize:11, color:T.textDim, marginTop:1 }}>
-                  {(cf.bufferBalance / cf.bound).toFixed(1)} Monatsausgaben Deckung
+                  {fmtNum((cf.bufferBalance / cf.bound), 1)} Monatsausgaben Deckung
                 </div>
               )}
             </div>
@@ -132,7 +132,7 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
               </defs>
               <CartesianGrid vertical={false} stroke={T.border} />
               <XAxis dataKey="age" tick={{ fill:T.textLow, fontSize:11 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill:T.textLow, fontSize:11 }} tickFormatter={v => full(v)} width={64} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill:T.textLow, fontSize:11 }} tickFormatter={fmtAxis} width={64} axisLine={false} tickLine={false} />
               <Tooltip content={props => <ChTip {...props} T={T} />} />
               <ReferenceLine x={selAge} stroke={T.accent} strokeWidth={2} strokeDasharray="5 3" label={{ value: selAbsYear, fill:T.accent, fontSize:11, position:"top" }} />
               {(s.checkins||[]).map(ci => {
@@ -185,7 +185,7 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
           <Row key={st.id} label={st.label}
             value={"+" + full((isCurrent ? st.amount : st.amt) * vm)}
             type="in"
-            sub={[ownerLabel(st), !isCurrent && (st.growthPct||0)>0 ? `+${st.growthPct}%/J.` : ""].filter(Boolean).join(" · ")}
+            sub={[ownerLabel(st), !isCurrent && (st.growthPct||0)>0 ? `+${fmtDec(st.growthPct)} %/J.` : ""].filter(Boolean).join(" · ")}
             T={T} />
         ))}
 
@@ -284,7 +284,7 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
         )}
         {(s.incomeStreams||[]).map((st, i, arr) => {
           const active = isActiveNow(st);
-          const sub = [st.type, ownerLabel(st), (st.growthPct||0) > 0 ? "+"+st.growthPct+" %/J." : null,
+          const sub = [st.type, ownerLabel(st), (st.growthPct||0) > 0 ? "+"+fmtDec(st.growthPct)+" %/J." : null,
             st.startsAt > CY ? "ab "+st.startsAt : null, st.endsAt ? "bis "+st.endsAt : null, !active ? "inaktiv" : null].filter(Boolean);
           return (
             <div key={st.id} style={{ opacity:active?1:0.45 }}>
@@ -398,7 +398,7 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
                       <div style={{ height:"100%", background:ASSET_CLASS_DEFAULTS[cls]?.color||T.accent, width:(share*100)+"%" }} />
                     </div>
                   </div>
-                  <span style={{ fontSize:11, color:T.textDim, width:32, textAlign:"right" }}>{(share*100).toFixed(0)}%</span>
+                  <span style={{ fontSize:11, color:T.textDim, width:32, textAlign:"right" }}>{fmtNum((share*100), 0)} %</span>
                 </div>
               ))}
             </>
@@ -443,7 +443,7 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
                   <div style={{ fontSize:20, color:T.text, fontWeight:700, letterSpacing:"-0.02em", marginBottom:10 }}>Kapitalerträge / Ausschüttungen</div>
                   {yieldAssets.map(a => {
                     const monthly = (a.value||0) * (a.yieldPct||0) / 100 / 12;
-                    return <Row key={a.id} label={a.name} value={"+" + full(monthly)} type="in" sub={a.yieldPct+"% · "+a.class} T={T} />;
+                    return <Row key={a.id} label={a.name} value={"+" + full(monthly)} type="in" sub={fmtDec(a.yieldPct)+" % · "+a.class} T={T} />;
                   })}
                 </div>
               )}
