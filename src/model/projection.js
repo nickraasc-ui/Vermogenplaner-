@@ -6,6 +6,7 @@
 // Rates are annual percentages compounded monthly: (1 + r/1200)^12 per year.
 import { CY } from "../constants.js";
 import { kestRate, computeRemDebt, ownerShare } from "./finance.js";
+import { balloonInYear } from "./loan.js";
 import { matchesOwnerFilter, profileAge } from "./schema.js";
 
 const ABGELTUNG = 0.26375; // 25 % + Soli
@@ -82,9 +83,7 @@ export function projectWealth({ s, projAssets, ownerFilter, includeStandaloneLoa
   ];
   const debtAt = (y) => loans.reduce((t, { loan, share }) => t + computeRemDebt(loan, y) * share, 0);
   // Interest-only loans are repaid in one sum at maturity — from the portfolio
-  const balloonAt = (y) => loans.reduce((t, { loan, share }) =>
-    loan.loanType === "endfaellig" && computeRemDebt(loan, y - 1) > 0 && computeRemDebt(loan, y) === 0
-      ? t + computeRemDebt(loan, y - 1) * share : t, 0);
+  const balloonAt = (y) => loans.reduce((t, { loan, share }) => t + balloonInYear(loan, y - 1) * share, 0);
 
   // Receivables (Forderung) shrink by their repayments, which flow into the cash flow as income
   const receivableOne = (a, y) => {

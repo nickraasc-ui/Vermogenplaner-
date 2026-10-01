@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { Sheet, Inp, SelEl, Btn, full } from "../ui.jsx";
+import { Sheet, Inp, SelEl, Btn, full, fmtDec } from "../ui.jsx";
 import { normalizeExpenseStream, singleOwner, primaryOwnerId } from "../../model/schema.js";
 import { EXPENSE_CATEGORIES, CY } from "../../constants.js";
 
 export default function ExpenseStreamModal({ data, s, T, setModal, updArr }) {
   const [f, setF] = useState(data
     ? { ...data, owner: primaryOwnerId(data) || "", endsAt: data.endsAt ?? "" }
-    : { label:"", category:"Lebenshaltung", amount:"", startsAt:CY, endsAt:"", owner:"", isBufferContribution:false }
+    : { label:"", category:"Lebenshaltung", amount:"", growthPct:2, startsAt:CY, endsAt:"", owner:"", isBufferContribution:false }
   );
   const hasPuffer = (s.assets||[]).some(a => a.isHaushaltsPuffer && a.class === "Cash");
   const set = (k, v) => setF(p => ({ ...p, [k]: v }));
@@ -20,7 +20,13 @@ export default function ExpenseStreamModal({ data, s, T, setModal, updArr }) {
       {(s.owners||[]).length > 0 && (
         <SelEl label="Eigentümer" value={f.owner||""} onChange={v => set("owner",v)} options={ownerOpts} T={T} />
       )}
-      <Inp label="Betrag/Mo. (€)" value={f.amount} onChange={v => set("amount",v)} type="number" placeholder="0" T={T} />
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+        <Inp label="Betrag/Mo. (€)" value={f.amount} onChange={v => set("amount",v)} type="number" placeholder="0" T={T} />
+        <Inp label="Steigerung %/J." value={f.growthPct} onChange={v => set("growthPct",v)} type="number" placeholder="0" T={T} />
+      </div>
+      <div style={{ fontSize:12, color:T.textLow, marginTop:-6, marginBottom:12 }}>
+        Preissteigerung pro Jahr, z. B. 2 % für Inflation. 0 % für feste Beträge wie eine Kreditrate oder eine Festmiete.
+      </div>
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
         <Inp label="Startjahr" value={f.startsAt} onChange={v => set("startsAt",v)} type="number" placeholder={String(CY)} T={T} />
         <Inp label="Endjahr (leer = dauerhaft)" value={f.endsAt} onChange={v => set("endsAt",v)} type="number" placeholder="offen" T={T} />
@@ -36,6 +42,12 @@ export default function ExpenseStreamModal({ data, s, T, setModal, updArr }) {
             <span style={{ fontSize:12, color:T.textMid }}>Jährlich</span>
             <span style={{ fontSize:12, fontWeight:600, color:T.red }}>{full(amt*12)}/J.</span>
           </div>
+          {(+f.growthPct||0) > 0 && (
+            <div style={{ display:"flex", justifyContent:"space-between", marginTop:4 }}>
+              <span style={{ fontSize:12, color:T.textMid }}>In 10 Jahren (+{fmtDec(f.growthPct)} %/J.)</span>
+              <span style={{ fontSize:12, fontWeight:600, color:T.red }}>{full(amt * Math.pow(1+(+f.growthPct)/100, 10))}/Mo.</span>
+            </div>
+          )}
           {f.endsAt && <div style={{ fontSize:11, color:T.green, marginTop:4 }}>Läuft aus: {f.endsAt} (zeitlich begrenzt)</div>}
         </div>
       )}

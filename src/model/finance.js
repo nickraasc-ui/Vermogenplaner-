@@ -31,43 +31,12 @@ export const kestRate = (a) => {
   return KEST_RATES[a.class] ?? 0.2638;
 };
 
-// Remaining debt at year y, using exact amortization schedule per loan type
-export const computeRemDebt = (a, y) => {
-  const D = a.debt || 0;
-  if (!D) return 0;
-  const mo = y * 12;
-  const loanType = a.loanType || "annuitat";
-  const r = (a.loanRate || 0) / 1200; // monthly rate
-  const M = a.loanAnnuitat || 0;
-  const n = (a.loanTermYears || 0) * 12; // total months in term
-
-  if (loanType === "endfaellig") {
-    // Interest-only: principal stays constant until term end
-    return n > 0 && mo >= n ? 0 : D;
-  }
-  // Annuität / Volltilger: standard amortization formula
-  if (r > 0 && M > 0) {
-    return Math.max(0, D * Math.pow(1 + r, mo) - M * (Math.pow(1 + r, mo) - 1) / r);
-  }
-  // Legacy fallback: linear decay via loanTilgung
-  const til = a.loanTilgung || 0;
-  return til > 0 ? Math.max(0, D - til * 12 * y) : D;
-};
+// Remaining debt after y years and payoff year: both come from the loan's repayment schedule (loan.js)
+export { remainingDebt as computeRemDebt, yearsUntilRepaid as yearsUntilPaidOff } from "./loan.js";
 
 // Returns combined ownership share for filtered owners (1.0 if no filter)
 export const ownerShare = (asset, ownerFilter) => {
   if (ownerFilter.length === 0) return 1;
   const ownership = asset.ownership || [];
   return ownership.filter(o => ownerFilter.includes(o.ownerId)).reduce((t, o) => t + (o.share || 0), 0);
-};
-
-/**
- * Whole years until the loan is repaid, using the same schedule as computeRemDebt
- * (so "schuldenfrei" dates match the projection). null = not repaid within 100 years.
- */
-export const yearsUntilPaidOff = (loan) => {
-  if (!(loan.debt > 0)) return 0;
-  if ((loan.loanType || "annuitat") === "endfaellig") return loan.loanTermYears || null;
-  for (let y = 1; y <= 100; y++) if (computeRemDebt(loan, y) < 0.5) return y;
-  return null;
 };

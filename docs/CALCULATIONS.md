@@ -10,7 +10,8 @@ Alle Berechnungen liegen als reine Funktionen in `src/model/` (ohne React) und s
 | `src/model/derive.js` | `deriveAll(state, { ownerFilter, projClassFilter })` — alle Werte, die die Oberfläche zeigt |
 | `src/model/cashflow.js` | `cashflowAt(y)` — monatlicher Cashflow eines Jahres (siehe 4.) |
 | `src/model/projection.js` | `projectWealth` — Vermögensprojektion in drei Szenarien (siehe 3.) |
-| `src/model/finance.js` | KeSt-Sätze, Restschuld `computeRemDebt`, Eigentumsanteil, Tilgungsdauer |
+| `src/model/finance.js` | KeSt-Sätze, Eigentumsanteil |
+| `src/model/loan.js` | Tilgungsplan je Darlehen: Restschuld, Rate pro Jahr, Zinsbindung, Sondertilgung, Dialog-Eingabe |
 | `src/model/schema.js` | Datenmodell, Migrationen, Eigentums-Helfer (siehe `DATA_MODEL.md`) |
 
 Der Cashflow des laufenden Monats (`cf`, Haushalt-Tab und Sparquote im Header) ist `cashflowAt(0)` plus Anzeigewerte:
@@ -72,15 +73,25 @@ V(y) = V(y−1) × (1 + r/1200)^12
 
 **Immobilien** wachsen auf den **vollen Marktwert** (nicht nur auf das Eigenkapital): `value × (1 + r/1200)^(12y)`.
 
-**Darlehen** (Asset-Darlehen × Eigentumsanteil, separate Verbindlichkeiten voll) werden mit `computeRemDebt(loan, y)` getilgt:
+**Darlehen** (Asset-Darlehen × Eigentumsanteil, separate Verbindlichkeiten voll) folgen ihrem **Tilgungsplan** (`loanSchedule` in `src/model/loan.js`). Er wird Monat für Monat gerechnet und pro Jahr zusammengefasst (Zinsen, Tilgung, Sondertilgung, Schlusszahlung, Restschuld):
 
-| Typ | Restschuld |
+```
+Zinsen  = Restschuld × Zins / 1200
+Tilgung = Rate − Zinsen                     (letzte Rate: nur der Rest)
+Jahresende: Restschuld −= Sondertilgung     (höchstens die Restschuld)
+```
+
+| Typ | Verlauf |
 |---|---|
-| Annuität / Volltilger | `D × (1+r)^(12y) − M × ((1+r)^(12y) − 1) / r` |
-| Endfällig | `D` bis Laufzeitende, dann `0` — der Rückzahlungsbetrag wird im Fälligkeitsjahr aus dem Depot bezahlt |
-| ohne Zins/Rate | linear über `loanTilgung`, sonst konstant |
+| Annuität / Volltilger | gleichbleibende Rate, der Zinsanteil sinkt, der Tilgungsanteil steigt |
+| Endfällig | Rate = Zinsen; die Restschuld bleibt bis zur Fälligkeit (`loanTermYears`) und wird dann in einer Summe aus dem Depot bezahlt |
+| Altdaten ohne Rate | lineare Tilgung über `loanTilgung` plus Zinsen |
 
-Die Annuität mindert den Cashflow (und damit die Sparrate); die Tilgung senkt die Restschuld und erhöht so das Nettovermögen. Nach Tilgungsende wird die Rate frei und fließt in die Sparrate.
+**Zinsbindung:** Mit `loanFixedUntil` (letztes Jahr) und `loanFollowUpRate` gilt ab dem Folgejahr der Anschlusszins. Die neue Rate wird so gewählt, dass das Darlehen im **ursprünglich geplanten Monat** abbezahlt ist (bei Sondertilgungen per Bisektion); ohne Tilgungsende bleibt die Rate. Bei endfälligen Darlehen folgen nur die Zinsen dem neuen Satz. Ohne Anschlusszins zeigt der Dialog nur die Restschuld am Ende der Zinsbindung.
+
+Die Zahlungen eines Jahres (Zinsen + Tilgung + Sondertilgung) mindern den Cashflow (siehe 4.) und damit die Sparrate; Tilgung und Sondertilgung senken die Restschuld und erhöhen so das Nettovermögen. Nach Tilgungsende wird die Rate frei und fließt in die Sparrate. „Schuldenfrei" (Übersicht, Projektion, Liste) = erstes Jahr ohne Restschuld.
+
+**Dialog-Eingabe** (`resolveLoanForm`): Rate bekannt → `loanAnnuitat` direkt · anfängliche Tilgung `t` → `D × (Zins + t) / 1200` · Laufzeit `n` Jahre → `D × r / (1 − (1+r)^(−12n))` mit `r = Zins/1200`.
 
 **Sparrate** (aus dem Cashflow, siehe 4.) wird nach der **Sparraten-Verteilung** (siehe 5.) auf die Klassen verteilt, innerhalb einer Klasse proportional zu den Positionswerten. Gesperrte Positionen, Cash und Sonstiges erhalten nichts. Gibt es für eine Klasse noch keine Position (oder gar keine investierbare Position), entsteht ein virtueller Topf mit der Klassenrendite (Fallback: Aktien-ETF).
 
@@ -97,10 +108,11 @@ Die Basis-Projektion liefert zusätzlich eine Aufschlüsselung pro Position und 
 `cashflowAt(y)` ist die **einzige** Cashflow-Berechnung — für das laufende Jahr (Haushalt-Tab, Sparquote) und jedes Projektionsjahr:
 
 ```
-avail = Σ incomeStreams(Jahr) × (1+growthPct)^(Jahre seit Start)
-      + Immo-Netto-CF (Miete × (1+immoRentGrowthPct)^y − Hausgeld − Grundsteuer − Annuität solange Restschuld > 0)
+avail = Σ incomeStreams(Jahr) × (1+growthPct)^(Jahre seit max(heute, Start))
+      + Immo-Netto-CF (Miete × (1+immoRentGrowthPct)^y − Hausgeld − Grundsteuer − Darlehenszahlungen des Jahres / 12)
       + Forderungs-Rückflüsse + Ausschüttungen (nach KeSt und Pauschbetrag)
-bound = Σ expenseStreams(Jahr) + Nicht-Immo-Annuitäten (solange Restschuld > 0)
+bound = Σ expenseStreams(Jahr) × (1+growthPct)^(Jahre seit max(heute, Start))
+      + Nicht-Immo-Darlehenszahlungen des Jahres / 12 (Rate laut Tilgungsplan inkl. Sondertilgung)
       + laufende Asset-Kosten + finanzierte Szenarien
 sp    = autoSpar ? max(0, avail − bound + Sparraten-Szenarien)
                  : min(manuellSparrate (+ Szenarien, optional × Wachstum), max(0, avail − bound))

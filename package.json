@@ -1,6 +1,6 @@
 {
   "name": "vermoegensplaner",
-  "version": "1.16.0",
+  "version": "1.17.0",
   "description": "Private Vermögens-, Haushalts- und Projektionsplanung als PWA (React + Vite). Alle Daten bleiben lokal im Browser.",
   "private": true,
   "type": "module",

@@ -94,7 +94,7 @@ Direktaktien (teilweise gesperrt/geschenkt), Immobilien mit Darlehen, ETF-Depots
 Beteiligungen über GmbH oder GbR, Gesellschafter-Anteile mit Durchblick auf natürliche Personen, Teileinkünfteverfahren für Dividenden aus GmbH-Anteilen, private Entnahmeplanung neben Unternehmensebene.
 
 **Immobilien-lastige Portfolios**
-Mehrere Objekte mit je eigenem Darlehen, Mieteinnahmen, Hausgeld und Grundsteuer. Automatische Cashflow-Rechnung (Bruttomiete minus Annuität minus laufende Kosten), Mietpreissteigerung in der Projektion, Schuldenfreiheitszeitpunkt je Objekt.
+Mehrere Objekte mit je eigenem Darlehen, Mieteinnahmen, Hausgeld und Grundsteuer. Automatische Cashflow-Rechnung (Bruttomiete minus Annuität minus laufende Kosten), Mietpreissteigerung in der Projektion, Schuldenfreiheitszeitpunkt je Objekt. Darlehen mit Rate, anfänglicher Tilgung oder Laufzeit, Zinsbindung mit Anschlusszins, Sondertilgung und Tilgungsplan pro Jahr.
 
 **Private-Equity-Anleger**
 Commitment/Called/Distributed-Tracking, illiquide Klassifizierung, J-Curve-Verhalten durch negativen Sonstiges-Slider, letzter Financing Round als Bewertungsmethode.

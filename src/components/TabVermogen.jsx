@@ -2,7 +2,8 @@ import { useState, useRef } from "react";
 import { PieChart, Pie, Cell, Tooltip as ReTooltip } from "recharts";
 import { Sl, Tile, Btn, Section, ListRow, Avatar, LinkBtn, IconBtn, Icon, fmtE, full, fmtNum, fmtDec, fmtDate } from "./ui.jsx";
 import { primaryOwnerId } from "../model/schema.js";
-import { ASSET_CLASSES, ASSET_CLASS_DEFAULTS } from "../constants.js";
+import { ASSET_CLASSES, ASSET_CLASS_DEFAULTS, CY } from "../constants.js";
+import { yearsUntilPaidOff } from "../model/finance.js";
 import { exportAssetsToExcel, parseImportFile } from "../utils/excelIO.js";
 
 export default function TabVermogen({ s, T, updClass, updArr, setModal, agg, filteredAssets, loanSummary }) {
@@ -132,7 +133,9 @@ export default function TabVermogen({ s, T, updClass, updArr, setModal, agg, fil
               const ownerLabel = (s.owners||[]).find(o => o.id === primaryOwnerId(l))?.label || null;
               const sub = [l.loanType === "endfaellig" ? "Endfällig" : "Annuität", fmtDec(l.loanRate||0)+" %"];
               if (ownerLabel) sub.push(ownerLabel);
-              if (l.loanTermYears) sub.push(l.loanTermYears+" J.");
+              const yl = yearsUntilPaidOff(l);
+              if (yl) sub.push("frei "+(CY+yl));
+              if (l.loanFixedUntil >= CY) sub.push("Zinsbindung bis "+l.loanFixedUntil);
               return (
                 <ListRow key={l.id} T={T} onClick={() => setModal({ type:"standaloneLoan", data:l })}
                   leading={<Avatar icon="card" color={T.surfaceHigh} fg={T.text} />}

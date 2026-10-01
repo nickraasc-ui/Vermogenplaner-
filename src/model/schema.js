@@ -4,12 +4,22 @@ import { CY, LIQUIDITY_DEFAULT, IMMO_CF_GROSS, IMMO_HAUSGELD, IMMO_GRUNDSTEUER }
 import { DEFAULT, DEFAULT_CLASS_RETURNS, DEFAULT_OWNERS } from "./defaults.js";
 import { uid } from "./ids.js";
 
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 // ── Small helpers ──────────────────────────────────────────────────────────
 /** Number from user input; empty / invalid → fallback (0 stays 0). */
 export const num = (x, fallback = 0) => (x === "" || x === null || x === undefined || Number.isNaN(+x)) ? fallback : +x;
 const yearOrNull = (x) => (x === "" || x === null || x === undefined || !+x) ? null : +x;
+const numOrNull = (x) => (x === "" || x === null || x === undefined || Number.isNaN(+x)) ? null : +x;
+
+// Loan fields shared by asset loans and standalone loans (see model/loan.js)
+const loanExtras = (l) => ({
+  loanInputMode: ["rate", "tilgung", "laufzeit"].includes(l.loanInputMode) ? l.loanInputMode : undefined,
+  loanTilgungPct: numOrNull(l.loanTilgungPct),
+  loanFixedUntil: yearOrNull(l.loanFixedUntil),
+  loanFollowUpRate: numOrNull(l.loanFollowUpRate),
+  loanSpecialPerYear: num(l.loanSpecialPerYear),
+});
 
 /** Age of the profile's main person (s.birthYear). Scenario target ages refer to this. */
 export const profileAge = (s) => CY - (s.birthYear || CY - 35);
@@ -41,7 +51,7 @@ export const FREQUENCIES = [
 // ── Normalisers: the one definition of each record's shape ─────────────────
 export function normalizeAsset(a) {
   const cls = a.class || "Aktien-ETF";
-  const { owner, ...rest } = a; // legacy single-owner field
+  const { owner, manualAnnuitat, ...rest } = a; // legacy: single-owner field, old dialog-only payment field
   const out = {
     ...rest,
     id: a.id || uid(),
@@ -58,6 +68,7 @@ export function normalizeAsset(a) {
     loanType: a.loanType || "annuitat",
     loanRate: num(a.loanRate), loanTermYears: num(a.loanTermYears),
     loanAnnuitat: num(a.loanAnnuitat), loanTilgung: num(a.loanTilgung),
+    ...loanExtras(a),
     monthlyRepayment: num(a.monthlyRepayment), monthlyRunningCost: num(a.monthlyRunningCost),
     tax: {
       acquisitionPrice: num(a.tax?.acquisitionPrice),
@@ -70,7 +81,6 @@ export function normalizeAsset(a) {
   if (cls === "Immobilien") {
     out.monthlyRent = num(a.monthlyRent); out.hausgeld = num(a.hausgeld); out.grundsteuer = num(a.grundsteuer);
   }
-  if (a.manualAnnuitat !== undefined) out.manualAnnuitat = num(a.manualAnnuitat);
   return out;
 }
 
@@ -84,7 +94,7 @@ export const normalizeIncomeStream = (st) => {
 export const normalizeExpenseStream = (st) => {
   const { owner, ...rest } = st;
   return { ...rest, id: st.id || uid(), label: st.label || "", category: st.category || "Sonstiges",
-    ownership: st.ownership || singleOwner(owner), amount: num(st.amount),
+    ownership: st.ownership || singleOwner(owner), amount: num(st.amount), growthPct: num(st.growthPct),
     startsAt: yearOrNull(st.startsAt) ?? CY, endsAt: yearOrNull(st.endsAt),
     isBufferContribution: !!st.isBufferContribution };
 };
@@ -93,7 +103,7 @@ export const normalizeLoan = (l) => {
   const { owner, ...rest } = l;
   return { ...rest, id: l.id || uid(), name: l.name || "", ownership: l.ownership || singleOwner(owner),
     loanType: l.loanType || "annuitat", debt: num(l.debt), loanRate: num(l.loanRate),
-    loanAnnuitat: num(l.loanAnnuitat), loanTermYears: yearOrNull(l.loanTermYears) };
+    loanAnnuitat: num(l.loanAnnuitat), loanTermYears: yearOrNull(l.loanTermYears), ...loanExtras(l) };
 };
 
 export function normalizeBucket(b) {
@@ -159,7 +169,14 @@ function migrateV1toV2(p) {
   return p;
 }
 
-const MIGRATIONS = { 1: migrateV1toV2 };
+// v3 (app 1.17): expenses rise with inflation. Existing expense streams had no growth field and stayed
+// flat for decades, which made long projections too optimistic → 2 % p.a. unless already set.
+function migrateV2toV3(p) {
+  if (!Array.isArray(p.expenseStreams)) return p;
+  return { ...p, expenseStreams: p.expenseStreams.map(st => ({ growthPct: 2, ...st })) };
+}
+
+const MIGRATIONS = { 1: migrateV1toV2, 2: migrateV2toV3 };
 
 /**
  * Brings a stored profile of any version to the current schema and normalises every record.

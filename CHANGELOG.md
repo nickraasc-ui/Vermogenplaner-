@@ -1,6 +1,25 @@
 # Changelog
 
 
+## v1.17 — Darlehen richtig erfassen, steigende Ausgaben (Oktober 2026)
+
+**Darlehen**
+- Neue Darlehens-Eingabe für Positionen und separate Darlehen: Rate bekannt · anfängliche Tilgung % · Laufzeit bis schuldenfrei
+- Zinsbindung („bis Jahr") und angenommener Anschlusszins: Restschuld am Ende der Zinsbindung und neue Rate werden angezeigt; die Projektion rechnet ab dann mit dem neuen Zins
+- Jährliche Sondertilgung
+- Tilgungsplan pro Jahr (Zinsen, Tilgung, Restschuld) im Dialog
+- Ein Tilgungsplan je Darlehen speist Projektion, Cashflow und „Schuldenfrei"-Datum; im letzten Jahr wird nur noch die Restrate gezahlt
+- Warnung, wenn die Rate nicht einmal die Zinsen deckt
+- Fix: Wer eine Immobilie mit Rate, aber ohne Laufzeit (z. B. Beispieldaten) bearbeitete und speicherte, verlor die Rate (0 €)
+
+**Ausgaben**
+- Ausgaben steigen jetzt jährlich (Feld „Steigerung %/J.", Standard 2 %). Bestehende Ausgaben werden auf 2 % gesetzt; 0 % für feste Beträge
+- Fix: Einnahmen mit Startjahr in der Vergangenheit wurden heute schon um das Wachstum seit Start erhöht
+
+**Datenmodell (Schema v3)**
+- Neue Darlehensfelder `loanInputMode`, `loanTilgungPct`, `loanFixedUntil`, `loanFollowUpRate`, `loanSpecialPerYear`; `growthPct` für Ausgaben; `manualAnnuitat` entfällt
+
+
 ## v1.16 — Neues Design, korrigierte Projektion, sauberes Datenmodell (Oktober 2026)
 
 **Einstieg**

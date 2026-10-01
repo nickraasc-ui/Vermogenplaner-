@@ -13,7 +13,7 @@ const profile = (over = {}) => migrateProfile({
   classReturns: { ...ZERO_RETURNS }, projSpreadCons: 2, projSpreadOpt: 2,
   horizon: 30, autoSpar: true, taxOnReturns: false, inflationAdj: false,
   incomeStreams: [{ id: "i", owner: null, label: "Gehalt", type: "Gehalt", amount: 3000, growthPct: 0, startsAt: 2026, endsAt: null }],
-  expenseStreams: [{ id: "e", label: "Leben", category: "Lebenshaltung", amount: 3000, startsAt: 2026, endsAt: null }],
+  expenseStreams: [{ id: "e", label: "Leben", category: "Lebenshaltung", amount: 3000, growthPct: 0, startsAt: 2026, endsAt: null }],
   assets: [], buckets: [], standaloneLoans: [], ...over,
 }, true);
 const base = (s, y) => deriveAll(s).projection[y].base;

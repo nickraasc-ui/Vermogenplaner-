@@ -18,7 +18,7 @@ const ASSET_TAX_DEFAULT = (taxType = "abgeltung") => ({ acquisitionPrice:0, acqu
 const LIFECYCLE_DEFAULT  = { maturity:null };
 
 export const DEFAULT = {
-  schemaVersion: 2,
+  schemaVersion: 3,
   birthYear: new Date().getFullYear() - 35,
   maritalProperty: "zugewinn",
   taxFiling: "gemeinsam",
@@ -30,8 +30,8 @@ export const DEFAULT = {
     { id:"i2", ownership:[{ ownerId:"ehefrau", share:1 }], label:"Gehalt Ehefrau", type:"Gehalt", amount:3500, growthPct:2, startsAt:CY, endsAt:null },
   ],
   expenseStreams: [
-    { id:"e1", ownership:[], label:"Lebenshaltungskosten",     category:"Lebenshaltung", amount:2000, startsAt:CY, endsAt:null },
-    { id:"e2", ownership:[], label:"Reserven / Unregelmäßiges", category:"Sonstiges",    amount:500,  startsAt:CY, endsAt:null },
+    { id:"e1", ownership:[], label:"Lebenshaltungskosten",     category:"Lebenshaltung", amount:2000, growthPct:2, startsAt:CY, endsAt:null },
+    { id:"e2", ownership:[], label:"Reserven / Unregelmäßiges", category:"Sonstiges",    amount:500,  growthPct:2, startsAt:CY, endsAt:null },
   ],
 
   autoSpar: true, manuellSparrate: 1500,
@@ -50,7 +50,7 @@ export const DEFAULT = {
     { id:"a4", name:"Gemeinschaftsdepot",       ownership:[{ ownerId:"gemeinschaft", share:1 }], class:"Aktien-ETF", liquidity:"Liquide",   value:15000,  debt:0, locked:false, note:"",                    yieldPct:0,   tax:{ ...ASSET_TAX_DEFAULT("abgeltung"),  acquisitionPrice:12000,  acquisitionDate:"2021-01-01" }, lifecycle:LIFECYCLE_DEFAULT, valuationMethod:"market",  commitment:0, called:0, distributed:0 },
     { id:"a5", name:"Liquidität Ehefrau",       ownership:[{ ownerId:"ehefrau", share:1 }],      class:"Cash",       liquidity:"Liquide",   value:10000,  debt:0, locked:false, note:"",                    yieldPct:0,   tax:{ ...ASSET_TAX_DEFAULT("steuerfrei") },                                                          lifecycle:LIFECYCLE_DEFAULT, valuationMethod:"market",  commitment:0, called:0, distributed:0 },
     { id:"a6", name:"Liquidität Gemeinschaft",  ownership:[{ ownerId:"gemeinschaft", share:1 }], class:"Cash",       liquidity:"Liquide",   value:15000,  debt:0, locked:false, note:"",                    yieldPct:0,   tax:{ ...ASSET_TAX_DEFAULT("steuerfrei") },                                                          lifecycle:LIFECYCLE_DEFAULT, valuationMethod:"market",  commitment:0, called:0, distributed:0 },
-    { id:"a7", name:"Immobilie München",        ownership:[{ ownerId:"ehemann", share:1 }],      class:"Immobilien", liquidity:"Illiquide", value:430000, debt:130000, locked:false, note:"Kaufpreis 230k",  tax:{ ...ASSET_TAX_DEFAULT("immobilien"), acquisitionPrice:230000, acquisitionDate:"2017-09-01" }, lifecycle:LIFECYCLE_DEFAULT, valuationMethod:"appraisal", commitment:0, called:0, distributed:0, loanRate:3.5, loanTilgung:450, loanAnnuitat:850, monthlyRent:1200, hausgeld:220, grundsteuer:10 },
+    { id:"a7", name:"Immobilie München",        ownership:[{ ownerId:"ehemann", share:1 }],      class:"Immobilien", liquidity:"Illiquide", value:430000, debt:130000, locked:false, note:"Kaufpreis 230k",  tax:{ ...ASSET_TAX_DEFAULT("immobilien"), acquisitionPrice:230000, acquisitionDate:"2017-09-01" }, lifecycle:LIFECYCLE_DEFAULT, valuationMethod:"appraisal", commitment:0, called:0, distributed:0, loanRate:3.5, loanTilgung:450, loanAnnuitat:850, loanInputMode:"rate", loanFixedUntil:CY+3, loanFollowUpRate:4, monthlyRent:1200, hausgeld:220, grundsteuer:10 },
   ],
   buckets: [], checkins: [], snapshots: [], standaloneLoans: [],
 };

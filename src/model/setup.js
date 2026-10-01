@@ -60,7 +60,7 @@ export function buildProfileFromSetup(a) {
       amount, growthPct: 2, startsAt: CY, endsAt: null }));
 
   const expenseStreams = (+a.expenses || 0) > 0
-    ? [{ label: "Lebenshaltung", category: "Lebenshaltung", ownership: [], amount: +a.expenses, startsAt: CY, endsAt: null }]
+    ? [{ label: "Lebenshaltung", category: "Lebenshaltung", ownership: [], amount: +a.expenses, growthPct: 2, startsAt: CY, endsAt: null }]
     : [];
 
   const assets = INVESTMENT_FIELDS

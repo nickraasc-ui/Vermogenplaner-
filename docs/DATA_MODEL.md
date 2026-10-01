@@ -1,4 +1,4 @@
-# Datenmodell (Schema v2)
+# Datenmodell (Schema v3)
 
 Quelle der Wahrheit ist `src/model/schema.js`: Schema-Version, Normalisierer (`normalizeAsset`, `normalizeIncomeStream`, …) und Migrationen. Demo-Daten neuer Profile: `src/model/defaults.js`. Profile aus dem Einrichtungs-Quiz: `buildProfileFromSetup` in `src/model/setup.js` (enthält nur die eigenen Angaben, keine Demo-Daten).
 
@@ -16,11 +16,12 @@ Alle Daten bleiben im Browser der jeweiligen Adresse (Domain). Browserdaten lös
 
 ## Migrationen
 
-`loadProfileState` liest das Profil, legt bei älterer Version eine Sicherungskopie an und ruft `migrateProfile` auf. Migrationen laufen schrittweise (`MIGRATIONS[v]`: v → v+1); danach wird jeder Datensatz normalisiert. Beim nächsten Speichern steht `schemaVersion: 2` im Profil.
+`loadProfileState` liest das Profil, legt bei älterer Version eine Sicherungskopie an und ruft `migrateProfile` auf. Migrationen laufen schrittweise (`MIGRATIONS[v]`: v → v+1); danach wird jeder Datensatz normalisiert. Beim nächsten Speichern steht `schemaVersion: 3` im Profil.
 
 | Von → nach | Änderungen |
 |---|---|
 | 1 → 2 | `owner` → `ownership[]` (Einnahmen, Ausgaben, Darlehen, Positionen) · Szenario `type`/`fundingMode` → `kind` + `frequency` · Check-in `ausgaben_ist` → `streamExp_ist` · Snapshot `value` → `totalNet` · `dark` entfernt · sehr alte Felder `nettoGesamt`/`ausgaben`/`reservenMonthly` → Ströme · fehlende Immobilienfelder erhalten die alten Standardwerte (1.200 € Miete, 220 € Hausgeld, 10 € Grundsteuer), fehlender Darlehenszins 3,5 % |
+| 2 → 3 | Ausgabenströme ohne `growthPct` erhalten 2 % p.a. (vorher stiegen Ausgaben nie, Projektionen waren zu optimistisch); ein gesetzter Wert, auch 0, bleibt |
 
 **Neue Migration hinzufügen:** `SCHEMA_VERSION` erhöhen, `MIGRATIONS[alteVersion] = (p) => neuerZustand` ergänzen, Test in `tests/schema.test.js` schreiben, Tabelle oben erweitern.
 
@@ -32,7 +33,7 @@ Positionen, Einnahmen, Ausgaben und separate Darlehen haben `ownership: [{ owner
 
 ```js
 {
-  schemaVersion: 2,
+  schemaVersion: 3,
   birthYear, horizon, inflationAdj, inflation, taxOnReturns, basiszins, immoRentGrowthPct,
   autoSpar, manuellSparrate, sparRateGrowth, sparGrowthPct,
   sparDistMode: "auto" | "manual", manualSparDist: { [Klasse]: €/Monat },
@@ -69,7 +70,7 @@ Positionen, Einnahmen, Ausgaben und separate Darlehen haben `ownership: [{ owner
   isHaushaltsPuffer,                          // nur Cash: Haushaltspuffer, deckt Defizite zuerst
   valuationMethod, note,
   // Darlehen auf die Position
-  loanType: "annuitat" | "volltilger" | "endfaellig", loanRate, loanTermYears, loanAnnuitat, loanTilgung, manualAnnuitat?,
+  loanType, loanRate, loanAnnuitat, loanTermYears, loanTilgung, ...    // siehe „Darlehensfelder"
   // Immobilien (nur class "Immobilien"): 0 ist ein gültiger Wert (selbstgenutzt)
   monthlyRent, hausgeld, grundsteuer,
   monthlyRepayment,                           // Forderung: monatliche Rückzahlung
@@ -85,14 +86,36 @@ Positionen, Einnahmen, Ausgaben und separate Darlehen haben `ownership: [{ owner
 // incomeStreams[]
 { id, label, type, ownership, amount /* €/Monat */, growthPct, startsAt /* Jahr */, endsAt /* Jahr | null */ }
 // expenseStreams[]
-{ id, label, category, ownership, amount, startsAt, endsAt, isBufferContribution }
+{ id, label, category, ownership, amount, growthPct /* Steigerung % p.a., Standard 2 */, startsAt, endsAt, isBufferContribution }
 ```
+
+`amount` ist der heutige Betrag (bzw. der Betrag im Startjahr, wenn der Strom später beginnt). `growthPct` wirkt jährlich ab heute bzw. ab dem Startjahr — ein Startjahr in der Vergangenheit erhöht den heutigen Betrag nicht.
 
 ## Separates Darlehen
 
 ```js
-{ id, name, ownership, loanType: "annuitat" | "endfaellig", debt, loanRate, loanAnnuitat, loanTermYears /* | null */ }
+{ id, name, ownership, debt, loanType, loanRate, loanAnnuitat, loanTermYears /* | null */, ... }   // Darlehensfelder wie unten
 ```
+
+## Darlehensfelder
+
+Gemeinsam für Darlehen auf Positionen und separate Darlehen. Gerechnet wird mit `src/model/loan.js` (siehe `CALCULATIONS.md`).
+
+| Feld | Bedeutung |
+|---|---|
+| `debt` | heutige Restschuld |
+| `loanType` | `"annuitat"` · `"volltilger"` (rechnerisch wie Annuität) · `"endfaellig"` (nur Zinsen, Rückzahlung am Ende) |
+| `loanRate` | Sollzins % p.a. (heute) |
+| `loanAnnuitat` | monatliche Rate in €; bei endfällig = Zinsen. **Maßgeblich für die Rechnung**, die übrigen Eingabefelder dienen dem Dialog |
+| `loanInputMode` | wie die Rate eingegeben wurde: `"rate"` (Rate bekannt) · `"tilgung"` (anfängliche Tilgung %) · `"laufzeit"` (Jahre bis schuldenfrei) |
+| `loanTilgungPct` | anfängliche Tilgung % p.a. (Modus `"tilgung"`) |
+| `loanTermYears` | Laufzeit in Jahren (Modus `"laufzeit"`; bei endfällig: Fälligkeit) |
+| `loanTilgung` | Tilgungsanteil der ersten Monatsrate (nur Anzeige; bei Altdaten ohne Rate: lineare Tilgung) |
+| `loanFixedUntil` | letztes Jahr der Zinsbindung, z. B. `2031` — `null` = keine |
+| `loanFollowUpRate` | angenommener Anschlusszins % nach der Zinsbindung — `null` = gleicher Zins |
+| `loanSpecialPerYear` | Sondertilgung in € pro Jahr (jeweils zum Jahresende) |
+
+Das alte Dialogfeld `manualAnnuitat` wird beim Laden entfernt; sein Wert steckt bereits in `loanAnnuitat`.
 
 ## Szenario (`buckets[]`)
 

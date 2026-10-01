@@ -2,6 +2,7 @@ import { useState } from "react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import { Sl, Tile, Row, Btn, Icon, Section, ListRow, Avatar, LinkBtn, full, mlbl, ChTip, fmtNum, fmtDec, fmtAxis } from "./ui.jsx";
 import { primaryOwnerId } from "../model/schema.js";
+import { streamAmountAt } from "../model/cashflow.js";
 import { ASSET_CLASS_DEFAULTS, ASSET_CLASSES, CY } from "../constants.js";
 
 const ALL_INVEST_CLASSES = ASSET_CLASSES.filter(cls => cls !== "Cash" && cls !== "Immobilien" && cls !== "Forderung");
@@ -34,13 +35,13 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
   // Per-stream amounts for the selected year
   const selIncStreams = (s.incomeStreams||[]).map(st => {
     const active = selAbsYear >= (st.startsAt||CY) && (!st.endsAt || selAbsYear <= st.endsAt);
-    const amt    = active ? (st.amount||0) * Math.pow(1+(st.growthPct||0)/100, Math.max(0, selAbsYear-(st.startsAt||CY))) : 0;
+    const amt    = active ? streamAmountAt(st, selAbsYear) : 0;
     return { ...st, active, amt };
   });
-  const selExpStreams = (s.expenseStreams||[]).map(st => ({
-    ...st,
-    active: selAbsYear >= (st.startsAt||CY) && (!st.endsAt || selAbsYear <= st.endsAt),
-  }));
+  const selExpStreams = (s.expenseStreams||[]).map(st => {
+    const active = selAbsYear >= (st.startsAt||CY) && (!st.endsAt || selAbsYear <= st.endsAt);
+    return { ...st, active, amt: active ? streamAmountAt(st, selAbsYear) : 0 };
+  });
 
   // Helpers
   const ownerLabel = (x) => (s.owners||[]).find(o => o.id === primaryOwnerId(x))?.label;
@@ -212,9 +213,9 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
 
         {/* Expense streams */}
         {(isCurrent ? (s.expenseStreams||[]).filter(isActiveNow) : selExpStreams.filter(st => st.active)).map(st => (
-          <Row key={st.id} label={st.label} value={"-" + full(st.amount*vm)}
+          <Row key={st.id} label={st.label} value={"-" + full((isCurrent ? st.amount : st.amt)*vm)}
             type={st.isBufferContribution ? "in" : "out"}
-            sub={[st.isBufferContribution ? "→ Puffer" : st.category, ownerLabel(st)].filter(Boolean).join(" · ")} T={T} />
+            sub={[st.isBufferContribution ? "→ Puffer" : st.category, ownerLabel(st), !isCurrent && (st.growthPct||0)>0 ? `+${fmtDec(st.growthPct)} %/J.` : ""].filter(Boolean).join(" · ")} T={T} />
         ))}
 
         {/* Loan payments */}
@@ -305,7 +306,7 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
         )}
         {(s.expenseStreams||[]).map((st, i, arr) => {
           const active = isActiveNow(st);
-          const sub = [st.category, st.startsAt > CY ? "ab "+st.startsAt : null, st.endsAt ? "endet "+st.endsAt : null, !active ? "inaktiv" : null].filter(Boolean);
+          const sub = [st.category, (st.growthPct||0) > 0 ? "+"+fmtDec(st.growthPct)+" %/J." : null, st.startsAt > CY ? "ab "+st.startsAt : null, st.endsAt ? "endet "+st.endsAt : null, !active ? "inaktiv" : null].filter(Boolean);
           return (
             <div key={st.id} style={{ opacity:active?1:0.45 }}>
               <ListRow T={T} last={i === arr.length - 1} onClick={() => setModal({ type:"expenseStream", data:st })}

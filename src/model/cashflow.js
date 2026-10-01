@@ -1,10 +1,18 @@
 // Monthly household cash flow for one year of the plan — the single implementation used
 // both for "today" (Haushalt tab, header Sparquote) and for every projected year.
 import { IMMO_CF_GROSS, IMMO_HAUSGELD, IMMO_GRUNDSTEUER, CY } from "../constants.js";
-import { kestRate, computeRemDebt, ownerShare } from "./finance.js";
+import { kestRate, ownerShare } from "./finance.js";
+import { monthlyPaymentAt } from "./loan.js";
 import { matchesOwnerFilter } from "./schema.js";
 
 const activeInYear = (st, year) => year >= (st.startsAt || CY) && (!st.endsAt || year <= st.endsAt);
+
+/**
+ * Monthly amount of an income or expense stream in a calendar year. The entered amount is today's
+ * (or, for a stream starting later, the amount at its start); growthPct compounds yearly from then on.
+ */
+export const streamAmountAt = (st, year) =>
+  (st.amount || 0) * Math.pow(1 + (st.growthPct || 0) / 100, Math.max(0, year - Math.max(CY, st.startsAt || CY)));
 
 /** Financed scenarios pay their monthly rate from financingStart for ceil(months/12) years. */
 export const isFinancingActive = (b, year) => {
@@ -31,29 +39,31 @@ export function cashflowAt(y, { s, assets, incomeStreams, ownerFilter }) {
   const rentGrowth = s.immoRentGrowthPct || 0;
   const activeB = (s.buckets || []).filter(b => b.active !== false);
 
-  // Income streams grow from their start year
+  // Income (raises) and expenses (inflation) grow per stream
   const streamIncome = incomeStreams
     .filter(st => activeInYear(st, year))
-    .reduce((t, st) => t + (st.amount || 0) * Math.pow(1 + (st.growthPct || 0) / 100, Math.max(0, year - (st.startsAt || CY))), 0);
+    .reduce((t, st) => t + streamAmountAt(st, year), 0);
   const expenseStreams = (s.expenseStreams || []).filter(st => activeInYear(st, year) && matchesOwnerFilter(st, ownerFilter));
-  const streamExpense = expenseStreams.reduce((t, st) => t + (st.amount || 0), 0);
+  const streamExpense = expenseStreams.reduce((t, st) => t + streamAmountAt(st, year), 0);
 
   // Real estate: rent (with rent growth) − running costs − loan payments while the loan is outstanding.
   // `??`: an entered 0 (owner-occupied, no Hausgeld) stays 0; defaults only fill fields that don't exist.
   const immoAssets   = assets.filter(a => a.class === "Immobilien");
   const immoGross    = immoAssets.reduce((t, a) => t + (a.monthlyRent ?? IMMO_CF_GROSS) * Math.pow(1 + rentGrowth / 100, y) * sh(a), 0);
   const immoRunning  = immoAssets.reduce((t, a) => t + ((a.hausgeld ?? IMMO_HAUSGELD) + (a.grundsteuer ?? IMMO_GRUNDSTEUER)) * sh(a), 0);
+  // Loan payments follow each loan's schedule: lower in the payoff year, new rate after the Zinsbindung,
+  // Sondertilgungen spread over the year's months
   const immoAnnuitat = immoAssets.filter(a => (a.debt || 0) > 0)
-    .reduce((t, a) => t + (computeRemDebt(a, y) > 0 ? (a.loanAnnuitat || 0) * sh(a) : 0), 0);
+    .reduce((t, a) => t + monthlyPaymentAt(a, y) * sh(a), 0);
   const immoNetCF    = immoGross - immoRunning - immoAnnuitat;
 
   const forderungIncome   = assets.filter(a => a.class === "Forderung").reduce((t, a) => t + (a.monthlyRepayment || 0) * sh(a), 0);
   const assetRunningCosts = assets.filter(a => a.class !== "Immobilien" && (a.monthlyRunningCost || 0) > 0)
     .reduce((t, a) => t + (a.monthlyRunningCost || 0) * sh(a), 0);
   const otherAnnuitat = assets.filter(a => a.class !== "Immobilien" && a.class !== "Forderung" && (a.debt || 0) > 0)
-      .reduce((t, a) => t + (computeRemDebt(a, y) > 0 ? (a.loanAnnuitat || 0) * sh(a) : 0), 0)
+      .reduce((t, a) => t + monthlyPaymentAt(a, y) * sh(a), 0)
     + (s.standaloneLoans || []).filter(l => matchesOwnerFilter(l, ownerFilter))
-      .reduce((t, l) => t + (computeRemDebt(l, y) > 0 ? (l.loanAnnuitat || 0) : 0), 0);
+      .reduce((t, l) => t + monthlyPaymentAt(l, y), 0);
 
   // Distributions (dividends, coupons): paid on the projected value; capital growth excludes the yield
   const yieldAssets = assets.filter(a => (a.yieldPct || 0) > 0 && a.class !== "Immobilien" && a.class !== "Forderung");
@@ -93,7 +103,7 @@ export function cashflowAt(y, { s, assets, incomeStreams, ownerFilter }) {
   }
 
   // Buffer contributions are expenses that flow into the Haushaltspuffer instead of being consumed
-  const bufferContribMonthly = expenseStreams.filter(st => st.isBufferContribution).reduce((t, st) => t + (st.amount || 0), 0);
+  const bufferContribMonthly = expenseStreams.filter(st => st.isBufferContribution).reduce((t, st) => t + streamAmountAt(st, year), 0);
   const nonBufferBound = bound - bufferContribMonthly;
   const effectiveBufferContrib = Math.min(bufferContribMonthly, Math.max(0, avail - nonBufferBound));
   const deficitMonthly = Math.max(0, nonBufferBound - avail);
