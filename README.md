@@ -1,28 +1,89 @@
 # Vermögensplaner
 
-Ein privates Finanzplanungs-Tool für HNWI (High-Net-Worth Individuals) und komplexe Vermögensstrukturen. Läuft vollständig im Browser, keine Cloud-Abhängigkeit, keine Datenweitergabe.
+Private Vermögens-, Haushalts- und Projektionsplanung für komplexe Vermögensstrukturen — mehrere Eigentümer, Immobilien mit Darlehen, Depots, Beteiligungen, 35-Jahres-Prognose. Läuft als installierbare Web-App (PWA) vollständig im Browser: keine Cloud, kein Konto, keine Datenweitergabe.
 
----
+**Live:** https://vermogenplaner-plw2.vercel.app
 
-## Inhaltsverzeichnis
+## Schnellstart
 
-1. [Use Cases](#use-cases)
-2. [Architektur](#architektur)
-3. [Setup & Entwicklung](#setup--entwicklung)
-4. [Datenmodell](#datenmodell)
-5. [Berechnungsmethoden](#berechnungsmethoden)
-6. [Versionshistorie](#versionshistorie)
-7. [Geplante Features](#geplante-features)
+Voraussetzung: Node.js 20 oder neuer (empfohlen 22, siehe `.nvmrc`).
 
----
+```bash
+git clone https://github.com/nickraasc-ui/Vermogenplaner-.git
+cd Vermogenplaner-
+npm ci
+npm run dev          # http://localhost:5173
+```
 
-## Use Cases
+## Befehle
 
-### Primäre Zielgruppe
+| Befehl | Zweck |
+|---|---|
+| `npm run dev` | Entwicklungsserver mit Hot Reload |
+| `npm test` | Berechnungs- und Datenmodell-Tests (Vitest) |
+| `npm run lint` | ESLint |
+| `npm run check` | Lint + Tests + Build — vor jedem Push |
+| `npm run build` | Produktions-Build nach `dist/` |
+| `npm run preview` | Produktions-Build lokal ansehen (inkl. Service Worker) |
+
+## Deployment
+
+Vercel baut automatisch aus GitHub:
+
+- Push auf **`main`** → Produktion (die Live-Adresse oben).
+- Push auf jeden anderen Branch → eigene **Preview**-Adresse (in Vercel unter *Deployments*).
+
+Vercel erkennt Vite automatisch (Build `npm run build`, Ausgabe `dist/`); eine `vercel.json` ist nicht nötig. Im Vercel-Konto sind derzeit vier Projekte mit diesem Repository verbunden (`vermogenplaner`, `-gnpj`, `-xchn`, `-plw2`), die alle bei jedem Push bauen. Genutzt wird `-plw2`; die übrigen können in Vercel gelöscht werden.
+
+GitHub Actions (`.github/workflows/ci.yml`) prüft jeden Push auf `main` und jeden Pull Request mit Lint, Tests und Build.
+
+## Daten & Datenschutz
+
+Alle Daten liegen im `localStorage` des Browsers, getrennt pro Adresse (Domain) und Profil. Es gibt keinen Server. Browserdaten löschen oder ein anderes Gerät/eine andere Adresse verwenden heißt: Daten sind dort nicht vorhanden. Vor einer Datenmodell-Migration legt die App automatisch eine Sicherungskopie im Browser an. Details: [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md).
+
+## Projektstruktur
+
+```
+src/
+├── main.jsx                 Einstieg, Service-Worker-Registrierung (nur Produktion)
+├── app.jsx                  Profilauswahl, Theme
+├── AppInner.jsx             geöffnetes Profil: Zustand, Tabs, Dialoge
+├── storage.js               localStorage, Sicherungskopie vor Migration
+├── constants.js             Asset-Klassen, Enums, Standardwerte
+├── theme.js                 Farb-Tokens (hell/dunkel)
+├── model/                   reine Logik ohne React — getestet
+│   ├── schema.js            Datenmodell, Normalisierer, Migrationen, Eigentums-Helfer
+│   ├── defaults.js          Demo-Daten neuer Profile
+│   ├── derive.js            deriveAll(): alle angezeigten Werte, Szenario-Wirkung
+│   ├── cashflow.js          cashflowAt(y): Cashflow eines Jahres
+│   ├── projection.js        Vermögensprojektion (3 Szenarien)
+│   ├── finance.js           KeSt, Restschuld, Tilgungsdauer, Eigentumsanteil
+│   └── ids.js               ID-Generator
+├── components/              Tabs, OrgChart, Anleitung, gemeinsame UI (ui.jsx)
+│   └── modals/              Bearbeitungs-Dialoge
+└── utils/excelIO.js         Excel-Export/-Import (ExcelJS, bei Bedarf geladen)
+public/                      Icons, Web-Manifest, Service Worker
+tests/                       Vitest: Fixtures, Snapshots, Modell- und Migrations-Tests
+docs/                        Datenmodell, Berechnungen, Roadmap
+```
+
+## Architektur in Kürze
+
+- **Zustand:** ein Objekt pro Profil (`useState` in `AppInner.jsx`), bei jeder Änderung in `localStorage` gespeichert. Änderungen über `upd(patch)`, `updArr(key, array)`, `updClass(klasse, rendite)`.
+- **Berechnung:** `deriveAll(state, { ownerFilter, projClassFilter })` liefert Cashflow, Aggregation, Darlehen, Sparverteilung und Projektion — reine Funktionen, siehe [`docs/CALCULATIONS.md`](docs/CALCULATIONS.md).
+- **Datenmodell:** versioniert, jede Änderung über eine Migration, siehe [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md).
+- **Oberfläche:** React 18, Inline-Styles mit Theme-Tokens (`theme.js`), globale Styles in `index.html`, Icons von Lucide, Schrift Inter (lokal eingebunden).
+
+## Mitarbeiten
+
+- Oberfläche und Dokumentation auf Deutsch, Code-Kommentare auf Englisch.
+- Änderungen an Berechnungen nur in `src/model/` und immer mit Test. Die Snapshot-Tests in `tests/derive.test.js` zeigen jede Zahl, die sich ändert; gewollte Änderungen mit `npx vitest run -u` übernehmen und im Commit begründen.
+- Änderungen am gespeicherten Format nur über eine neue Migration (siehe `docs/DATA_MODEL.md`).
+- Vor dem Push: `npm run check`.
+
+## Wofür
 
 Das Tool richtet sich an wohlhabende Privatpersonen und Berater, die Vermögen jenseits klassischer Banksoftware planen wollen — mit realer Struktur statt vereinfachter Buchführung.
-
-### Typische Szenarien
 
 **Ehepaare mit gemischtem Vermögen**
 Direktaktien (teilweise gesperrt/geschenkt), Immobilien mit Darlehen, ETF-Depots bei verschiedenen Banken, gemeinsame und getrennte Liquidität. Das Tool bildet Miteigentumsquoten ab (z.B. 60/40 Anteil), rechnet auf Teilhaber-Ebene und ermöglicht getrennte Steuerveranlagung pro Eigentümer.
@@ -37,628 +98,14 @@ Mehrere Objekte mit je eigenem Darlehen, Mieteinnahmen, Hausgeld und Grundsteuer
 Commitment/Called/Distributed-Tracking, illiquide Klassifizierung, J-Curve-Verhalten durch negativen Sonstiges-Slider, letzter Financing Round als Bewertungsmethode.
 
 **Ruhestandsplanung**
-Altersbezogene Milestones, Rentenplanung als befristeter Einkommensstrom, Entnahmeplanung via Buckets (Einmalig/Jährlich/Monatlich), Inflationsbereinigung in der Projektion, Zeithorizont bis 50 Jahre.
+Altersbezogene Milestones, Rentenplanung als befristeter Einkommensstrom, Entnahmeplanung via Szenarien (einmalig/jährlich/monatlich), Inflationsbereinigung in der Projektion, Zeithorizont bis 50 Jahre.
 
 **Schenkung und Erbschaft**
 Gesperrte Assets (locked-Flag), stille Reserven (Anschaffungspreis vs. Marktwert), Güterstand-Verwaltung (Zugewinngemeinschaft / Gütertrennung / Gütergemeinschaft).
 
----
-
-## Architektur
-
-### Technologie-Stack
-
-| Schicht | Technologie |
-|---|---|
-| UI Framework | React 18 (Hooks) |
-| Build Tool | Vite 5 |
-| Charts | Recharts 2.10 |
-| Excel | SheetJS (xlsx 0.18.5) |
-| Persistenz | localStorage (multi-profile) |
-| Deployment | Netlify (static) |
-| Styling | Inline-Styles mit Theme-Objekt |
-
-### Dateistruktur
-
-```
-src/
-├── app.jsx                    # Einstiegspunkt: Profilverwaltung
-├── AppInner.jsx               # Haupt-App: State, Berechnungen, Tab-Routing
-├── theme.js                   # DARK/LIGHT-Themes, DEFAULT-State, DEFAULT_OWNERS
-├── storage.js                 # loadProfileState (mit Migrations-Logik), saveState
-├── constants.js               # ASSET_CLASS_DEFAULTS, KeSt-Typen, Enums
-│
-├── model/                     # Reine Berechnungen (ohne React), getestet
-│   ├── derive.js              # deriveAll(state, filter): alle abgeleiteten Werte
-│   ├── cashflow.js            # cashflowAt(y): Cashflow eines Jahres
-│   ├── projection.js          # projectWealth: Vermögensprojektion, 3 Szenarien
-│   └── finance.js             # KeSt, Restschuld, Eigentumsanteil, Tilgungsdauer
-│
-├── components/
-│   ├── ui.jsx                 # Shared UI: Tile, Btn, Sl (Slider), fmtE, full
-│   ├── TabDashboard.jsx       # Übersicht: KPIs, Loan-Summary, Nettowert-Chart
-│   ├── TabHaushalt.jsx        # Cashflow: Einnahmen, Ausgaben, Sparrate, Sparverteilung
-│   ├── TabVermogen.jsx        # Asset-Liste: Rendite-Sliders, Positionen, Snapshots
-│   ├── TabProjektion.jsx      # 3-Szenario-Projektion, Milestones, Parameter
-│   ├── TabBuckets.jsx         # Geplante Ausgaben (Einmalig/Jährlich/Monatlich)
-│   │
-│   └── modals/
-│       ├── AssetModal.jsx     # Asset anlegen/bearbeiten: Ownership, Tax, PE, Lifecycle
-│       ├── OwnerModal.jsx     # Eigentümer + Güterstand + Steuerprofile
-│       ├── BucketModal.jsx    # Ausgaben-Bucket: Betrag, Typ, Finanzierungsmodus
-│       ├── CheckinModal.jsx   # Monatlicher Haushalt-Check-in
-│       ├── SnapshotModal.jsx  # Nettowert-Snapshot mit Asset-Einzelwerten
-│       ├── AffordModal.jsx    # Leistbarkeitsrechner (Substanz vs. Wachstum)
-│       ├── ImportPreviewModal.jsx  # Excel-Import Vorschau und Bestätigung
-│       ├── IncomeStreamModal.jsx   # Einkommensstrom anlegen/bearbeiten
-│       ├── ExpenseStreamModal.jsx  # Ausgabenstrom anlegen/bearbeiten
-│       └── StandaloneLoanModal.jsx # Verbindlichkeit ohne Asset-Bindung
-│
-└── utils/
-    └── excelIO.js             # exportAssetsToExcel, parseImportFile
-```
-
-### State-Architektur
-
-Der gesamte App-State lebt in einem einzigen `useState`-Objekt (`s`) in `AppInner.jsx`. Alle Ableitungen (Cashflow `cf`, Aggregierung `agg`, Projektion `projection`, Sparverteilung `sparDist`) berechnet `deriveAll()` aus `src/model/derive.js` in einem `useMemo`.
-
-```
-s (Profil-State)
-├── assets[]          — Positionen mit Wert, Eigentümer, Steuer, Lifecycle
-├── owners[]          — Eigentümer mit Typ, Steuerprofile, Gesellschafter, birthYear
-├── incomeStreams[]    — zeitbegrenzte Einkommensströme pro Eigentümer
-├── expenseStreams[]   — zeitbegrenzte Ausgabenströme (mit owner + isBufferContribution)
-├── standaloneLoans[] — Verbindlichkeiten ohne Asset-Bindung
-├── buckets[]         — geplante Ausgaben (Einmalig/Jährlich/Monatlich)
-├── checkins[]        — monatliche Haushalt-Check-ins
-├── snapshots[]       — Nettowert-Zeitreihe mit Asset-Einzelwerten
-├── classReturns{}    — überschriebene Renditen pro Asset-Klasse
-└── Konfiguration     — birthYear, maritalProperty, taxFiling, horizon, projSpreadCons/Opt, etc.
-```
-
-Änderungen werden über drei Callbacks propagiert:
-- `upd(patch)` — flacher Merge für skalare Felder
-- `updArr(key, arr)` — Ersatz eines kompletten Arrays
-- `updClass(cls, val)` — Rendite-Override für eine Asset-Klasse
-
-Bei jeder State-Änderung schreibt ein `useEffect` den State sofort in `localStorage`.
-
-### Multi-Profil-System
-
-`app.jsx` verwaltet eine Liste von Profilen im `localStorage` unter dem Key `wealth-profiles-v1`. Jedes Profil bekommt eine eigene ID; der vollständige Profil-State liegt unter `wealth-pwa-v3-{profileId}`. Profile sind vollständig isoliert.
-
-### Theme-System
-
-Zwei Theme-Objekte (`DARK`, `LIGHT`) in `theme.js` — jeweils ca. 15 Farbwerte. Das aktive Theme `T` wird als Prop durch alle Komponenten gereicht. Kein CSS, kein Klassensystem — ausschließlich Inline-Styles mit `T.accent`, `T.surface`, etc.
-
-### Eigentümer-Filter
-
-Ein `ownerFilter[]`-Array im AppInner-State filtert alle Berechnungen auf bestimmte Eigentümer. `filteredAssets` enthält nur Assets, an denen mindestens ein gefilterter Eigentümer beteiligt ist. `ownerShare(asset, ownerFilter)` gibt den skalierten Anteil zurück (z.B. 0.6 bei 60%-Beteiligung), der in alle Cashflow- und Aggregierungsrechnungen einfließt.
-
----
-
-## Setup & Entwicklung
-
-### Voraussetzungen
-
-- Node.js 18+
-- npm
-
-### Installation
-
-```bash
-git clone https://github.com/nickraasc-ui/Vermogenplaner-.git
-cd Vermogenplaner-
-npm install
-npm run dev
-```
-
-Die App läuft dann auf `http://localhost:5173`.
-
-### Build & Deployment
-
-```bash
-npm test          # Berechnungs-Tests (Vitest)
-npm run build     # Erstellt dist/
-npm run preview   # Lokale Vorschau des Builds
-```
-
-Netlify deployt automatisch bei Push auf `main`. Build-Command: `npm run build`, Publish-Verzeichnis: `dist/`.
-
-### Bekannte Besonderheit: macOS vs. Linux Dateipfade
-
-macOS nutzt ein case-insensitives Dateisystem. Git auf macOS bildet `src/` und `Src/` auf denselben Pfad ab. Auf Netlify (Linux) sind diese Pfade unterschiedlich. Bei neuen Dateien unter `src/` müssen diese via git-Plumbing staged werden, damit der Linux-Build sie korrekt findet:
-
-```bash
-HASH=$(git hash-object -w "src/MeineDatei.jsx")
-git update-index --add --cacheinfo "100644,${HASH},src/MeineDatei.jsx"
-```
-
----
-
-## Datenmodell
-
-### Feldnutzungs-Matrix
-
-Jedes Feld im System wird entweder in Berechnungen eingesetzt oder dient als Metadaten/Anzeige. Die folgende Übersicht zeigt, wo welche Felder tatsächlich wirken:
-
-| Feld | Projektion | Cashflow | Anzeige | Status |
-|---|:---:|:---:|:---:|---|
-| `value` | ✓ | ✓ | ✓ | Kern |
-| `debt` | ✓ | — | ✓ | Kern |
-| `class` | ✓ (Rendite-Lookup) | ✓ | ✓ | Kern |
-| `ownership` | ✓ (Anteil-Skalierung) | ✓ | ✓ | Kern |
-| `locked` | ✓ (erhält keine Sparrate) | — | ✓ | Kern |
-| `loanType` | ✓ (Tilgungsformel) | ✓ | ✓ | Kern |
-| `loanRate` | ✓ (Amortisierung) | — | ✓ | Kern |
-| `loanTermYears` | ✓ (Laufzeit) | ✓ | ✓ | Kern |
-| `loanAnnuitat` | ✓ (CF-Abzug) | ✓ | ✓ | Kern (berechnet) |
-| `loanTilgung` | ✓ (Fallback) | ✓ | ✓ | Kern (berechnet) |
-| `monthlyRent` | ✓ (Immo-CF) | ✓ | ✓ | Kern (Immo) |
-| `hausgeld` | ✓ (Immo-CF) | ✓ | ✓ | Kern (Immo) |
-| `grundsteuer` | ✓ (Immo-CF) | ✓ | ✓ | Kern (Immo) |
-| `monthlyRepayment` | ✓ (Ford-CF) | ✓ | ✓ | Kern (Forderung) |
-| `monthlyRunningCost` | ✓ (Abzug) | ✓ | ✓ | Kern (optional) |
-| `yieldPct` | ✓ (capAppr-Trennung) | ✓ | ✓ | Kern |
-| `liquidity` | — | — | ✓ | Anzeige |
-| `valuationMethod` | — | — | ✓ | Metadaten |
-| `note` | — | — | ✓ | Metadaten |
-| `tax.acquisitionPrice/Date` | — | — | ✓ (stille Reserven) | Metadaten |
-| `tax.taxType` | ✓ (KeSt-Satz) | ✓ (KeSt auf Ausschüttungen) | ✓ | Kern |
-| `lifecycle.maturity` | — | — | ✓ | Metadaten |
-| `commitment/called/distributed` | — | — | ✓ (PE) | Metadaten |
-| Owner `tax.*` | — | — | — | Gespeichert, noch nicht genutzt |
-| `maritalProperty`, `taxFiling` | — | — | — | Gespeichert, noch nicht genutzt |
-
-### Asset
-
-```js
-{
-  id: string,
-  name: string,
-  class: AssetClass,               // "Aktien" | "Aktien-ETF" | "Immobilien" | ...
-  ownership: [{ ownerId, share }], // Bruchteile, Summe = 1.0
-  value: number,                   // Bruttowert in €
-  debt: number,                    // Verbindlichkeiten in €
-  liquidity: "Liquide" | "Semi-liquide" | "Illiquide",
-  yieldPct: number,                // Ausschüttungsrendite in % p.a. (Dividenden, Kupons)
-  valuationMethod: string,         // "market" | "nav" | "appraisal" | "lastround" | "selbstauskunft"
-  locked: boolean,                 // gesperrtes Asset — nimmt nicht an Sparverteilung teil
-  note: string,
-
-  // Steuer
-  tax: {
-    taxType: "abgeltung" | "teileinkuenfte" | "immobilien" | "krypto_langfristig" | "steuerfrei",
-    acquisitionPrice: number,      // für stille Reserven
-    acquisitionDate: string,       // YYYY-MM-DD
-  },
-
-  // Darlehen (gilt für Immobilien und alle anderen Assets mit Schulden)
-  loanType: "annuitat" | "volltilger" | "endfaellig",
-  loanRate: number,                // Nominalzins in % p.a.
-  loanTermYears: number,           // Gesamtlaufzeit in Jahren
-  loanAnnuitat: number,            // monatliche Rate in € (berechnet aus Rate+Laufzeit)
-  loanTilgung: number,             // monatliche Tilgung in € (berechnet: Annuität - Zinsen)
-
-  // Immobilien-spezifisch
-  monthlyRent: number,
-  hausgeld: number,
-  grundsteuer: number,
-
-  // Forderung (ausgegebenes Darlehen)
-  monthlyRepayment: number,        // monatlicher Rückfluss
-
-  // Sonstige laufende Kosten (Bootsliegeplatz, Versicherung, etc.)
-  monthlyRunningCost: number,
-
-  // Private Equity
-  commitment: number,
-  called: number,
-  distributed: number,
-
-  // Lifecycle (Anleihen, PE)
-  lifecycle: { maturity: string | null },
-}
-```
-
-### Owner
-
-```js
-{
-  id: string,
-  label: string,
-  type: "Person" | "GmbH" | "Stiftung" | "GbR" | "AG" | "Sonstiges",
-  birthYear: number | null,        // für personenbezogene Altersachse in Projektion
-  ownedBy: [{ ownerId, share }],   // Gesellschafter (für GmbH, GbR, etc.)
-  tax: {
-    personalTaxRate: number,       // Grenzsteuersatz in %
-    churchTax: boolean,
-    sparerpauschbetrag: number,    // in €
-    zusammenveranlagung: boolean,
-  },
-}
-```
-
-### Standalone Loan (Verbindlichkeit ohne Asset)
-
-```js
-{
-  id: string,
-  name: string,
-  owner: string | null,            // ownerId
-  loanType: "annuitat" | "endfaellig",
-  debt: number,                    // Restschuld in €
-  loanRate: number,                // Nominalzins in % p.a.
-  loanAnnuitat: number,            // monatliche Rate in €
-  loanTermYears: number | null,    // Gesamtlaufzeit in Jahren
-}
-```
-
-### Income/Expense Stream
-
-```js
-{
-  id: string,
-  label: string,
-  type: IncomeType,               // "Gehalt" | "Rente" | "Freelance" | ...
-  owner: string | null,           // ownerId (nur incomeStreams)
-  amount: number,                 // monatlicher Betrag in €
-  growthPct: number,              // jährliches Wachstum in % (nur incomeStreams)
-  startsAt: number,               // Jahr (z.B. 2024)
-  endsAt: number | null,          // Jahr oder null (unbegrenzt)
-}
-```
-
-### Bucket (geplante Ausgabe)
-
-```js
-{
-  id: string,
-  label: string,
-  amount: number,
-  type: "Einmalig" | "Jährlich" | "Monatlich",
-  year: number | null,            // Zieljahr (absolut)
-  age: number | null,             // Ziellebensalter (alternativ zu year)
-  fundingMode: "lump_sum" | "financed",
-  monthlyPayment: number,         // bei fundingMode="financed"
-  financingMonths: number,
-  financingStart: number,         // Startjahr der Finanzierungsphase
-}
-```
-
----
-
-## Berechnungsmethoden
-
-Alle Berechnungen liegen als reine Funktionen in `src/model/` (ohne React) und sind mit Vitest getestet (`npm test`, Tests in `tests/`).
-
-### 1. Cashflow-Rechnung (Haushalt)
-
-Der monatliche Cashflow `cf` ist `cashflowAt(0)` (siehe 4.) plus Anzeigewerte (Saldo, Sparquote, Pufferstand).
-
-**Einnahmen:**
-```
-streamIncome        = Σ incomeStreams (aktiv im CY, mit Wachstumszins)
-immoGross           = Σ monthlyRent × ownerShare
-forderungIncome     = Σ monthlyRepayment × ownerShare
-assetYieldIncome    = Σ value × yieldPct/100/12 × kestFactor × ownerShare
-                      (nicht Immobilien, nicht Forderungen)
-
-avail = streamIncome + (immoGross - immoAnnuität - immoRunning)
-        + forderungIncome + assetYieldIncome
-```
-
-**Ausgaben (gebundener Cashflow):**
-```
-bound = streamExpense + otherAnnuität (Nicht-Immo-Darlehen) + assetRunningCosts
-```
-
-**Sparrate:**
-```
-rest      = avail - bound
-effTarget = manuellSparrate  (nur manueller Modus, zur Anzeige)
-eff       = autoSpar ? max(0, rest) : min(manuellSparrate, max(0, rest))
-```
-Die Sparrate kann nie den tatsächlichen Einkommensüberschuss übersteigen — keine Kapitalflüsse aus dem Nichts. Im manuellen Modus wird `effTarget` im Haushalt-Tab angezeigt; bei Unterschreitung erscheint eine Warnung.
-
-**Sparquote:** `eff / avail × 100`
-
-### 2. KeSt-Faktoren
-
-Die Kapitalertragsteuer wird per Asset-Klasse mit der effektiven Rate nach Teilfreistellung berechnet:
-
-| Asset-Klasse | Effektivrate | Grundlage |
-|---|---|---|
-| Aktien | 26,375% | Volle Abgeltungsteuer + SolZ |
-| Aktien-ETF | 18,46% | 30% Teilfreistellung → 26,375% × 0,70 |
-| Anleihen | 26,375% | Volle Abgeltungsteuer |
-| Anleihen-ETF | 18,46% | 30% Teilfreistellung |
-| Immobilien | 0% | 10-Jahres-Regel (vereinfacht) |
-| Cash | 26,375% | Volle Abgeltungsteuer |
-| Rohstoffe | 26,375% | Volle Abgeltungsteuer |
-| Krypto | 26,375% | Volle Abgeltungsteuer (Haltedauer < 1 Jahr) |
-| Krypto (>1 Jahr) | 0% | §23 EStG — Steuertyp `krypto_langfristig` setzen |
-| Private Equity | 15,825% | Teileinkünfteverfahren: 60% × 26,375% |
-| Forderung | 26,375% | Volle Abgeltungsteuer |
-
-KeSt wird angewendet auf:
-- **Ausschüttungsrenditen** im Cashflow: `yieldIncome × (1 - KeSt-Rate)`
-- **Kapitalzuwachs** in der Projektion: nur bei positiver Kurswertsteigerung (`capApprR > 0`); Verluste werden nicht steuerlich reduziert
-
-**Sparer-Pauschbetrag:** Das erste Kontingent an Kapitalerträgen (Summe aller `owner.tax.sparerpauschbetrag`, Standard 1.000 €/Person) ist steuerfrei. Übersteigendes wird mit der gewichteten KeSt-Rate belastet.
-
-**Vorabpauschale (thesaurierende ETFs):** Bei aktiviertem `taxOnReturns` und `yieldPct = 0` wird für ETFs ein jährlicher Rendite-Drag berechnet:
-```
-drag = Basiszins × 0,7 × Teilfreistellung × 26,375%
-     Aktien-ETF: Teilfreistellung = 0,7
-     Anleihen-ETF: Teilfreistellung = 1,0
-```
-Basiszins ist einstellbar im Projektions-Tab (Standard: 2,29% / 2024).
-
-### 3. Vermögensprojektion (`src/model/projection.js`)
-
-Jede Position, Immobilie und jedes Darlehen wird **einzeln** fortgeschrieben (monatliche Verzinsung, Jahresschritte). Drei Durchläufe: Basis, konservativ (`−projSpreadCons` %-Punkte) und optimistisch (`+projSpreadOpt`).
-
-```
-Nettovermögen(y) = Σ Depot-Positionen(y) + Σ Immobilien(y) + Haushaltspuffer(y)
-                 + Σ Forderungen(y) − Σ Restschulden(y)
-```
-
-Im Jahr 0 entspricht das exakt dem Nettovermögen im Header (inkl. Wertpapierkrediten und separaten Verbindlichkeiten).
-
-**Depot-Positionen** (alle Klassen außer Immobilien, Forderung, Haushaltspuffer) wachsen mit ihrer Netto-Rendite:
-```
-r = classReturn + Szenario-Abschlag − yieldPct          // Ausschüttung fließt in den Cashflow
-r = r > 0 ? r × (1 − KeSt) : r                          // nur bei taxOnReturns; Verluste unversteuert
-r −= Vorabpauschale-Drag                                // thesaurierende ETFs, siehe 2.
-V(y) = V(y−1) × (1 + r/1200)^12
-```
-
-**Immobilien** wachsen auf den **vollen Marktwert** (nicht nur auf das Eigenkapital): `value × (1 + r/1200)^(12y)`.
-
-**Darlehen** (Asset-Darlehen × Eigentumsanteil, separate Verbindlichkeiten voll) werden mit `computeRemDebt(loan, y)` getilgt:
-
-| Typ | Restschuld |
-|---|---|
-| Annuität / Volltilger | `D × (1+r)^(12y) − M × ((1+r)^(12y) − 1) / r` |
-| Endfällig | `D` bis Laufzeitende, dann `0` — der Rückzahlungsbetrag wird im Fälligkeitsjahr aus dem Depot bezahlt |
-| ohne Zins/Rate | linear über `loanTilgung`, sonst konstant |
-
-Die Annuität mindert den Cashflow (und damit die Sparrate); die Tilgung senkt die Restschuld und erhöht so das Nettovermögen. Nach Tilgungsende wird die Rate frei und fließt in die Sparrate.
-
-**Sparrate** (aus dem Cashflow, siehe 4.) wird nach der **Sparraten-Verteilung** (siehe 5.) auf die Klassen verteilt, innerhalb einer Klasse proportional zu den Positionswerten. Gesperrte Positionen, Cash und Sonstiges erhalten nichts. Gibt es für eine Klasse noch keine Position (oder gar keine investierbare Position), entsteht ein virtueller Topf mit der Klassenrendite (Fallback: Aktien-ETF).
-
-**Abflüsse** (Defizit nach Puffer, Szenario-Ausgaben, endfällige Rückzahlungen) werden anteilig aus dem Depot entnommen; **Zuflüsse** (Erbschaft etc.) werden wie die Sparrate investiert.
-
-**Haushaltspuffer:** wächst mit der Cash-Rendite plus Puffer-Beiträgen und deckt Defizite zuerst.
-
-**Forderungen:** `max(0, value × (1+r)^mo − rep × ((1+r)^mo − 1)/r)` — die Rückzahlungen fließen als Einnahme in den Cashflow.
-
-Die Basis-Projektion liefert zusätzlich eine Aufschlüsselung pro Position und Jahr (`breakdown`), die der CSV-Export und Snapshots mit zukünftigem Datum verwenden.
-
-### 4. Cashflow pro Jahr (`src/model/cashflow.js`)
-
-`cashflowAt(y)` ist die **einzige** Cashflow-Berechnung — für das laufende Jahr (Haushalt-Tab, Sparquote) und jedes Projektionsjahr:
-
-```
-avail = Σ incomeStreams(Jahr) × (1+growthPct)^(Jahre seit Start)
-      + Immo-Netto-CF (Miete × (1+immoRentGrowthPct)^y − Hausgeld − Grundsteuer − Annuität solange Restschuld > 0)
-      + Forderungs-Rückflüsse + Ausschüttungen (nach KeSt und Pauschbetrag)
-bound = Σ expenseStreams(Jahr) + Nicht-Immo-Annuitäten (solange Restschuld > 0)
-      + laufende Asset-Kosten + finanzierte Szenarien
-sp    = autoSpar ? max(0, avail − bound + Sparraten-Szenarien)
-                 : min(manuellSparrate (+ Szenarien, optional × Wachstum), max(0, avail − bound))
-```
-
-Die Sparrate kann nie den tatsächlichen Überschuss übersteigen. Leere Immobilienfelder (Altdaten) werden mit Standardwerten gefüllt; ein eingetragener Wert **0** bleibt 0 (selbstgenutzte Immobilie).
-
-### 5. Sparverteilung
-
-**Auto-Modus:** proportional zu den Marktwerten der nicht-gesperrten, investierbaren Assets (exkl. Cash, Immo, Forderung, Sonstiges).
-
-**Manuell:** feste monatliche Beträge pro Asset-Klasse. In der Projektion werden daraus Anteile (Betrag ÷ Summe), die auf die jeweilige Sparrate angewendet werden. Einnahmenänderungs-Szenarien mit eigenem Spartopf fließen mit ihrer heutigen Verteilung ein.
-
-### 6. Szenario-Abflüsse (`bucketDrain`)
-
-```
-bucketDrain(year) =
-  Σ Einmalig:  amount     wenn year == Zieljahr
-  Σ Zufluss:  −amount     wenn year == Zieljahr
-  Σ Jährlich:  amount     wenn Zieljahr ≤ year ≤ endsAt
-  Σ Monatlich: amount×12  wenn Zieljahr ≤ year ≤ endsAt
-```
-
-Finanzierte Szenarien (`fundingMode="financed"`) reduzieren stattdessen die Sparrate in der Finanzierungsphase; Einnahmenänderungen (`type="Sparrate"`) verändern die Sparrate um `delta`.
-
-### 7. Inflationsbereinigung
-
-Optional, deaktiviert per Default:
-```
-FV_real = FV_nominal / (1 + inflation/100)^y
-```
-
-### 8. Milestones
-
-Dynamisch: Aus einem Satz vordefinierter Schwellen (250k, 500k, 750k, 1M, 1.5M, 2M, 3M, 5M, 7.5M, 10M, 15M, 20M, 30M, 50M) werden die vier nächsten Schwellen oberhalb von `0.9 × currentNet` angezeigt. Das Erreicungsjahr wird interpoliert (erste Projektion-Zeile, die die Schwelle überschreitet).
-
----
-
-## Versionshistorie
-
-### v1.16 — Berechnungen testbar, Projektionsmodell korrigiert (September 2026)
-- Berechnungen aus `AppInner.jsx` nach `src/model/` verschoben, Vitest-Tests
-- Eine Cashflow-Implementierung für heute und alle Projektionsjahre
-- Projektion: Tilgung erhöht das Vermögen, Immobilien wachsen auf den vollen Wert, Startwert = Nettovermögen, Sparraten-Verteilung und „gesperrt" wirken, endfällige Darlehen werden bei Fälligkeit bezahlt
-- „Schuldenfrei"-Datum aus dem exakten Tilgungsplan; CSV-Export und Zukunfts-Snapshots nutzen die Projektion
-- Fix: Miete/Hausgeld 0 € werden nicht mehr durch Standardwerte ersetzt; 0-%-Darlehen behalten ihren Zins
-- Neues Design (Trade-Republic-Stil)
-
-### v1.15 — Organogramm: Familien- & Beteiligungsstruktur (Mai 2026)
-- **OrgChart-Komponente** (`src/components/OrgChart.jsx`): interaktives SVG-Organogramm im Dashboard-Tab (collapsible)
-- **Vertikale Tier-Darstellung**: Personen in Tier 0, Gesellschaften nach Beteiligungstiefe (rekursiv, zyklusgeschützt via `Set`)
-- **Gesellschaftsformen**: `OWNER_TYPES` erweitert um KG, GmbH & Co. KG, GbR, Stiftung, AG — mit Typ-Icon je Entität
-- **Beteiligungskanten** (solid): Kurvenpfade zwischen Eigentümer und Gesellschaft mit %-Beschriftung
-- **Familienbeziehungskanten** (gestrichelt): farblich je Typ (Ehepartner, Kind, Elternteil, Geschwister, Treuhänder, Begünstigter)
-- **Datenmodell**: `owner.relations[]` — `{ targetId, type }` — neu; Migration in `storage.js` ergänzt; Duplikate beim Rendern dedupliziert
-- **RelationModal** (`src/components/modals/RelationModal.jsx`): separates Modal zum Pflegen von Familienbeziehungen (✏-Button je Knoten)
-- **Asset-Detailpanel**: Tippen auf Knoten öffnet zugeordnete Positionen mit anteiligem Nettowert unterhalb des Charts
-- **`RELATION_TYPES`** in `constants.js`: typsichere Werteliste mit Farben für UI und SVG-Rendering
-
-### v1.14 — Steuergenauigkeit: Pauschbetrag, Vorabpauschale, Krypto-Langfrist (Mai 2026)
-- **Krypto > 1 Jahr**: neuer Steuertyp `krypto_langfristig` (0% KeSt, §23 EStG) im Asset-Modal auswählbar
-- **Sparer-Pauschbetrag**: erstes Ertrags-Kontingent je Eigentümer (`owner.tax.sparerpauschbetrag`) steuerfrei — Kapitalerträge werden erst darüber mit KeSt belastet; wirkt in Cashflow und Projektion
-- **Vorabpauschale**: jährlicher Rendite-Drag für thesaurierende ETFs (`yieldPct = 0`) bei aktivierter Nachsteuer-Berechnung; Basiszins im Projektions-Tab einstellbar (Standard 2,29% / 2024)
-- **KeSt-Fix**: negative Kurswertsteigerung wird nicht steuerlich reduziert (vorher wurde KeSt-Multiplikator fälschlich auf Verluste angewendet)
-- **Rentenlücke**: Hinweistext macht explizit, dass gesetzliche Rente als Einkommensstrom mit Startdatum eingetragen werden muss
-- **Tragfähigkeit**: Reichweite-Metrik umbenannt zu "Tragfähigkeit (0% Rendite)" mit 4%-Regel-Indikator
-- **Sparraten-Verteilung**: sichtbare Warnung wenn manuelle Zuteilung die effektive Sparrate übersteigt
-- **Git**: doppelter `Src/`-Eintrag (Groß-/Kleinschreibungsfehler macOS) aus git-Index entfernt
-
-### v1.13 — Projektion UX: Szenario-Tiles klickbar, Inflation hinter Expand (April 2026)
-- Rendite-Spreads für Konservativ/Optimistisch-Szenarien nur noch zugänglich via Klick auf das jeweilige Tile (kein immer-sichtbarer Slider)
-- Basis-Tile zeigt gewichtete Durchschnittsrendite und Link zu Vermögen-Tab
-- Inflation als eigenes klickbares Panel: zeigt Status (nominal/real + Rate), öffnet bei Klick Toggle + Rate-Slider
-- Planning-Parameter-Block bereinigt: nur noch Sparraten-Wachstum, Steuern, Alter, Zeithorizont, Mietpreissteigerung
-
-### v1.12 — Sparraten-Integrität: kein Kapitalfluss aus dem Nichts (April 2026)
-- Sparrate kann strukturell nie den tatsächlichen Einkommensüberschuss übersteigen — gilt für Haushalt-`cf.eff` und Projektions-`sp`
-- `freed`-Annuität aus manuellem Modus entfernt (war Doppelzählung: `otherAnnu` sinkt natürlich wenn Kredit abbezahlt)
-- Haushalt-Tab zeigt Warnung wenn manuelles Sparziel den verfügbaren Überschuss übersteigt
-- Zugehöriges `effTarget`-Feld in `cf` für Zielanzeige ohne Modell-Verfälschung
-
-### v1.11 — Standalone-Darlehen & Eigentümer-Geburtsjahr (April 2026)
-- **Standalone Loans** (`StandaloneLoanModal`): Verbindlichkeiten ohne Asset-Bindung (KFZ-Kredit, Privatdarlehen etc.)
-- TabVermogen: neue "Verbindlichkeiten"-Karte mit Add/Edit/Delete; Restschuld in Gesamtschulden und Nettowert eingerechnet
-- Standalone Loans vollständig in `loanSummary`, `cf.otherAnnuitat`, `agg.debt/net`, Projektions-`nonImmoLoans` + `computeCF.otherAnnu` verdrahtet; `computeRemDebt` korrekt angewendet
-- **Owner birthYear**: Geburtsjahr-Feld für Personen (Neu-Anlage + Bearbeitung)
-- `currentAge` in Projektion owner-aware: bei Einzeleigentümer-Filter wird dessen Geburtsjahr für die Altersachse verwendet
-
-### v1.10 — Haushaltspuffer, Sparraten-Szenarien & Projektion-Fixes (April 2026)
-- **Haushaltspuffer**: Cash-Asset mit `isHaushaltsPuffer`-Flag; negative Haushaltssalden werden zuerst daraus gedeckt; Puffer wächst mit Cash-Rendite; in Projektion separat von V_invest getrackt
-- Ausgabenströme: `isBufferContribution`-Flag leitet Beiträge an Pufferkonto weiter statt Konsum
-- Ausgabenströme: `owner`-Zuordnung; Haushalt-Tab filtert nach Eigentümer
-- **Fix 0%-Rendite-Bug**: `||` durch `??` (nullish coalescing) ersetzt — 0% Rendite wurde fälschlich auf 5% gesetzt
-- Konfigurierbare Szenario-Spreads (`projSpreadCons`, `projSpreadOpt`) statt fest verdrahteter ±2%
-- `assetYield` in Projektion: nutzt projected Asset-Value statt gefrorenem Startwert
-- CSV-Export: Jahreswerte korrekt (monatliche CF × 12 im annual-discrete Modell)
-- Haushalt: Monat/Jahr-Toggle, "Portfolioentnahme"-Zeile, Owner-Filter-Warnung
-
-### v1.9 — Dashboard-Aufräumung & Darlehen-Annuität manuell (April 2026)
-- Dashboard-Schnellbutton "Leisten?" umbenannt zu **"Szenarien"** mit direktem Link zum Szenarien-Tab
-- "Aktive Buckets"-Kachel zeigt nur aktive Szenarien (Szenarien können deaktiviert werden)
-- Check-in-Anzeige auf Dashboard: nutzt `streamExp_ist` (neues Feld) statt `ausgaben_ist`; zeigt `inc_ist` wenn vorhanden
-- **AssetModal**: Für Annuitätendarlehen kann die monatliche Rate jetzt manuell eingegeben werden — überschreibt die Auto-Berechnung aus Zins + Laufzeit (nützlich wenn Bank-Rate bekannt ist)
-
-### v1.8 — Haushalt-Restrukturierung & erweiterter Check-in (April 2026)
-- Haushalt-Tab komplett neu geordnet: Auswertungen oben (Tiles, Cashflow-Vorschau, Monatsübersicht), Konfiguration unten
-- **Cashflow-Vorschau**: Jahres-Regler wählt beliebiges Jahr im Horizont; Monatsübersicht zeigt projizierte Werte für dieses Jahr (inkl. Darlehensfreifällen)
-- Schieberegler und Chart-Klick synchron: Klick auf Balken im Chart wählt das Jahr, Regler zeigt Position
-- **Erweiterter Check-in**: IST-Daten für jeden Zeitpunkt erfassen — Einnahmen, Ausgaben, Sparrate, Immo-CF; Live-Delta vs. Projektion; projizierte Werte als Referenz vorausgefüllt
-- Bestehende Check-ins werden in der Chart-Vorschau als Markierungen angezeigt
-- "+ IST erfassen"-Button im Tab kontextbezogen für das ausgewählte Jahr
-
-### v1.7 — Inkrementelle Projektion, CSV-Export & Szenario-Planer (April 2026)
-- **Projektions-Fix**: Umstellung von geschlossener Formel auf inkrementelle Jahres-Simulation — Portfolio fällt korrekt auf 0, negative Szenarien werden sauber abgebildet
-- Buckets: `endsAt`-Feld für wiederkehrende Ausgaben (Jährlich/Monatlich) — Szenario endet in definiertem Jahr
-- Buckets: Zieljahr-Bug behoben (kein Bucket-Jahr → defaultet auf aktuelles Jahr statt null)
-- **CSV-Export** der Projektion: pro Jahr mit Zeitstempel, Cashflow-Spalten (Einnahmen, Ausgaben, Sparrate, Immo-CF, Kapitalerträge, Kreditraten), proportionale Aufschlüsselung nach Asset-Klasse und Eigentümer
-- **Szenario-Planer** (Tab "Szenarien" umbenannt): 4 Typen — Ausgabe, Zufluss, Sparratenänderung, Finanziert; `active`-Toggle zum Ein-/Ausschalten ohne Löschen
-- `cashflowProjection`-Array als zentrale Datenquelle: versorgt Haushalt-Tab, Projektion-Tab und Check-in-Modal
-
-### v1.6 — Darlehenstypen & exakte Tilgungsberechnung (April 2026)
-- Drei Darlehenstypen pro Asset: **Annuität** (gleichbleibende Rate), **Volltilger** (vollständige Tilgung in der Laufzeit), **Endfällig** (nur Zinsen, Kapital am Ende)
-- Annuität und Tilgung werden automatisch aus Zinssatz + Laufzeit + Restschuld berechnet (kein manuelles Einpflegen mehr)
-- Anzeige: monatliche Rate, anfängliche Tilgung %, Gesamtzinsaufwand
-- Projektion verwendet exakte Tilgungsformel (`D × (1+r)^n - M × ((1+r)^n - 1)/r`) statt linearer Näherung
-- Endfällige Darlehen: konstante Zinszahlung in CF-Projektion, Restschuld fällt zum Laufzeitende auf 0
-- Datenmodell-Dokumentation: vollständige Feldnutzungs-Matrix (welche Felder wo wirken)
-
-### v1.5 — Excel Export & Import (April 2026)
-- Excel-Export aller Assets als `.xlsx` mit Datum-Stempel (Datum, Name, Klasse, Eigentümer, Wert, Schulden, Nettowert, Liquidität, Ausschüttungsrendite, Bewertungsmethode, Notiz)
-- Excel-Import: Abgleich via Asset-Name, Vorschau-Modal mit Update/Neu-Kennzeichnung und Wertveränderung, selektive Übernahme per Toggle
-- Eigentümeranteil wird als "Ehemann 60%, Ehefrau 40%" serialisiert und beim Import zurückgeparst
-
-### v1.4 — Yield-Cashflow-Integration (April 2026)
-- `yieldPct` auf Assets: Ausschüttungsrendite in % p.a. (Dividenden, Kupons, PE-Distributions)
-- Yield fließt monatlich als Cashflow in den Haushalt (nach KeSt wenn aktiviert)
-- Projektion trennt Kapitalzuwachs (`capApprR = totalReturn - yieldPct`) von Ausschüttung — keine Doppelzählung
-- Haushalt-Tab zeigt Kapitalerträge-Block mit Auflistung je Asset
-
-### v1.3 — Steuer, Alter & Projektion-Erweiterungen (März 2026)
-- Konfigurierbares Geburtsalter (`birthYear`) statt hardcoded 35
-- KeSt-Toggle: Kapitalertragsteuer per Asset-Klasse (Teilfreistellung ETFs, Teileinkünfteverfahren PE)
-- Mietpreissteigerung in der Projektion (`immoRentGrowthPct`)
-- Dynamische Milestones statt statischer Schwellen
-- Sparrate wächst optional mit (`sparRateGrowth`, `sparGrowthPct`)
-- Alle Umlaute (ü, ö, ä, ß) in der gesamten UI korrigiert
-
-### v1.2 — Vollständiges Datenmodell (Februar 2026)
-- `ownership[]`-Array für Miteigentümer mit Bruchteilen (löst `owner`-String ab)
-- Asset-Modal: Ownership-Editor, Tax-Section (Anschaffungspreis, Steuerstatus), PE-Felder (Commitment/Called/Distributed), Lifecycle (Fälligkeit), Bewertungsmethode
-- Owner-Modal: Typ (Person/GmbH/GbR/...), Gesellschafter-Editor, Steuerprofile per Eigentümer, Güterstand und Steuerveranlagung auf Profil-Ebene
-- Einkommens- und Ausgabenströme: zeitbegrenzt, per Eigentümer, mit Wachstumsrate
-- Bucket-Finanzierungsmodus: Einmalzahlung vs. monatliche Finanzierungsrate
-
-### v1.1 — Haushalt & Cashflow (Januar 2026)
-- Eigentümer-Filter (Chips im Header): filtert Assets und Haushalt auf Teilhaber-Ebene
-- Forderungen als Asset-Klasse mit monatlicher Rückzahlung
-- Per-Asset Immo-Cashflow (Bruttomiete, Hausgeld, Grundsteuer, Annuität)
-- Manuelle Sparratenverteilung auf Asset-Klassen
-- Nettowert-Snapshots mit Asset-Einzelwerten
-
-### v1.0 — Grundstruktur (Dezember 2025)
-- Multi-Profil-System mit localStorage-Isolation
-- 5-Tab-Struktur: Übersicht, Haushalt, Vermögen, Projektion, Ausgaben
-- 11 Asset-Klassen mit konfigurierbaren Rendite-Slidern
-- 3-Szenario-Projektion (konservativ/Basis/optimistisch)
-- Bucket-System für geplante Ausgaben
-- Dark/Light Mode
-
----
-
-## Geplante Features
-
-### Kurzfristig (nächste Iteration)
-
-**Steuerrechner pro Eigentümer**
-Vollständige KeSt-Berechnung mit Kirchensteuer, Güterstand-Effekte auf Zugewinnausgleich, separate Steuerveranlagung pro Person. Sparer-Pauschbetrag und Vorabpauschale sind bereits implementiert; die Differenzierung nach Eigentümer-Grenzsteuersatz fehlt noch.
-
-**Rollierender Nettowert-Chart im Dashboard**
-Snapshots als Zeitreihe mit Linienchart (Recharts) statt nur tabellarischer Ansicht. Zeigt historische Entwicklung gegen Projektionspfad.
-
-**Check-in Auswertung**
-Monatliche Check-ins werden heute gespeichert, aber kaum ausgewertet. Sparquoten-Verlauf, Abweichung vom Plan, Trend-Visualisierung.
-
-**Asset-Import aus CSV/PDF**
-Depotauszüge von Banken (comdirect, ING, DKB) direkt als CSV importieren, Positionen matchen und Werte aktualisieren.
-
-### Mittelfristig
-
-**Nachlassplanung / Erbschaftsteuer**
-Freibeträge (400k Ehegatte, 400k Kind je Elternteil, 10-Jahres-Schenkungsregel), geschätzter Erbschaftsteuerbetrag auf Portfolioebene, Schenkungsplanung über Zeit.
-
-**GmbH / Holding-Ebene**
-Separate Buchhaltungsebene für operative GmbH vs. Holding vs. Privatvermögen. Steuereffekte bei Gewinnausschüttung (KESt auf Dividenden aus der GmbH) vs. Thesaurierung.
-
-**Renten- und Versorgungsrechnung**
-Integration von gesetzlicher Rente (Auskunft manuell eingeben), Beamtenversorgung, betriebliche Altersvorsorge als zeitgesteuerte Einkommensströme mit Lebenserwartungsszenarien.
-
-**Monte-Carlo-Simulation**
-Statt fixer Rendite-Offsets: stochastische Simulation mit Normalverteilung um die erwartete Rendite (σ basierend auf historischer Volatilität je Klasse). Zeigt Konfidenzintervalle statt drei Linien.
-
-**Währungsrisiko**
-Assets in Fremdwährung (USD, CHF) mit Wechselkurs-Eingabe und optionaler Hedging-Simulation.
-
-### Langfristig
-
-**Cloud-Sync (optional)**
-Ende-zu-Ende-verschlüsselte Synchronisation über einen selbst gehosteten Backend (z.B. Supabase) — nur auf expliziten Wunsch, kein Zwang.
-
-**Berater-Modus**
-Separate Ansicht für Mandanten ohne Bearbeitungsrechte, PDF-Report-Export (Zusammenfassung Vermögen + Projektion + Haushalt auf 2 Seiten).
-
-**Immobilien-DCF**
-Vollständige Discounted-Cashflow-Bewertung einer Immobilie: Bruttomietmultiplikator, Leerstandsrisiko, Instandhaltungsrücklage, Steuer auf Mieteinnahmen (§ 21 EStG).
-
-**KI-gestützte Szenarienanalyse**
-Natürlichsprachliche Eingabe ("Was passiert wenn ich mit 55 aufhöre zu arbeiten?") die automatisch Streams, Buckets und Horizont anpasst und eine Vergleichsansicht zeigt.
+## Weitere Dokumente
+
+- [`CHANGELOG.md`](CHANGELOG.md) — Versionshistorie
+- [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md) — Felder, Speicherung, Migrationen
+- [`docs/CALCULATIONS.md`](docs/CALCULATIONS.md) — Cashflow, Steuern, Projektion
+- [`docs/ROADMAP.md`](docs/ROADMAP.md) — geplante Funktionen
