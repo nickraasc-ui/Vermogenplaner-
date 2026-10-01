@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sheet, Inp, Btn, full, fmtE, uid } from "../ui.jsx";
+import { Sheet, Inp, Btn, full, uid } from "../ui.jsx";
 import { ASSET_CLASS_DEFAULTS } from "../../constants.js";
 import { deriveAll } from "../../model/derive.js";
 

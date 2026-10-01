@@ -1,4 +1,5 @@
-import * as XLSX from "xlsx";
+// Excel export/import of positions (ExcelJS, loaded on demand so it stays out of the main bundle).
+// Round trip: a file exported here can be edited in Excel and imported again (matched by position name).
 
 const DATE_COL   = "Datum";
 const NAME_COL   = "Name";
@@ -11,108 +12,111 @@ const LIQ_COL    = "Liquidität";
 const YIELD_COL  = "Ausschüttungsrendite %";
 const METH_COL   = "Bewertungsmethode";
 const NOTE_COL   = "Notiz";
+const COLUMNS = [DATE_COL, NAME_COL, CLASS_COL, OWN_COL, VAL_COL, DEBT_COL, NET_COL, LIQ_COL, YIELD_COL, METH_COL, NOTE_COL];
+const SHEET_NAME = "Vermögensübersicht";
 
-// Build ownership display string from ownership array + owners list
+const loadExcelJS = async () => (await import("exceljs")).default;
+
+// "Anna 60%, Ben 40%" or "Anna" (single owner)
 const ownershipLabel = (asset, owners) => {
   const ownership = asset.ownership || [];
-  if (ownership.length === 0) return "";
   return ownership.map(o => {
-    const owner = owners.find(x => x.id === o.ownerId);
-    const label = owner?.label || o.ownerId;
+    const label = owners.find(x => x.id === o.ownerId)?.label || o.ownerId;
     return ownership.length > 1 ? `${label} ${Math.round(o.share * 100)}%` : label;
   }).join(", ");
 };
 
-// Parse "Ehemann 60%, Ehefrau 40%" or "Ehemann" back into ownership array
+// Inverse of ownershipLabel; unknown names are dropped
 const parseOwnership = (str, owners) => {
   if (!str) return [];
-  const parts = str.split(",").map(s => s.trim()).filter(Boolean);
-  return parts.map(part => {
-    const m = part.match(/^(.+?)\s+(\d+)%$/);
-    if (m) {
-      const label = m[1].trim();
-      const share = parseInt(m[2]) / 100;
-      const owner = owners.find(o => o.label === label || o.id === label.toLowerCase().replace(/\s+/g, "_"));
-      return owner ? { ownerId: owner.id, share } : null;
-    }
-    const owner = owners.find(o => o.label === part || o.id === part.toLowerCase().replace(/\s+/g, "_"));
-    return owner ? { ownerId: owner.id, share: 1 } : null;
+  const find = (label) => owners.find(o => o.label === label || o.id === label.toLowerCase().replace(/\s+/g, "_"));
+  return str.split(",").map(s => s.trim()).filter(Boolean).map(part => {
+    const m = part.match(/^(.+?)\s+(\d+(?:[.,]\d+)?)\s?%$/);
+    const owner = find(m ? m[1].trim() : part);
+    return owner ? { ownerId: owner.id, share: m ? parseFloat(m[2].replace(",", ".")) / 100 : 1 } : null;
   }).filter(Boolean);
 };
 
-// Set column widths based on content
-const autoWidth = (ws, rows) => {
-  const cols = Object.keys(rows[0] || {});
-  ws["!cols"] = cols.map(key => ({
-    wch: Math.max(key.length, ...rows.map(r => String(r[key] ?? "").length)) + 2,
-  }));
-};
-
-export const exportAssetsToExcel = (assets, owners) => {
-  const date = new Date().toISOString().slice(0, 10);
+/** Builds the export workbook (exported for tests). */
+export async function buildAssetsWorkbook(assets, owners, date = new Date().toISOString().slice(0, 10)) {
+  const ExcelJS = await loadExcelJS();
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet(SHEET_NAME, { views: [{ state: "frozen", ySplit: 1 }] });
   const rows = assets.map(a => ({
-    [DATE_COL]:  date,
-    [NAME_COL]:  a.name,
-    [CLASS_COL]: a.class,
-    [OWN_COL]:   ownershipLabel(a, owners),
-    [VAL_COL]:   a.value  || 0,
-    [DEBT_COL]:  a.debt   || 0,
-    [NET_COL]:   (a.value || 0) - (a.debt || 0),
-    [LIQ_COL]:   a.liquidity || "",
-    [YIELD_COL]: a.yieldPct || 0,
-    [METH_COL]:  a.valuationMethod || "market",
-    [NOTE_COL]:  a.note || "",
+    [DATE_COL]: date, [NAME_COL]: a.name, [CLASS_COL]: a.class, [OWN_COL]: ownershipLabel(a, owners),
+    [VAL_COL]: a.value || 0, [DEBT_COL]: a.debt || 0, [NET_COL]: (a.value || 0) - (a.debt || 0),
+    [LIQ_COL]: a.liquidity || "", [YIELD_COL]: a.yieldPct || 0, [METH_COL]: a.valuationMethod || "market", [NOTE_COL]: a.note || "",
   }));
+  ws.columns = COLUMNS.map(key => ({
+    header: key, key,
+    width: Math.max(key.length, ...rows.map(r => String(r[key] ?? "").length)) + 2,
+  }));
+  ws.getRow(1).font = { bold: true };
+  rows.forEach(r => ws.addRow(r));
+  return wb;
+}
 
-  const ws = XLSX.utils.json_to_sheet(rows);
-  autoWidth(ws, rows);
+export async function exportAssetsToExcel(assets, owners) {
+  const date = new Date().toISOString().slice(0, 10);
+  const wb = await buildAssetsWorkbook(assets, owners, date);
+  const buf = await wb.xlsx.writeBuffer();
+  const url = URL.createObjectURL(new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
+  const link = document.createElement("a");
+  link.href = url; link.download = `Vermogen_${date}.xlsx`; link.click();
+  URL.revokeObjectURL(url);
+}
 
-  // Style header row bold (xlsx community edition doesn't support rich styles,
-  // but we can set column widths and freeze the first row)
-  ws["!freeze"] = { xSplit: 0, ySplit: 1 };
-
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Vermögensübersicht");
-  XLSX.writeFile(wb, `Vermogen_${date}.xlsx`);
+// ExcelJS cell values can be formula results, rich text or hyperlinks
+const cellValue = (v) => {
+  if (v && typeof v === "object") {
+    if ("result" in v) return v.result;
+    if (Array.isArray(v.richText)) return v.richText.map(t => t.text).join("");
+    if ("text" in v) return v.text;
+  }
+  return v ?? "";
+};
+const toNumber = (v) => {
+  if (typeof v === "number") return v;
+  const n = parseFloat(String(v).replace(/\./g, "").replace(",", ".")); // also accepts "1.234,5"
+  return Number.isFinite(n) ? n : 0;
 };
 
-// Returns array of { imported, matched (existing asset | null), action: "update"|"create" }
-export const parseImportFile = (file, existingAssets, owners) => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error("Datei konnte nicht gelesen werden"));
-    reader.onload = (e) => {
-      try {
-        const wb = XLSX.read(e.target.result, { type: "array" });
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json(ws, { defval: "" });
-
-        if (!rows.length) { reject(new Error("Keine Daten in der Datei")); return; }
-
-        const result = rows
-          .filter(r => r[NAME_COL] && r[CLASS_COL])
-          .map(r => {
-            const name    = String(r[NAME_COL]).trim();
-            const value   = parseFloat(r[VAL_COL])  || 0;
-            const debt    = parseFloat(r[DEBT_COL])  || 0;
-            const yieldPct = parseFloat(r[YIELD_COL]) || 0;
-            const liquidity = String(r[LIQ_COL] || "").trim();
-            const note    = String(r[NOTE_COL] || "").trim();
-            const ownership = parseOwnership(String(r[OWN_COL] || ""), owners);
-
-            const matched = existingAssets.find(a => a.name.trim() === name) || null;
-            return {
-              imported: { name, class: String(r[CLASS_COL]), value, debt, yieldPct, liquidity, note, ownership },
-              matched,
-              action: matched ? "update" : "create",
-            };
-          });
-
-        resolve(result);
-      } catch (err) {
-        reject(err);
-      }
-    };
-    reader.readAsArrayBuffer(file);
+/**
+ * Parses an exported/edited workbook. Returns [{ imported, matched (existing asset | null), action: "update"|"create" }].
+ * Rows need at least a name and an asset class.
+ */
+export async function parseImportBuffer(buffer, existingAssets, owners) {
+  const ExcelJS = await loadExcelJS();
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.load(buffer);
+  const ws = wb.worksheets[0];
+  if (!ws) throw new Error("Keine Tabelle in der Datei");
+  const header = (ws.getRow(1).values || []).map(cellValue).map(String);
+  const rows = [];
+  ws.eachRow((row, i) => {
+    if (i === 1) return;
+    const obj = {};
+    header.forEach((h, col) => { if (h) obj[h] = cellValue(row.getCell(col).value); });
+    rows.push(obj);
   });
-};
+  if (!rows.length) throw new Error("Keine Daten in der Datei");
+
+  return rows.filter(r => r[NAME_COL] && r[CLASS_COL]).map(r => {
+    const name = String(r[NAME_COL]).trim();
+    const matched = existingAssets.find(a => a.name.trim() === name) || null;
+    return {
+      imported: {
+        name, class: String(r[CLASS_COL]).trim(),
+        value: toNumber(r[VAL_COL]), debt: toNumber(r[DEBT_COL]), yieldPct: toNumber(r[YIELD_COL]),
+        liquidity: String(r[LIQ_COL] || "").trim(), note: String(r[NOTE_COL] || "").trim(),
+        ownership: parseOwnership(String(r[OWN_COL] || ""), owners),
+      },
+      matched,
+      action: matched ? "update" : "create",
+    };
+  });
+}
+
+export async function parseImportFile(file, existingAssets, owners) {
+  return parseImportBuffer(await file.arrayBuffer(), existingAssets, owners);
+}

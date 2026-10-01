@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { PieChart, Pie, Cell, Tooltip as ReTooltip } from "recharts";
 import { Sl, Tile, Btn, Section, ListRow, Avatar, LinkBtn, IconBtn, Icon, fmtE, full } from "./ui.jsx";
 import { primaryOwnerId } from "../model/schema.js";
-import { ASSET_CLASSES, ASSET_CLASS_DEFAULTS, LIQUIDITY_CATS, LIQ_CLR } from "../constants.js";
+import { ASSET_CLASSES, ASSET_CLASS_DEFAULTS } from "../constants.js";
 import { exportAssetsToExcel, parseImportFile } from "../utils/excelIO.js";
 
 export default function TabVermogen({ s, T, updClass, updArr, setModal, agg, filteredAssets, loanSummary }) {
@@ -62,7 +62,7 @@ export default function TabVermogen({ s, T, updClass, updArr, setModal, agg, fil
           <Btn sm color={T.textMid} T={T} onClick={() => exportAssetsToExcel(s.assets, s.owners || [])}>Excel-Export</Btn>
           <Btn sm color={T.textMid} T={T} onClick={() => fileInputRef.current?.click()}>Import</Btn>
         </div>
-        <input ref={fileInputRef} type="file" accept=".xlsx,.xls" style={{ display:"none" }} onChange={handleImport} />
+        <input ref={fileInputRef} type="file" accept=".xlsx" style={{ display:"none" }} onChange={handleImport} />
 
         {filteredAssets.length === 0 && (
           <div style={{ padding:"28px 0 8px" }}>

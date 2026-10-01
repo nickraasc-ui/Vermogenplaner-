@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Sl, ChTip, Icon, Btn, fmtE, full } from "./ui.jsx";
-import { CY, ASSET_CLASS_DEFAULTS } from "../constants.js";
+import { CY } from "../constants.js";
 
 const exportCSV = (projection, cashflowProjection, s) => {
   // Class columns come from the projection's per-position breakdown (base scenario).

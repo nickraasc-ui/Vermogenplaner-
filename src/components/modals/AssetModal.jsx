@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Sheet, Inp, SelEl, Btn, full, IconBtn } from "../ui.jsx";
 import { normalizeAsset, sharesValid } from "../../model/schema.js";
-import { ASSET_CLASSES, LIQUIDITY_CATS, LIQUIDITY_DEFAULT, LIQ_CLR, ASSET_TAX_TYPES, VALUATION_METHODS, IMMO_CF_GROSS, IMMO_HAUSGELD, IMMO_GRUNDSTEUER, LOAN_TYPES } from "../../constants.js";
+import { ASSET_CLASSES, LIQUIDITY_CATS, LIQUIDITY_DEFAULT, ASSET_TAX_TYPES, VALUATION_METHODS, LOAN_TYPES } from "../../constants.js";
 
 export default function AssetModal({ data, s, T, setModal, updArr }) {
   const owners = s.owners || [];

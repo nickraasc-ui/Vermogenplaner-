@@ -3,7 +3,8 @@ import ReactDOM from 'react-dom/client'
 import '@fontsource-variable/inter'
 import App from './app.jsx'
 
-if ('serviceWorker' in navigator) {
+// Service worker only in production builds: in development it would cache modules and hide changes
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').catch(() => {})
   })

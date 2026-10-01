@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sheet, Inp, SelEl, Btn, full, uid } from "../ui.jsx";
+import { Sheet, Inp, SelEl, Btn, full } from "../ui.jsx";
 import { normalizeExpenseStream, singleOwner, primaryOwnerId } from "../../model/schema.js";
 import { EXPENSE_CATEGORIES, CY } from "../../constants.js";
 

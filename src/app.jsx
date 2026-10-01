@@ -4,7 +4,7 @@ import GuideModal from "./components/GuideModal.jsx";
 import { DARK, LIGHT } from "./theme.js";
 import { uid } from "./model/ids.js";
 import { deleteProfileData, profileKey } from "./storage.js";
-import { Sheet, Inp, Btn, Icon, IconBtn, RoundBtn, ListRow, Avatar, labelStyle } from "./components/ui.jsx";
+import { Sheet, Inp, Btn, IconBtn, RoundBtn, ListRow, Avatar, labelStyle } from "./components/ui.jsx";
 
 // ----------------------------------------------------------------- utils ---
 

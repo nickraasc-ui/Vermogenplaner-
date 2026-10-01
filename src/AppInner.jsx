@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import { DARK, LIGHT } from "./theme.js";
 import { saveState, loadProfileState, profileKey } from "./storage.js";
 import { deriveAll } from "./model/derive.js";
-import { fmtE, Icon, RoundBtn } from "./components/ui.jsx";
+import { Icon, RoundBtn } from "./components/ui.jsx";
 import TabDashboard     from "./components/TabDashboard.jsx";
 import TabHaushalt      from "./components/TabHaushalt.jsx";
 import TabVermogen      from "./components/TabVermogen.jsx";
