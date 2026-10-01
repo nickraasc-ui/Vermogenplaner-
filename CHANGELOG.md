@@ -3,8 +3,12 @@
 
 ## v1.16 — Neues Design, korrigierte Projektion, sauberes Datenmodell (Oktober 2026)
 
+**Einstieg**
+- Einrichtungs-Quiz: am Ende der Anleitung und beim Anlegen eines Profils wählbar — 8 Fragen (Personen, Einkommen, Ausgaben, Geldanlagen, Immobilie, Kredite) erzeugen ein Profil mit eigenen Daten; „Überspringen" startet mit Beispieldaten und Beispiel-Struktur
+
 **Design**
 - Neues Erscheinungsbild im Trade-Republic-Stil: schwarz/weiß, flache Listen, große Kennzahlen, Lucide-Icons, Schrift Inter (lokal)
+- Deutsches Zahlenformat überall: 1.430.000 € · 5,71 Mio. € · 7,4 % · 15.01.2026
 
 **Berechnungen**
 - Berechnungen aus `AppInner.jsx` nach `src/model/` verschoben, Vitest-Tests

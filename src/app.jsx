@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import AppInner from "./AppInner.jsx";
 import GuideModal from "./components/GuideModal.jsx";
+import SetupWizard from "./components/SetupWizard.jsx";
 import { DARK, LIGHT } from "./theme.js";
 import { uid } from "./model/ids.js";
-import { deleteProfileData, profileKey } from "./storage.js";
+import { deleteProfileData, profileKey, saveState } from "./storage.js";
 import { Sheet, Inp, Btn, IconBtn, RoundBtn, ListRow, Avatar, labelStyle, fmtE } from "./components/ui.jsx";
 
 // ----------------------------------------------------------------- utils ---
@@ -35,7 +36,8 @@ export default function App() {
   const [darkMode,   setDarkMode]   = useState(() => {
     try { return JSON.parse(localStorage.getItem("wealth-dark") ?? "true"); } catch { return true; }
   });
-  const [modal, setModal] = useState(null); // "new" | "edit:{id}" | "delete:{id}" | "guide"
+  const [modal, setModal] = useState(null); // "new" | "edit:{id}" | "delete:{id}" | "guide" | "setup"
+  const [setupMeta, setSetupMeta] = useState({}); // name/kuerzel/color/note carried from the profile form into the setup quiz
 
   const T = darkMode ? DARK : LIGHT;
 
@@ -66,6 +68,17 @@ export default function App() {
     );
   }
 
+  // Creates a profile entry; with `state` the profile starts with that data, otherwise with the example data.
+  const autoKuerzel = (n) => n.trim().split(/\s+/).map(w=>w[0]?.toUpperCase()||"").join("").slice(0,2);
+  const createProfile = ({ name, kuerzel, color, note = "", state, open = true }) => {
+    const np = { id:uid(), name:name.trim(), kuerzel:(kuerzel||"").trim() || autoKuerzel(name) || "VP",
+      color: color || PROFILE_COLORS[profiles.length % PROFILE_COLORS.length], note, createdAt:new Date().toISOString() };
+    if (state) saveState(state, profileKey(np.id));
+    setProfiles(ps => [...ps, np]);
+    setModal(null);
+    if (open) setActiveId(np.id);
+  };
+
   // --------------------------------------------------------- ProfileForm ---
   const ProfileForm = ({ existing }) => {
     const [name,  setName]  = useState(existing?.name  || "");
@@ -73,18 +86,15 @@ export default function App() {
     const [color, setColor] = useState(existing?.color || PROFILE_COLORS[profiles.length % PROFILE_COLORS.length]);
     const [note,  setNote]  = useState(existing?.note  || "");
 
-    const autoKuerzel = (n) => n.trim().split(/\s+/).map(w=>w[0]?.toUpperCase()||"").join("").slice(0,2);
-
     const save = () => {
       if (!name.trim()) return;
       const kz = kuerz.trim() || autoKuerzel(name);
       if (existing) {
         setProfiles(ps => ps.map(p => p.id===existing.id ? {...p,name,kuerzel:kz,color,note} : p));
+        setModal(null);
       } else {
-        const np = { id:uid(), name:name.trim(), kuerzel:kz, color, note, createdAt:new Date().toISOString() };
-        setProfiles(ps => [...ps, np]);
+        createProfile({ name, kuerzel:kz, color, note });
       }
-      setModal(null);
     };
 
     return (
@@ -108,9 +118,14 @@ export default function App() {
             Alle gespeicherten Vermögensdaten dieses Profils bleiben erhalten. Nur Name, Kürzel und Farbe werden geändert.
           </div>
         )}
-        <Btn full color={T.accent} T={T} onClick={save}>
-          {existing ? "Änderungen speichern" : "Profil erstellen"}
-        </Btn>
+        {existing ? (
+          <Btn full color={T.accent} T={T} onClick={save}>Änderungen speichern</Btn>
+        ) : (
+          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+            <Btn full T={T} onClick={() => { setSetupMeta({ name, kuerzel:kuerz, color, note }); setModal("setup"); }}>Eigene Daten einrichten</Btn>
+            <Btn full color={T.textMid} T={T} onClick={save}>Mit Beispieldaten erstellen</Btn>
+          </div>
+        )}
         {existing && (
           <div style={{ marginTop:10 }}>
             <Btn full danger T={T} onClick={() => setModal("delete:"+existing.id)}>Profil löschen</Btn>
@@ -163,7 +178,12 @@ export default function App() {
       {modal==="new"    && <ProfileForm/>}
       {editTarget       && <ProfileForm existing={editTarget}/>}
       {delTarget        && <DeleteConfirm profile={delTarget}/>}
-      {modal==="guide"  && <GuideModal T={T} onClose={() => setModal(null)} onCreateProfile={() => setModal("new")} />}
+      {modal==="guide"  && <GuideModal T={T} onClose={() => setModal(null)}
+        onSetupOwn={() => { setSetupMeta({}); setModal("setup"); }}
+        onUseDemo={() => createProfile({ name:"Beispielprofil" })} />}
+      {modal==="setup"  && <SetupWizard T={T} initialName={setupMeta.name || ""} onClose={() => setModal(null)}
+        onComplete={(state, profileName) => createProfile({ ...setupMeta, name: profileName, state })}
+        onSkip={(profileName) => createProfile({ ...setupMeta, name: profileName || setupMeta.name || "Beispielprofil" })} />}
 
       <div style={{ maxWidth:600, margin:"0 auto", padding:"0 20px", minHeight:"100vh", display:"flex", flexDirection:"column" }}>
 

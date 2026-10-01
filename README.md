@@ -50,10 +50,12 @@ src/
 ├── AppInner.jsx             geöffnetes Profil: Zustand, Tabs, Dialoge
 ├── storage.js               localStorage, Sicherungskopie vor Migration
 ├── constants.js             Asset-Klassen, Enums, Standardwerte
+├── format.js                deutsches Zahlen-/Datumsformat, Eingaben parsen
 ├── theme.js                 Farb-Tokens (hell/dunkel)
 ├── model/                   reine Logik ohne React — getestet
 │   ├── schema.js            Datenmodell, Normalisierer, Migrationen, Eigentums-Helfer
 │   ├── defaults.js          Demo-Daten neuer Profile
+│   ├── setup.js             Profil aus den Antworten des Einrichtungs-Quiz
 │   ├── derive.js            deriveAll(): alle angezeigten Werte, Szenario-Wirkung
 │   ├── cashflow.js          cashflowAt(y): Cashflow eines Jahres
 │   ├── projection.js        Vermögensprojektion (3 Szenarien)

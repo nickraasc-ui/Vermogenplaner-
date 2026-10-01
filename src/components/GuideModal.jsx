@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { RoundBtn, ListRow, Avatar } from "./ui.jsx";
+import { RoundBtn, ListRow, Avatar, Icon } from "./ui.jsx";
 import { ASSET_CLASS_DEFAULTS } from "../constants.js";
 
 const STEPS = [
@@ -25,8 +25,8 @@ const STEPS = [
   },
   {
     key: "start",
-    title: "Loslegen",
-    subtitle: "Beispieldaten & erste Schritte",
+    title: "Wie möchtest du starten?",
+    subtitle: "Eigene Daten oder Beispiel",
   },
 ];
 
@@ -65,7 +65,7 @@ const MiniProjection = ({ T }) => {
 
 // ─── Step Content ───────────────────────────────────────────────────────────
 
-const StepContent = ({ step, T }) => {
+const StepContent = ({ step, T, onSetupOwn, onUseDemo }) => {
   if (step === "overview") return (
     <div>
       <Lead T={T}>
@@ -143,19 +143,16 @@ const StepContent = ({ step, T }) => {
   if (step === "start") return (
     <div>
       <Lead T={T}>
-        Neue Profile enthalten bereits <strong style={{ color:T.text }}>Beispieldaten</strong> – du siehst sofort, wie alles zusammenspielt.
+        Richte dein eigenes Vermögen in ein paar Fragen ein — oder schau dir die App zuerst mit Beispieldaten an. Beides lässt sich später jederzeit ändern.
       </Lead>
-      {[
-        ["Profil anlegen", "Namen eingeben, fertig."],
-        ["Beispieldaten erkunden", "Durch alle Tabs klicken – alles ist bereits befüllt."],
-        ["Eigene Positionen eintragen", "Im Tab Vermögen die Beispiele durch echte Werte ersetzen."],
-        ["Haushalt anpassen", "Einnahmen und Ausgaben auf deine Situation einstellen."],
-        ["Projektion ablesen", "Dein Langfrist-Szenario steht sofort bereit."],
-      ].map(([title, desc], i, arr) => (
-        <ListRow key={title} T={T} last={i === arr.length - 1}
-          leading={<Avatar text={String(i + 1)} color={T.surfaceHigh} fg={T.text} />}
-          title={title} subtitle={desc} />
-      ))}
+      <ListRow T={T} onClick={onSetupOwn}
+        leading={<Avatar icon="user" color={T.accent} fg={T.onAccent} />}
+        title="Eigene Daten einrichten" subtitle="8 kurze Fragen · ca. 3 Minuten"
+        trailing={<span style={{ color:T.textDim }}><Icon name="chevron" size={18} /></span>} />
+      <ListRow T={T} last onClick={onUseDemo}
+        leading={<Avatar icon="users" color={T.surfaceHigh} fg={T.text} />}
+        title="Mit Beispieldaten starten" subtitle="Musterfamilie mit Depot, Immobilie und Struktur"
+        trailing={<span style={{ color:T.textDim }}><Icon name="chevron" size={18} /></span>} />
     </div>
   );
 
@@ -164,7 +161,7 @@ const StepContent = ({ step, T }) => {
 
 // ─── Main Modal ─────────────────────────────────────────────────────────────
 
-export default function GuideModal({ T, onClose, onCreateProfile }) {
+export default function GuideModal({ T, onClose, onSetupOwn, onUseDemo }) {
   const [step, setStep] = useState(0);
   const isLast = step === STEPS.length - 1;
 
@@ -201,7 +198,7 @@ export default function GuideModal({ T, onClose, onCreateProfile }) {
 
         {/* Scrollable content */}
         <div style={{ overflowY:"auto", flex:1, padding:"0 20px 12px" }}>
-          <StepContent step={STEPS[step].key} T={T} />
+          <StepContent step={STEPS[step].key} T={T} onSetupOwn={() => { onClose(); onSetupOwn?.(); }} onUseDemo={() => { onClose(); onUseDemo?.(); }} />
         </div>
 
         {/* Footer */}
@@ -211,9 +208,7 @@ export default function GuideModal({ T, onClose, onCreateProfile }) {
           )}
           {!isLast ? (
             <button onClick={() => setStep(s => s+1)} style={pill(true)}>Weiter</button>
-          ) : (
-            <button onClick={() => { onClose(); onCreateProfile?.(); }} style={pill(true)}>Profil anlegen</button>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

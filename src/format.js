@@ -41,3 +41,16 @@ export const fmtDate = (iso) => {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || "");
   return m ? `${m[3]}.${m[2]}.${m[1]}` : (iso || "");
 };
+
+/**
+ * Parses an amount typed by a German user: "1.234,56" → 1234.56, "250.000" → 250000, "3,5" → 3.5, "1234.5" → 1234.5.
+ * Empty or invalid input → 0.
+ */
+export const parseAmount = (input) => {
+  let t = String(input ?? "").trim().replace(/\s|€|%/g, "");
+  if (!t) return 0;
+  if (t.includes(",")) t = t.replace(/\./g, "").replace(",", ".");         // German decimal comma
+  else if (/^-?\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, "");      // German thousands dots only
+  const n = parseFloat(t);
+  return Number.isFinite(n) ? n : 0;
+};

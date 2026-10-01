@@ -1,6 +1,6 @@
 # Datenmodell (Schema v2)
 
-Quelle der Wahrheit ist `src/model/schema.js`: Schema-Version, Normalisierer (`normalizeAsset`, `normalizeIncomeStream`, …) und Migrationen. Demo-Daten neuer Profile: `src/model/defaults.js`.
+Quelle der Wahrheit ist `src/model/schema.js`: Schema-Version, Normalisierer (`normalizeAsset`, `normalizeIncomeStream`, …) und Migrationen. Demo-Daten neuer Profile: `src/model/defaults.js`. Profile aus dem Einrichtungs-Quiz: `buildProfileFromSetup` in `src/model/setup.js` (enthält nur die eigenen Angaben, keine Demo-Daten).
 
 ## Speicherung (localStorage)
 
