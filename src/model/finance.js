@@ -57,7 +57,7 @@ export const computeRemDebt = (a, y) => {
 // Returns combined ownership share for filtered owners (1.0 if no filter)
 export const ownerShare = (asset, ownerFilter) => {
   if (ownerFilter.length === 0) return 1;
-  const ownership = asset.ownership || (asset.owner ? [{ ownerId: asset.owner, share: 1 }] : []);
+  const ownership = asset.ownership || [];
   return ownership.filter(o => ownerFilter.includes(o.ownerId)).reduce((t, o) => t + (o.share || 0), 0);
 };
 

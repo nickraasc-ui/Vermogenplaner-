@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { PieChart, Pie, Cell, Tooltip as ReTooltip } from "recharts";
 import { Sl, Tile, Btn, Section, ListRow, Avatar, LinkBtn, IconBtn, Icon, fmtE, full } from "./ui.jsx";
+import { primaryOwnerId } from "../model/schema.js";
 import { ASSET_CLASSES, ASSET_CLASS_DEFAULTS, LIQUIDITY_CATS, LIQ_CLR } from "../constants.js";
 import { exportAssetsToExcel, parseImportFile } from "../utils/excelIO.js";
 
@@ -33,7 +34,7 @@ export default function TabVermogen({ s, T, updClass, updArr, setModal, agg, fil
     })
     .filter(d => d.value > 0);
 
-  const ownerLabelsOf = (a) => (a.ownership || (a.owner ? [{ ownerId: a.owner, share: 1 }] : []))
+  const ownerLabelsOf = (a) => (a.ownership || [])
     .map(o => {
       const own = (s.owners || []).find(x => x.id === o.ownerId);
       if (!own) return null;
@@ -128,7 +129,7 @@ export default function TabVermogen({ s, T, updClass, updArr, setModal, agg, fil
         ) : (
           <>
             {loans.map(l => {
-              const ownerLabel = l.owner ? (s.owners||[]).find(o => o.id === l.owner)?.label : null;
+              const ownerLabel = (s.owners||[]).find(o => o.id === primaryOwnerId(l))?.label || null;
               const sub = [l.loanType === "endfaellig" ? "Endfällig" : "Annuität", (l.loanRate||0)+" %"];
               if (ownerLabel) sub.push(ownerLabel);
               if (l.loanTermYears) sub.push(l.loanTermYears+" J.");
@@ -173,7 +174,7 @@ export default function TabVermogen({ s, T, updClass, updArr, setModal, agg, fil
         {!sortedSnaps.length ? (
           <div style={{ fontSize:14, color:T.textLow, padding:"4px 0" }}>Noch kein Snapshot. Am besten einmal im Quartal festhalten.</div>
         ) : sortedSnaps.map((sn, i) => {
-          const net        = sn.totalNet ?? sn.value;
+          const net        = sn.totalNet;
           const isExpanded = expandedSnap === sn.id;
           const hasDetails = sn.assetValues?.length > 0;
           return (

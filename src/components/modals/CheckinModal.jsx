@@ -129,7 +129,6 @@ export default function CheckinModal({ s, cf, T, setModal, updArr, cashflowProje
           sparrate_ist:  +f.sparrate_ist  || 0,
           immoNetCF_ist: f.immoNetCF_ist !== "" ? +f.immoNetCF_ist : null,
           reserven_ist:  +f.reserven_ist  || 0,
-          ausgaben_ist:  +f.streamExp_ist || 0, // backwards compat
         };
         updArr("checkins", [...(s.checkins||[]).filter(c => c.month !== f.month), ci]);
         setModal(null);

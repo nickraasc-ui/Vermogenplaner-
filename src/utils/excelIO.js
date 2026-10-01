@@ -14,7 +14,7 @@ const NOTE_COL   = "Notiz";
 
 // Build ownership display string from ownership array + owners list
 const ownershipLabel = (asset, owners) => {
-  const ownership = asset.ownership || (asset.owner ? [{ ownerId: asset.owner, share: 1 }] : []);
+  const ownership = asset.ownership || [];
   if (ownership.length === 0) return "";
   return ownership.map(o => {
     const owner = owners.find(x => x.id === o.ownerId);

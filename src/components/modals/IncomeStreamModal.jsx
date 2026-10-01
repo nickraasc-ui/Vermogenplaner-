@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Sheet, Inp, SelEl, Btn, full, uid } from "../ui.jsx";
+import { normalizeIncomeStream, singleOwner, primaryOwnerId } from "../../model/schema.js";
 import { INCOME_TYPES, CY } from "../../constants.js";
 
 export default function IncomeStreamModal({ data, s, T, setModal, updArr }) {
   const [f, setF] = useState(data
-    ? { ...data, endsAt: data.endsAt ?? "" }
+    ? { ...data, owner: primaryOwnerId(data) || "", endsAt: data.endsAt ?? "" }
     : { label:"", type:"Gehalt", owner:"", amount:"", growthPct:0, startsAt:CY, endsAt:"" }
   );
   const set = (k, v) => setF(p => ({ ...p, [k]: v }));
@@ -43,7 +44,8 @@ export default function IncomeStreamModal({ data, s, T, setModal, updArr }) {
         </div>
       )}
       <Btn full color={T.green} T={T} onClick={() => {
-        const st = { ...f, id:f.id||uid(), amount:+f.amount||0, growthPct:+f.growthPct||0, startsAt:+f.startsAt||CY, endsAt:f.endsAt?+f.endsAt:null, owner:f.owner||null };
+        const { owner, ...rest } = f;
+        const st = normalizeIncomeStream({ ...rest, ownership: singleOwner(owner) });
         if (data?.id) updArr("incomeStreams", (s.incomeStreams||[]).map(x => x.id===st.id ? st : x));
         else updArr("incomeStreams", [...(s.incomeStreams||[]), st]);
         setModal(null);

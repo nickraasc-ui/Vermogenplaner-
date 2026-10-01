@@ -2,10 +2,11 @@ import { useState, useEffect } from "react";
 import AppInner from "./AppInner.jsx";
 import GuideModal from "./components/GuideModal.jsx";
 import { DARK, LIGHT } from "./theme.js";
+import { uid } from "./model/ids.js";
+import { deleteProfileData, profileKey } from "./storage.js";
 import { Sheet, Inp, Btn, Icon, IconBtn, RoundBtn, ListRow, Avatar, labelStyle } from "./components/ui.jsx";
 
 // ----------------------------------------------------------------- utils ---
-const uid = () => Math.random().toString(36).slice(2, 9);
 
 const PROFILE_COLORS = [
   "#5b8def","#3cbf8a","#e3aa45","#a28bf6",
@@ -130,7 +131,7 @@ export default function App() {
       <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
         <Btn full danger T={T} onClick={() => {
           // Remove profile data from localStorage
-          localStorage.removeItem("wealth-pwa-v3-" + profile.id);
+          deleteProfileData(profile.id);
           setProfiles(ps => ps.filter(p => p.id !== profile.id));
           setModal(null);
         }}>Endgültig löschen</Btn>
@@ -142,7 +143,7 @@ export default function App() {
   // --------------------------------------------------------- Home screen ---
   const totalAssets = (profileId) => {
     try {
-      const raw = localStorage.getItem("wealth-pwa-v3-" + profileId);
+      const raw = localStorage.getItem(profileKey(profileId));
       if (!raw) return null;
       const data = JSON.parse(raw);
       const gross = (data.assets||[]).reduce((t,a)=>t+(a.value||0),0);

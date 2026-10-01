@@ -1,65 +1,38 @@
+import { useMemo } from "react";
 import { fmtE, full, Section, ListRow, Avatar, LinkBtn, Icon, Btn, Tile } from "./ui.jsx";
 import { CY } from "../constants.js";
+import { profileAge } from "../model/schema.js";
+import { scenarioImpact, scenariosTotalImpact } from "../model/derive.js";
 
-const TYPE_META = {
-  "Einmalig":  { icon:"arrowUp",   label:"Ausgabe einmalig" },
-  "Jährlich":  { icon:"arrowUp",   label:"Ausgabe jährlich" },
-  "Monatlich": { icon:"arrowUp",   label:"Ausgabe monatlich" },
-  "Zufluss":   { icon:"arrowDown", label:"Zufluss" },
-  "Sparrate":  { icon:"swap",      label:"Einnahmenänderung" },
-  "financed":  { icon:"card",      label:"Finanziert" },
+const KIND_META = {
+  ausgabe:    { icon:"arrowUp",   label:"Ausgabe" },
+  zufluss:    { icon:"arrowDown", label:"Zufluss" },
+  sparrate:   { icon:"swap",      label:"Einnahmenänderung" },
+  finanziert: { icon:"card",      label:"Finanziert" },
 };
+const FREQ_LABEL = { einmalig:"einmalig", jaehrlich:"jährlich", monatlich:"monatlich" };
 
 const getMeta = (b) => {
-  if (b.fundingMode === "financed") return TYPE_META["financed"];
-  return TYPE_META[b.type] || { icon:"layers", label:b.type };
+  const m = KIND_META[b.kind] || { icon:"layers", label:b.kind };
+  return b.kind === "ausgabe" ? { ...m, label: m.label + " " + (FREQ_LABEL[b.frequency] || "") } : m;
 };
 
-const getDesc = (b, currentAge, s) => {
-  const ty = b.year ? +b.year : b.age ? CY+(+b.age-(CY-(s.birthYear||CY-35))) : null;
+const getDesc = (b, s) => {
+  const ty = b.year ? +b.year : b.age ? CY + (+b.age - profileAge(s)) : null;
   const away = ty ? ty - CY : null;
-  if (b.fundingMode === "financed") {
+  const when = ty ? " · " + ty + (away !== null ? " (in " + away + " J.)" : "") : "";
+  if (b.kind === "finanziert") {
     const sy = +(b.financingStart||b.year||CY);
     const endY = sy + Math.ceil((+b.financingMonths||0)/12);
     return `${full(+b.monthlyPayment||0)}/Mo. × ${b.financingMonths} Mo. · ${sy}–${endY}${b.amount>0?" · "+full(b.amount)+" Kaufpreis":""}`;
   }
-  if (b.type === "Sparrate") {
+  if (b.kind === "sparrate") {
     const sign = (+b.delta||0) >= 0 ? "+" : "";
-    const topf = b.spartopfMode === "manuell"
-      ? " · Spartöpfe manuell"
-      : "";
+    const topf = b.spartopfMode === "manuell" ? " · Spartöpfe manuell" : "";
     return `${sign}${full(+b.delta||0)}/Mo.${b.startsAt?" ab "+b.startsAt:""}${b.endsAt?" bis "+b.endsAt:" dauerhaft"}${topf}`;
   }
-  if (b.type === "Zufluss") return `${full(b.amount||0)} einmalig${ty?" in "+ty+(away!==null?" (in "+away+" J.)":""):""}`;
-  return `${full(b.amount||0)}${b.type==="Monatlich"?"/Mo.":b.type==="Jährlich"?"/J.":""}${ty?" · "+ty+(away!==null?" (in "+away+" J.)":""):""}`;
-};
-
-// Rough impact: how much does this scenario change the portfolio at horizon end?
-const roughImpact = (b, s, currentAge) => {
-  const horizon = s.horizon || 35;
-  const cr = s.classReturns || {};
-  const vals = Object.values(cr);
-  const wavg = vals.length ? vals.reduce((a,v)=>a+v,0)/vals.length : 6;
-  const growFactor = (yrs) => Math.pow(1 + wavg/100, Math.max(0, yrs));
-  const ty = b.year ? +b.year : b.age ? CY+(+b.age-(CY-(s.birthYear||CY-35))) : CY;
-  const impactYrs = Math.max(0, (CY+horizon) - ty);
-
-  if (b.fundingMode === "financed") {
-    const sp = (+b.monthlyPayment||0) * 12;
-    const yrs = Math.ceil((+b.financingMonths||0)/12);
-    return wavg > 0 ? -sp * ((Math.pow(1+wavg/100,yrs)-1)/(wavg/100)) : -sp*yrs;
-  }
-  if (b.type === "Zufluss") return (+b.amount||0) * growFactor(impactYrs);
-  if (b.type === "Sparrate") {
-    const d = +b.delta||0;
-    const from = +(b.startsAt||CY), to = b.endsAt ? +b.endsAt : CY+horizon;
-    const yrs = Math.max(0, Math.min(to, CY+horizon) - from);
-    return wavg > 0 ? d * 12 * ((Math.pow(1+wavg/100,yrs)-1)/(wavg/100)) : d*12*yrs;
-  }
-  if (b.type==="Einmalig") return -(+b.amount||0) * growFactor(impactYrs);
-  if (b.type==="Jährlich") return -(+b.amount||0) * impactYrs * growFactor(impactYrs/2);
-  if (b.type==="Monatlich") return -(+b.amount||0)*12 * impactYrs * growFactor(impactYrs/2);
-  return 0;
+  if (b.kind === "zufluss") return `${full(b.amount||0)} einmalig${when}`;
+  return `${full(b.amount||0)}${b.frequency==="monatlich"?"/Mo.":b.frequency==="jaehrlich"?"/J.":""}${when}`;
 };
 
 export default function TabBuckets({ s, T, upd, updArr, setModal, agg, final, currentAge }) {
@@ -67,7 +40,9 @@ export default function TabBuckets({ s, T, upd, updArr, setModal, agg, final, cu
   const active   = buckets.filter(b => b.active !== false);
   const inactive = buckets.filter(b => b.active === false);
 
-  const totalImpact = active.reduce((t, b) => t + roughImpact(b, s, currentAge), 0);
+  // Exact effect of each scenario on the base projection (with vs. without it)
+  const impacts = useMemo(() => Object.fromEntries(buckets.map(b => [b.id, scenarioImpact(s, b)])), [s]);
+  const totalImpact = useMemo(() => scenariosTotalImpact(s), [s]);
 
   const toggle = (id) => {
     updArr("buckets", buckets.map(b => b.id===id ? {...b, active: b.active===false} : b));
@@ -82,14 +57,14 @@ export default function TabBuckets({ s, T, upd, updArr, setModal, agg, final, cu
 
   const renderRow = (b, i, arr) => {
     const meta = getMeta(b);
-    const impact = roughImpact(b, s, currentAge);
+    const impact = impacts[b.id] || 0;
     const isActive = b.active !== false;
     return (
       <div key={b.id} style={{ opacity:isActive?1:0.5, transition:"opacity 0.2s" }}>
         <ListRow T={T} last={i === arr.length - 1} onClick={() => setModal({ type:"bucket", data:b })}
           leading={<Avatar icon={meta.icon} color={T.surfaceHigh} fg={T.text} />}
           title={b.name || "Unbenannt"}
-          subtitle={meta.label+" · "+getDesc(b, currentAge, s)}
+          subtitle={meta.label+" · "+getDesc(b, s)}
           valueSub={Math.abs(impact) > 100 ? (impact > 0 ? "+" : "")+fmtE(impact) : undefined}
           valueSubColor={impact > 0 ? T.green : T.red}
           trailing={<Switch on={isActive} onClick={() => toggle(b.id)} label={(isActive ? "Deaktivieren: " : "Aktivieren: ")+(b.name||"Szenario")} />} />
@@ -105,7 +80,7 @@ export default function TabBuckets({ s, T, upd, updArr, setModal, agg, final, cu
       {buckets.length > 0 && (
         <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:12 }}>
           <Tile label="Aktiv" value={active.length+" / "+buckets.length} T={T} />
-          <Tile label="Effekt (ca.)" value={(totalImpact>=0?"+":"")+fmtE(totalImpact)} T={T} />
+          <Tile label="Effekt" value={(totalImpact>=0?"+":"")+fmtE(totalImpact)} T={T} />
           <Tile label="Prognose" value={fmtE(final?.base||0)} T={T} />
         </div>
       )}

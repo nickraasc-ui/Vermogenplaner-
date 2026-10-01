@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Sheet, Inp, SelEl, Btn, full, uid } from "../ui.jsx";
+import { normalizeExpenseStream, singleOwner, primaryOwnerId } from "../../model/schema.js";
 import { EXPENSE_CATEGORIES, CY } from "../../constants.js";
 
 export default function ExpenseStreamModal({ data, s, T, setModal, updArr }) {
   const [f, setF] = useState(data
-    ? { ...data, endsAt: data.endsAt ?? "" }
+    ? { ...data, owner: primaryOwnerId(data) || "", endsAt: data.endsAt ?? "" }
     : { label:"", category:"Lebenshaltung", amount:"", startsAt:CY, endsAt:"", owner:"", isBufferContribution:false }
   );
   const hasPuffer = (s.assets||[]).some(a => a.isHaushaltsPuffer && a.class === "Cash");
@@ -48,7 +49,8 @@ export default function ExpenseStreamModal({ data, s, T, setModal, updArr }) {
         </div>
       )}
       <Btn full color={T.red} T={T} onClick={() => {
-        const st = { ...f, id:f.id||uid(), amount:+f.amount||0, startsAt:+f.startsAt||CY, endsAt:f.endsAt?+f.endsAt:null, owner:f.owner||null, isBufferContribution:!!f.isBufferContribution };
+        const { owner, ...rest } = f;
+        const st = normalizeExpenseStream({ ...rest, ownership: singleOwner(owner) });
         if (data?.id) updArr("expenseStreams", (s.expenseStreams||[]).map(x => x.id===st.id ? st : x));
         else updArr("expenseStreams", [...(s.expenseStreams||[]), st]);
         setModal(null);

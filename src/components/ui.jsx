@@ -12,7 +12,7 @@ export const fmtE = (v) => {
   return "\u20AC" + Math.round(v);
 };
 export const full = (v) => "\u20AC" + Math.round(v ?? 0).toLocaleString("de-DE");
-export const uid = () => Math.random().toString(36).slice(2, 9);
+export { uid } from "../model/ids.js";
 export const mlbl = (ym) => {
   const [y, m] = ym.split("-");
   return ["","Jan","Feb","Mar","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"][+m] + " " + y;

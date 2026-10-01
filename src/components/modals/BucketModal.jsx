@@ -1,5 +1,7 @@
-import { useState } from "react";
-import { Sheet, Inp, SelEl, Btn, Icon, full, uid } from "../ui.jsx";
+import { useState, useMemo } from "react";
+import { Sheet, Inp, SelEl, Btn, Icon, full } from "../ui.jsx";
+import { normalizeBucket, FREQUENCIES } from "../../model/schema.js";
+import { scenarioImpact } from "../../model/derive.js";
 import { CY, BCK_CLRS, ASSET_CLASSES } from "../../constants.js";
 
 const SCENARIO_TYPES = [
@@ -12,20 +14,12 @@ const SCENARIO_TYPES = [
 const INVESTABLE_CLASSES = ASSET_CLASSES.filter(c => !["Cash","Immobilien","Forderung","Sonstiges"].includes(c));
 
 export default function BucketModal({ data, s, T, setModal, updArr }) {
-  const inferCategory = (d) => {
-    if (!d) return "ausgabe";
-    if (d.type === "Zufluss") return "zufluss";
-    if (d.type === "Sparrate") return "sparrate";
-    if (d.fundingMode === "financed") return "finanziert";
-    return "ausgabe";
-  };
-
-  const [category, setCategory] = useState(() => inferCategory(data));
+  const [category, setCategory] = useState(() => data?.kind || "ausgabe");
   const [f, setF] = useState(data ? {
     spartopfMode: "proportional", spartopfAmounts: {}, ...data,
   } : {
     name: "", amount: "", year: "", age: "", color: BCK_CLRS[0], note: "",
-    type: "Einmalig", fundingMode: "lump_sum",
+    frequency: "einmalig",
     monthlyPayment: "", financingMonths: "", financingStart: "",
     delta: "", startsAt: "", endsAt: "",
     spartopfMode: "proportional", spartopfAmounts: {},
@@ -34,37 +28,16 @@ export default function BucketModal({ data, s, T, setModal, updArr }) {
   const set = (k, v) => setF(p => ({ ...p, [k]: v }));
 
   const ct = SCENARIO_TYPES.find(t => t.key === category);
-  const horizon = s.horizon || 35;
 
   const totalCost = category === "finanziert"
     ? (+f.monthlyPayment||0) * (+f.financingMonths||0)
     : (+f.amount||0);
 
-  const impactYears = (() => {
-    const ty = f.year ? +f.year : f.age ? CY + (+f.age - (CY - (s.birthYear||CY-35))) : CY;
-    return Math.max(0, (CY + horizon) - ty);
+  // Exact effect on the base projection at the horizon (projection with vs. without this scenario)
+  const draft = (() => {
+    try { return normalizeBucket({ ...f, id: f.id || "__draft__", kind: category }); } catch { return null; }
   })();
-  const wavg = (() => {
-    const cr = s.classReturns || {};
-    const vals = Object.values(cr);
-    return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 6;
-  })();
-  const growFactor = (yrs) => Math.pow(1 + wavg/100, yrs);
-  const roughImpact = (() => {
-    if (category === "ausgabe") {
-      if (f.type==="Einmalig") return -(+f.amount||0) * growFactor(impactYears);
-      if (f.type==="Jährlich") return -(+f.amount||0) * impactYears * growFactor(impactYears/2);
-      if (f.type==="Monatlich") return -(+f.amount||0)*12 * impactYears * growFactor(impactYears/2);
-    }
-    if (category === "zufluss") return (+f.amount||0) * growFactor(impactYears);
-    if (category === "sparrate") {
-      const d = +f.delta||0;
-      const from = +f.startsAt||CY, to = f.endsAt ? +f.endsAt : CY+horizon;
-      const yrs = Math.max(0, Math.min(to, CY+horizon) - from);
-      return wavg > 0 ? d * 12 * ((Math.pow(1+wavg/100, yrs)-1) / (wavg/100)) : d*12*yrs;
-    }
-    return null;
-  })();
+  const impact = useMemo(() => draft ? scenarioImpact(s, draft) : 0, [s, JSON.stringify(draft)]);
 
   const sectionBox = { background:"transparent", border:"1px solid "+T.border, borderRadius:16, padding: 12, marginBottom: 12 };
 
@@ -107,15 +80,15 @@ export default function BucketModal({ data, s, T, setModal, updArr }) {
       {category === "ausgabe" && (
         <div style={sectionBox}>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
-            <SelEl label="Häufigkeit" value={f.type==="Zufluss"||f.type==="Sparrate"?"Einmalig":f.type}
-              onChange={v => set("type",v)} options={["Einmalig","Jährlich","Monatlich"]} T={T} />
+            <SelEl label="Häufigkeit" value={f.frequency || "einmalig"}
+              onChange={v => set("frequency",v)} options={FREQUENCIES} T={T} />
             <Inp label="Betrag (€)" value={f.amount} onChange={v => set("amount",v)} type="number" T={T} />
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
             <Inp label="Startet im Jahr" value={f.year} onChange={v => set("year",v)} type="number" placeholder={String(CY)} T={T} />
             <Inp label="oder Alter" value={f.age} onChange={v => set("age",v)} type="number" placeholder="45" T={T} />
           </div>
-          {(f.type==="Jährlich"||f.type==="Monatlich") && (
+          {(f.frequency==="jaehrlich"||f.frequency==="monatlich") && (
             <Inp label="Endet im Jahr (opt.)" value={f.endsAt||""} onChange={v => set("endsAt", v ? +v : null)} type="number" placeholder="unbegrenzt" T={T} />
           )}
         </div>
@@ -233,14 +206,13 @@ export default function BucketModal({ data, s, T, setModal, updArr }) {
         </div>
       )}
 
-      {/* Rough impact preview */}
-      {roughImpact !== null && Math.abs(roughImpact) > 0 && (
-        <div style={{ background: roughImpact>0?T.green+"0d":T.red+"0d", border:"1px solid "+(roughImpact>0?T.green:T.red)+"33", borderRadius:8, padding:"10px 13px", marginBottom:12 }}>
-          <div style={{ fontSize:11, color:T.textDim, marginBottom:2 }}>Geschätzter Projektionseffekt (am Horizont, inkl. entgangener Rendite)</div>
-          <div style={{ fontSize:15, fontWeight:650, color:roughImpact>0?T.green:T.red }}>
-            {roughImpact>0?"+":""}{full(roughImpact)}
+      {/* Impact preview */}
+      {Math.abs(impact) >= 1 && (
+        <div style={{ border:"1px solid "+T.border, borderRadius:16, padding:"12px 14px", marginBottom:12 }}>
+          <div style={{ fontSize:13, color:T.textLow, marginBottom:2 }}>Wirkung auf die Basis-Prognose am Horizont</div>
+          <div className="vp-num" style={{ fontSize:18, fontWeight:700, color:impact>0?T.green:T.red }}>
+            {impact>0?"+":"−"}{full(Math.abs(impact))}
           </div>
-          <div style={{ fontSize:11, color:T.textDim, marginTop:1 }}>Ø {wavg.toFixed(1)}% Wachstum angenommen — schalte Szenario aus/ein zum Vergleich</div>
         </div>
       )}
 
@@ -256,25 +228,12 @@ export default function BucketModal({ data, s, T, setModal, updArr }) {
       </div>
 
       <Btn full color={T.green} T={T} onClick={() => {
-        const finalType = category==="zufluss" ? "Zufluss"
-          : category==="sparrate" ? "Sparrate"
-          : category==="finanziert" ? (f.type||"Einmalig")
-          : (f.type||"Einmalig");
-        const b = {
-          ...f, id:f.id||uid(),
-          type: finalType,
-          fundingMode: category==="finanziert" ? "financed" : "lump_sum",
-          amount: +f.amount||0,
-          monthlyPayment: +f.monthlyPayment||0,
-          financingMonths: +f.financingMonths||0,
-          financingStart: +f.financingStart||CY,
-          delta: +f.delta||0,
-          startsAt: +f.startsAt||0,
-          endsAt: f.endsAt ? +f.endsAt : null,
+        const b = normalizeBucket({
+          ...f,
+          kind: category,
           spartopfMode: category==="sparrate" ? (f.spartopfMode||"proportional") : undefined,
           spartopfAmounts: category==="sparrate" && f.spartopfMode==="manuell" ? (f.spartopfAmounts||{}) : undefined,
-          active: f.active !== false,
-        };
+        });
         if (data?.id) updArr("buckets", s.buckets.map(x => x.id===b.id ? b : x));
         else updArr("buckets", [...(s.buckets||[]), b]);
         setModal(null);

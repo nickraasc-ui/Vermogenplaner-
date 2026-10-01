@@ -213,7 +213,7 @@ export default function OrgChart({ s, T, setModal }) {
   const ownerNet = {};
   owners.forEach(o => { ownerNet[o.id] = 0; });
   assets.forEach(a => {
-    const ows = a.ownership || (a.owner ? [{ ownerId: a.owner, share: 1 }] : []);
+    const ows = a.ownership || [];
     ows.forEach(ob => {
       if (ob.ownerId in ownerNet)
         ownerNet[ob.ownerId] += ((a.value || 0) - (a.debt || 0)) * (ob.share || 0);
@@ -223,7 +223,7 @@ export default function OrgChart({ s, T, setModal }) {
   const assetsByOwner = {};
   owners.forEach(o => { assetsByOwner[o.id] = []; });
   assets.forEach(a => {
-    const ows = a.ownership || (a.owner ? [{ ownerId: a.owner, share: 1 }] : []);
+    const ows = a.ownership || [];
     ows.forEach(ob => {
       if (assetsByOwner[ob.ownerId])
         assetsByOwner[ob.ownerId].push({ ...a, _share: ob.share || 0 });

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { fmtE } from "../ui.jsx";
+import { normalizeAsset } from "../../model/schema.js";
 
-const rng = () => Math.random().toString(36).slice(2, 9);
 
 export default function ImportPreviewModal({ preview, s, T, setModal, updArr }) {
   const [selection, setSelection] = useState(() =>
@@ -21,7 +21,8 @@ export default function ImportPreviewModal({ preview, s, T, setModal, updArr }) 
           : a
         );
       } else if (action === "create") {
-        assets.push({ id: rng(), name: imported.name, class: imported.class, value: imported.value, debt: imported.debt, yieldPct: imported.yieldPct || 0, liquidity: imported.liquidity || "Semi-liquide", note: imported.note || "", ownership: imported.ownership?.length ? imported.ownership : [], locked: false, valuationMethod: "market", commitment: 0, called: 0, distributed: 0, loanRate: 3.5, loanTilgung: 0, loanAnnuitat: 0, monthlyRepayment: 0, monthlyRunningCost: 0, ...(imported.class === "Immobilien" ? { monthlyRent: 0, hausgeld: 0, grundsteuer: 0 } : {}), tax: { acquisitionPrice: 0, acquisitionDate: "", taxType: "abgeltung" }, lifecycle: { maturity: null } });
+        assets.push(normalizeAsset({ name: imported.name, class: imported.class, value: imported.value, debt: imported.debt,
+          yieldPct: imported.yieldPct, liquidity: imported.liquidity, note: imported.note, ownership: imported.ownership || [] }));
       }
     });
     updArr("assets", assets);

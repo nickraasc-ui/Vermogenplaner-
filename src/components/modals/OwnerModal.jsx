@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Sheet, Inp, SelEl, Btn, uid, IconBtn, Icon } from "../ui.jsx";
+import { ownerReferences } from "../../model/schema.js";
 import { OWNER_TYPES, MARITAL_PROPERTY_OPTIONS, CY } from "../../constants.js";
 
 export default function OwnerModal({ s, T, setModal, upd }) {
@@ -12,23 +13,31 @@ export default function OwnerModal({ s, T, setModal, upd }) {
   const addOwner = () => {
     const label = newName.trim();
     if (!label) return;
-    const id = label.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "") || uid();
-    if (owners.some(o => o.id === id)) return;
+    const id = uid(); // unique even for equal names (ids used to be derived from the name)
     const isEntity = newType !== "Person";
     const tax = isEntity
       ? { personalTaxRate: 30, churchTax: false, sparerpauschbetrag: 0, zusammenveranlagung: false }
       : { personalTaxRate: 42, churchTax: false, sparerpauschbetrag: 1000, zusammenveranlagung: true };
     const birthYear = !isEntity && newBirthYear ? (+newBirthYear || null) : null;
-    upd({ owners: [...owners, { id, label, type: newType, ownedBy: [], tax, ...(birthYear ? { birthYear } : {}) }] });
+    upd({ owners: [...owners, { id, label, type: newType, ownedBy: [], relations: [], tax, ...(birthYear ? { birthYear } : {}) }] });
     setNewName("");
     setNewBirthYear("");
   };
 
+  // An owner can only be removed when nothing references it; family relations pointing to it are cleaned up.
   const removeOwner = (ownerId) => {
-    const inUse = (s.assets || []).some(a => (a.ownership || []).some(o => o.ownerId === ownerId));
-    if (inUse) return;
-    upd({ owners: owners.filter(o => o.id !== ownerId) });
+    const refs = ownerReferences(s, ownerId);
+    if (Object.values(refs).some(n => n > 0)) return;
+    upd({ owners: owners.filter(o => o.id !== ownerId)
+      .map(o => ({ ...o, relations: (o.relations || []).filter(r => r.targetId !== ownerId) })) });
   };
+  const refsLabel = (refs) => [
+    refs.assets && refs.assets + " Position(en)",
+    refs.incomeStreams && refs.incomeStreams + " Einnahme(n)",
+    refs.expenseStreams && refs.expenseStreams + " Ausgabe(n)",
+    refs.loans && refs.loans + " Darlehen",
+    refs.shareholders && "Gesellschafter von " + refs.shareholders,
+  ].filter(Boolean).join(" · ");
 
   const updOwner = (ownerId, patch) => {
     upd({ owners: owners.map(o => o.id === ownerId ? { ...o, ...patch } : o) });
@@ -66,8 +75,8 @@ export default function OwnerModal({ s, T, setModal, upd }) {
 
       {/* Owner list */}
       {owners.map(o => {
-        const assetCount = (s.assets || []).filter(a => (a.ownership || []).some(own => own.ownerId === o.id)).length;
-        const inUse = assetCount > 0;
+        const refs = ownerReferences(s, o.id);
+        const inUse = Object.values(refs).some(n => n > 0);
         const isExpanded = expanded === o.id;
         const isEntity = o.type !== "Person";
         const otherOwners = owners.filter(x => x.id !== o.id);
@@ -82,7 +91,7 @@ export default function OwnerModal({ s, T, setModal, upd }) {
                   <span style={{ fontSize:11, color: T.textDim, background: T.surface, padding: "1px 5px", borderRadius: 3 }}>{o.type || "Person"}</span>
                 </div>
                 <div style={{ fontSize:11, color: T.textDim, marginTop: 1 }}>
-                  {inUse ? assetCount + " Position(en)" : "Keine Positionen"} <span style={{ display:"inline-block", transform:(isExpanded)?"rotate(180deg)":"none", transition:"transform .2s" }}><Icon name="down" size={18} /></span>
+                  {inUse ? refsLabel(refs) : "Nicht verwendet – kann gelöscht werden"} <span style={{ display:"inline-block", transform:(isExpanded)?"rotate(180deg)":"none", transition:"transform .2s" }}><Icon name="down" size={18} /></span>
                 </div>
               </div>
               {!inUse && (

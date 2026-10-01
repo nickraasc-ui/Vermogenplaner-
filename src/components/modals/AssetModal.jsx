@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Sheet, Inp, SelEl, Btn, full, uid, IconBtn } from "../ui.jsx";
+import { Sheet, Inp, SelEl, Btn, full, IconBtn } from "../ui.jsx";
+import { normalizeAsset, sharesValid } from "../../model/schema.js";
 import { ASSET_CLASSES, LIQUIDITY_CATS, LIQUIDITY_DEFAULT, LIQ_CLR, ASSET_TAX_TYPES, VALUATION_METHODS, IMMO_CF_GROSS, IMMO_HAUSGELD, IMMO_GRUNDSTEUER, LOAN_TYPES } from "../../constants.js";
 
 export default function AssetModal({ data, s, T, setModal, updArr }) {
@@ -29,7 +30,7 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
 
   const ownership = f.ownership || [];
   const ownerShareTotal = ownership.reduce((s, o) => s + (o.share || 0), 0);
-  const shareOk = ownership.length === 0 || Math.abs(ownerShareTotal - 1) < 0.01;
+  const shareOk = sharesValid(ownership);
 
   const hasDebt = (parseFloat(f.debt) || 0) > 0;
   const isImmo  = f.class === "Immobilien";
@@ -352,7 +353,13 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
         </div>
       )}
 
+      {!shareOk && (
+        <div role="alert" style={{ fontSize:14, color:T.red, marginBottom:10 }}>
+          Die Eigentumsanteile müssen zusammen 100 % ergeben, bevor gespeichert werden kann.
+        </div>
+      )}
       <Btn full color={T.green} T={T} onClick={() => {
+        if (!shareOk) return;
         const saveDebt = +f.debt || 0;
         const saveRate = +f.loanRate || 0;
         const saveTerm = +f.loanTermYears || 0;
@@ -370,36 +377,15 @@ export default function AssetModal({ data, s, T, setModal, updArr }) {
         const savedMonthlyInterest = saveDebt * saveMonthlyRate;
         const savedTilgung = saveType === "endfaellig" ? 0 : Math.max(0, savedAnnuitat - savedMonthlyInterest);
 
-        const asset = {
+        const asset = normalizeAsset({
           ...f,
-          id: f.id || uid(),
-          value: +f.value || 0,
           debt: saveDebt,
           loanType: saveType,
           loanRate: saveRate,
           loanTermYears: saveTerm,
           loanTilgung: savedTilgung,
           loanAnnuitat: savedAnnuitat,
-          liquidity: f.liquidity || "Liquide",
-          monthlyRent: +f.monthlyRent || 0,
-          hausgeld: +f.hausgeld || 0,
-          grundsteuer: +f.grundsteuer || 0,
-          monthlyRepayment: +f.monthlyRepayment || 0,
-          monthlyRunningCost: +f.monthlyRunningCost || 0,
-          yieldPct: +f.yieldPct || 0,
-          ownership: f.ownership || [],
-          valuationMethod: f.valuationMethod || "market",
-          tax: {
-            acquisitionPrice: +(f.tax?.acquisitionPrice) || 0,
-            acquisitionDate: f.tax?.acquisitionDate || "",
-            taxType: f.tax?.taxType || "abgeltung",
-          },
-          lifecycle: { maturity: f.lifecycle?.maturity || null },
-          commitment: +f.commitment || 0,
-          called: +f.called || 0,
-          distributed: +f.distributed || 0,
-        };
-        delete asset.owner;
+        });
         if (data?.id) updArr("assets", s.assets.map(a => a.id === asset.id ? asset : a));
         else updArr("assets", [...s.assets, asset]);
         setModal(null);

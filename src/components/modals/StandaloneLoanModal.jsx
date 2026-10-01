@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Sheet, Inp, SelEl, Btn, full, uid } from "../ui.jsx";
+import { normalizeLoan, singleOwner, primaryOwnerId } from "../../model/schema.js";
 
 const LOAN_TYPES = [
   { value: "annuitat", label: "Annuitätendarlehen" },
@@ -8,7 +9,7 @@ const LOAN_TYPES = [
 
 export default function StandaloneLoanModal({ data, s, T, setModal, updArr }) {
   const [f, setF] = useState(data
-    ? { ...data }
+    ? { ...data, owner: primaryOwnerId(data) || "" }
     : { name: "", debt: "", loanRate: "", loanAnnuitat: "", loanTermYears: "", loanType: "annuitat", owner: "" }
   );
   const set = (k, v) => setF(p => ({ ...p, [k]: v }));
@@ -55,15 +56,8 @@ export default function StandaloneLoanModal({ data, s, T, setModal, updArr }) {
       )}
 
       <Btn full color={T.red} T={T} onClick={() => {
-        const st = {
-          ...f,
-          id: f.id || uid(),
-          debt: +f.debt || 0,
-          loanRate: +f.loanRate || 0,
-          loanAnnuitat: +f.loanAnnuitat || 0,
-          loanTermYears: +f.loanTermYears || null,
-          owner: f.owner || null,
-        };
+        const { owner, ...rest } = f;
+        const st = normalizeLoan({ ...rest, ownership: singleOwner(owner) });
         if (!st.name) return;
         if (data?.id) updArr("standaloneLoans", (s.standaloneLoans||[]).map(x => x.id === st.id ? st : x));
         else updArr("standaloneLoans", [...(s.standaloneLoans||[]), st]);

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { deriveAll } from "../src/model/derive.js";
-import { migrateProfileState } from "../src/storage.js";
+import { migrateProfile } from "../src/model/schema.js";
 import { yearsUntilPaidOff, computeRemDebt } from "../src/model/finance.js";
 import { complex } from "./fixtures.js";
 
@@ -8,7 +8,7 @@ const ZERO_RETURNS = Object.fromEntries(["Aktien","Aktien-ETF","Anleihen","Anlei
 const annuity = (D, ratePct, years) => { const r = ratePct / 1200, n = years * 12; return D * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1); };
 
 // Minimal profile: one owner, income exactly covering the given expenses → savings rate 0 unless stated
-const profile = (over = {}) => migrateProfileState({
+const profile = (over = {}) => migrateProfile({
   owners: [{ id: "a", label: "A", type: "Person", tax: { sparerpauschbetrag: 0 } }],
   classReturns: { ...ZERO_RETURNS }, projSpreadCons: 2, projSpreadOpt: 2,
   horizon: 30, autoSpar: true, taxOnReturns: false, inflationAdj: false,
@@ -21,7 +21,7 @@ const base = (s, y) => deriveAll(s).projection[y].base;
 describe("projection model", () => {
   it("starts at the net worth shown in the header (incl. securities loans and standalone loans)", () => {
     for (const filter of [[], ["a"], ["b"]]) {
-      const d = deriveAll(migrateProfileState(structuredClone(complex), true), { ownerFilter: filter });
+      const d = deriveAll(migrateProfile(structuredClone(complex)), { ownerFilter: filter });
       expect(d.projection[0].base).toBeCloseTo(d.agg.net, -1);
     }
   });
@@ -102,7 +102,7 @@ describe("projection model", () => {
   });
 
   it("keeps scenarios ordered and inflation adjustment lowers real values", () => {
-    const s = migrateProfileState(structuredClone(complex), true);
+    const s = migrateProfile(structuredClone(complex));
     const nominal = deriveAll(s).projection.at(-1);
     expect(nominal.cons).toBeLessThanOrEqual(nominal.base);
     expect(nominal.base).toBeLessThanOrEqual(nominal.opt);
@@ -122,7 +122,7 @@ describe("loan summary", () => {
 
 describe("projection breakdown", () => {
   it("per-position values minus debts add up to the nominal base value every year", () => {
-    const s = migrateProfileState(structuredClone(complex), true);
+    const s = migrateProfile(structuredClone(complex));
     const { projection } = deriveAll(s);
     for (const row of projection) {
       const bd = row.breakdown;

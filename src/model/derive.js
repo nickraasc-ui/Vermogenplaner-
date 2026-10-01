@@ -1,6 +1,7 @@
 // Pure derivations of a profile state. Moved verbatim from AppInner.jsx (no behaviour change).
 import { LIQUIDITY_DEFAULT, CY } from "../constants.js";
 import { ownerShare, yearsUntilPaidOff } from "./finance.js";
+import { matchesOwnerFilter, profileAge } from "./schema.js";
 import { cashflowAt } from "./cashflow.js";
 import { projectWealth } from "./projection.js";
 
@@ -17,20 +18,19 @@ export function deriveAll(s, { ownerFilter = [], projClassFilter = [] } = {}) {
       const o = (s.owners||[]).find(o => o.id === ownerFilter[0]);
       if (o?.birthYear) return CY - o.birthYear;
     }
-    return CY - (s.birthYear || CY - 35);
+    return profileAge(s);
   })();
 
   const filteredAssets = (() => {
     if (ownerFilter.length === 0) return s.assets;
     return s.assets.filter(a => {
-      const ownership = a.ownership || (a.owner ? [{ ownerId: a.owner }] : []);
-      return ownership.some(o => ownerFilter.includes(o.ownerId));
+      return (a.ownership || []).some(o => ownerFilter.includes(o.ownerId));
     });
   })();
 
   const filteredIncomeStreams = (ownerFilter.length === 0
       ? (s.incomeStreams||[])
-      : (s.incomeStreams||[]).filter(st => !st.owner || ownerFilter.includes(st.owner)));
+      : (s.incomeStreams||[]).filter(st => matchesOwnerFilter(st, ownerFilter)));
 
   const projAssets = (projClassFilter.length === 0 ? filteredAssets : filteredAssets.filter(a => projClassFilter.includes(a.class)));
 
@@ -45,7 +45,7 @@ export function deriveAll(s, { ownerFilter = [], projClassFilter = [] } = {}) {
     };
     const fromAssets = filteredAssets.filter(a => (a.debt||0) > 0).map(a => row(a, ownerShare(a, ownerFilter)));
     const fromStandalone = (s.standaloneLoans||[])
-      .filter(l => ownerFilter.length === 0 || !l.owner || ownerFilter.includes(l.owner))
+      .filter(l => matchesOwnerFilter(l, ownerFilter))
       .map(l => row(l, 1, { standalone:true }));
     return [...fromAssets, ...fromStandalone];
   })();
@@ -76,7 +76,7 @@ export function deriveAll(s, { ownerFilter = [], projClassFilter = [] } = {}) {
     });
     // Standalone loans reduce net worth (no corresponding asset value)
     (s.standaloneLoans||[])
-      .filter(l => ownerFilter.length === 0 || !l.owner || ownerFilter.includes(l.owner))
+      .filter(l => matchesOwnerFilter(l, ownerFilter))
       .forEach(l => { debt += l.debt || 0; });
     const totalNet = gross - debt;
     let wavg = 0;
@@ -91,7 +91,7 @@ export function deriveAll(s, { ownerFilter = [], projClassFilter = [] } = {}) {
 
     // Active Einnahmenänderung scenarios for current year
     const activeSparScn = (s.buckets||[]).filter(b => {
-      if (b.active === false || b.type !== "Sparrate") return false;
+      if (b.active === false || b.kind !== "sparrate") return false;
       const from = +(b.startsAt||CY), to = b.endsAt ? +b.endsAt : Infinity;
       return CY >= from && CY <= to;
     });
@@ -149,5 +149,21 @@ export function deriveAll(s, { ownerFilter = [], projClassFilter = [] } = {}) {
     includeStandaloneLoans: projClassFilter.length === 0,
   });
 
-  return { currentAge, filteredAssets, filteredIncomeStreams, projAssets, loanSummary, totalMonthlyLoanPayment, cf, agg, sparDist, projection, cashflowProjection };
+  return { currentAge, profileAge: profileAge(s), filteredAssets, filteredIncomeStreams, projAssets, loanSummary, totalMonthlyLoanPayment, cf, agg, sparDist, projection, cashflowProjection };
+}
+
+/**
+ * Effect of one scenario on the base projection at the end of the horizon (€, nominal or real like the projection):
+ * projection with the scenario active minus projection without it. Uses the real model, not an estimate.
+ */
+export function scenarioImpact(s, bucket) {
+  const others = (s.buckets || []).filter(b => b.id !== bucket.id);
+  const endValue = (buckets) => deriveAll({ ...s, buckets }).projection.at(-1)?.base ?? 0;
+  return endValue([...others, { ...bucket, active: true }]) - endValue(others);
+}
+
+/** Combined effect of all active scenarios: projection as is minus projection with every scenario switched off. */
+export function scenariosTotalImpact(s) {
+  const endValue = (buckets) => deriveAll({ ...s, buckets }).projection.at(-1)?.base ?? 0;
+  return endValue(s.buckets || []) - endValue((s.buckets || []).map(b => ({ ...b, active: false })));
 }

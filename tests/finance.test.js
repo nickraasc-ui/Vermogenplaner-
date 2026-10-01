@@ -42,8 +42,8 @@ describe("ownerShare", () => {
     expect(ownerShare(asset, ["a", "b"])).toBe(1);
     expect(ownerShare(asset, ["x"])).toBe(0);
   });
-  it("understands the legacy single `owner` field", () => {
-    expect(ownerShare({ owner: "a" }, ["a"])).toBe(1);
+  it("treats a record without ownership as 0 under a filter", () => {
+    expect(ownerShare({ ownership: [] }, ["a"])).toBe(0);
   });
 });
 

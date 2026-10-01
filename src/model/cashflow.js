@@ -2,20 +2,20 @@
 // both for "today" (Haushalt tab, header Sparquote) and for every projected year.
 import { IMMO_CF_GROSS, IMMO_HAUSGELD, IMMO_GRUNDSTEUER, CY } from "../constants.js";
 import { kestRate, computeRemDebt, ownerShare } from "./finance.js";
+import { matchesOwnerFilter } from "./schema.js";
 
 const activeInYear = (st, year) => year >= (st.startsAt || CY) && (!st.endsAt || year <= st.endsAt);
-const ownerMatches = (ownerFilter, owner) => ownerFilter.length === 0 || !owner || ownerFilter.includes(owner);
 
 /** Financed scenarios pay their monthly rate from financingStart for ceil(months/12) years. */
 export const isFinancingActive = (b, year) => {
-  if (b.fundingMode !== "financed") return false;
+  if (b.kind !== "finanziert") return false;
   const sy = +(b.financingStart || b.year || CY);
   return year >= sy && year < sy + Math.ceil((+b.financingMonths || 12) / 12);
 };
 
 /** "Einnahmenänderung" scenarios change the savings rate between startsAt and endsAt (inclusive). */
 export const isSavingsChangeActive = (b, year) => {
-  if (b.type !== "Sparrate") return false;
+  if (b.kind !== "sparrate") return false;
   const from = +(b.startsAt || CY), to = b.endsAt ? +b.endsAt : Infinity;
   return year >= from && year <= to;
 };
@@ -35,7 +35,7 @@ export function cashflowAt(y, { s, assets, incomeStreams, ownerFilter }) {
   const streamIncome = incomeStreams
     .filter(st => activeInYear(st, year))
     .reduce((t, st) => t + (st.amount || 0) * Math.pow(1 + (st.growthPct || 0) / 100, Math.max(0, year - (st.startsAt || CY))), 0);
-  const expenseStreams = (s.expenseStreams || []).filter(st => activeInYear(st, year) && ownerMatches(ownerFilter, st.owner));
+  const expenseStreams = (s.expenseStreams || []).filter(st => activeInYear(st, year) && matchesOwnerFilter(st, ownerFilter));
   const streamExpense = expenseStreams.reduce((t, st) => t + (st.amount || 0), 0);
 
   // Real estate: rent (with rent growth) − running costs − loan payments while the loan is outstanding.
@@ -52,7 +52,7 @@ export function cashflowAt(y, { s, assets, incomeStreams, ownerFilter }) {
     .reduce((t, a) => t + (a.monthlyRunningCost || 0) * sh(a), 0);
   const otherAnnuitat = assets.filter(a => a.class !== "Immobilien" && a.class !== "Forderung" && (a.debt || 0) > 0)
       .reduce((t, a) => t + (computeRemDebt(a, y) > 0 ? (a.loanAnnuitat || 0) * sh(a) : 0), 0)
-    + (s.standaloneLoans || []).filter(l => ownerMatches(ownerFilter, l.owner))
+    + (s.standaloneLoans || []).filter(l => matchesOwnerFilter(l, ownerFilter))
       .reduce((t, l) => t + (computeRemDebt(l, y) > 0 ? (l.loanAnnuitat || 0) : 0), 0);
 
   // Distributions (dividends, coupons): paid on the projected value; capital growth excludes the yield
@@ -65,8 +65,9 @@ export function cashflowAt(y, { s, assets, incomeStreams, ownerFilter }) {
   let assetYieldIncome = grossYield;
   if (s.taxOnReturns && grossYield > 0) {
     const afterTax = yieldAssets.reduce((t, a) => t + projValue(a) * (a.yieldPct || 0) / 100 / 12 * (1 - kestRate(a)), 0);
-    // Sparer-Pauschbetrag: sum over all owners (default 1.000 € per person)
-    const totalPauschbetrag = (s.owners || []).reduce((t, o) => t + (o.tax?.sparerpauschbetrag || 0), 0);
+    // Sparer-Pauschbetrag: sum over the owners in view (all owners without a filter; default 1.000 € per person)
+    const ownersInView = (s.owners || []).filter(o => ownerFilter.length === 0 || ownerFilter.includes(o.id));
+    const totalPauschbetrag = ownersInView.reduce((t, o) => t + (o.tax?.sparerpauschbetrag || 0), 0);
     const avgKest = (grossYield - afterTax) / grossYield;
     assetYieldIncome = afterTax + Math.min(grossYield, totalPauschbetrag / 12) * avgKest;
   }

@@ -1,10 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { deriveAll } from "../src/model/derive.js";
-import { migrateProfileState } from "../src/storage.js";
-import { DEFAULT } from "../src/theme.js";
+import { migrateProfile } from "../src/model/schema.js";
 import { complex, autoVariant } from "./fixtures.js";
 
-const prepare = (raw) => raw ? migrateProfileState(structuredClone(raw), true) : { ...DEFAULT };
+const prepare = (raw) => migrateProfile(raw ? structuredClone(raw) : { schemaVersion: 2 });
 const round = (x) => typeof x === "number" ? Math.round(x * 100) / 100 : x;
 
 // Key figures shown in the UI. Snapshots pin today's behaviour so refactors can't change results silently.
@@ -50,12 +49,12 @@ describe("deriveAll – invariants", () => {
 });
 
 describe("bug fixes", () => {
-  const base = () => migrateProfileState({
+  const base = () => migrateProfile({
     owners: [{ id: "a", label: "A", type: "Person" }],
     incomeStreams: [{ id: "i", owner: null, label: "Gehalt", type: "Gehalt", amount: 4000, growthPct: 0, startsAt: 2026, endsAt: null }],
     expenseStreams: [{ id: "e", label: "Leben", category: "Lebenshaltung", amount: 1500, startsAt: 2026, endsAt: null }],
     assets: [], buckets: [], standaloneLoans: [],
-  }, true);
+  });
 
   it("an owner-occupied property with 0 € rent adds no rental income", () => {
     const s = base();
@@ -67,10 +66,10 @@ describe("bug fixes", () => {
     expect(cf.avail).toBe(4000);
   });
 
-  it("a property stored without rent fields still gets the documented defaults (legacy data)", () => {
-    const s = base();
-    s.assets = [{ id: "h", name: "Alt", class: "Immobilien", ownership: [{ ownerId: "a", share: 1 }], value: 300000, debt: 0 }];
-    const { cf } = deriveAll(migrateProfileState(s, true));
+  it("a property stored without rent fields by an old app version keeps the old defaults", () => {
+    const legacy = { owners: [{ id: "a", label: "A" }], incomeStreams: [], expenseStreams: [],
+      assets: [{ id: "h", name: "Alt", class: "Immobilien", owner: "a", value: 300000, debt: 0 }] }; // no schemaVersion = v1
+    const { cf } = deriveAll(migrateProfile(legacy));
     expect(cf.immoGross).toBe(1200);
   });
 });

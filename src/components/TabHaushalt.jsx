@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import { Sl, Tile, Row, Btn, Icon, Section, ListRow, Avatar, LinkBtn, full, mlbl, ChTip } from "./ui.jsx";
+import { primaryOwnerId } from "../model/schema.js";
 import { ASSET_CLASS_DEFAULTS, ASSET_CLASSES, CY } from "../constants.js";
 
 const ALL_INVEST_CLASSES = ASSET_CLASSES.filter(cls => cls !== "Cash" && cls !== "Immobilien" && cls !== "Forderung");
 
-export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist, ownerFilter, filteredAssets, cashflowProjection }) {
+export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist, ownerFilter, filteredAssets, cashflowProjection, currentAge }) {
   const [selectedYear, setSelectedYear] = useState(0);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [annualView, setAnnualView] = useState(false);
@@ -22,7 +23,6 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
   const forderungen   = filteredAssets.filter(a => a.class === "Forderung" && (a.monthlyRepayment||0) > 0);
   const runCostAssets = filteredAssets.filter(a => a.class !== "Immobilien" && (a.monthlyRunningCost||0) > 0);
   const yieldAssets   = filteredAssets.filter(a => (a.yieldPct||0) > 0 && a.class !== "Immobilien" && a.class !== "Forderung");
-  const currentAge    = CY - (s.birthYear || CY - 35);
 
   // Selected year derived values
   const selAbsYear  = CY + selectedYear;
@@ -43,6 +43,7 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
   }));
 
   // Helpers
+  const ownerLabel = (x) => (s.owners||[]).find(o => o.id === primaryOwnerId(x))?.label;
   const isActiveNow = st => CY >= (st.startsAt||CY) && (!st.endsAt || CY <= st.endsAt);
   const val = (cur, fut) => isCurrent ? cur : fut;
 
@@ -184,7 +185,7 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
           <Row key={st.id} label={st.label}
             value={"+" + full((isCurrent ? st.amount : st.amt) * vm)}
             type="in"
-            sub={[(s.owners||[]).find(o => o.id===st.owner)?.label, !isCurrent && (st.growthPct||0)>0 ? `+${st.growthPct}%/J.` : ""].filter(Boolean).join(" · ")}
+            sub={[ownerLabel(st), !isCurrent && (st.growthPct||0)>0 ? `+${st.growthPct}%/J.` : ""].filter(Boolean).join(" · ")}
             T={T} />
         ))}
 
@@ -213,7 +214,7 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
         {(isCurrent ? (s.expenseStreams||[]).filter(isActiveNow) : selExpStreams.filter(st => st.active)).map(st => (
           <Row key={st.id} label={st.label} value={"-" + full(st.amount*vm)}
             type={st.isBufferContribution ? "in" : "out"}
-            sub={[st.isBufferContribution ? "→ Puffer" : st.category, (s.owners||[]).find(o => o.id===st.owner)?.label].filter(Boolean).join(" · ")} T={T} />
+            sub={[st.isBufferContribution ? "→ Puffer" : st.category, ownerLabel(st)].filter(Boolean).join(" · ")} T={T} />
         ))}
 
         {/* Loan payments */}
@@ -252,7 +253,7 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
             <div style={{ fontSize:20, color:T.text, fontWeight:700, letterSpacing:"-0.02em", marginBottom:8 }}>IST-Daten {mlbl(selCheckin.month)}</div>
             {[
               ["Einnahmen", selCheckin.inc_ist, selCF.avail, T.green, false],
-              ["Ausgaben",  selCheckin.streamExp_ist ?? selCheckin.ausgaben_ist, selCF.bound, T.red, true],
+              ["Ausgaben",  selCheckin.streamExp_ist, selCF.bound, T.red, true],
               ["Sparrate",  selCheckin.sparrate_ist, selCF.sp, T.accent, false],
             ].filter(([,ist]) => ist != null && ist !== "").map(([label, ist, proj, color, invertDelta]) => {
               const delta = (+ist||0) - (proj||0);
@@ -282,9 +283,8 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
           <div style={{ fontSize:14, color:T.textLow, padding:"8px 0" }}>Noch keine Einnahmen angelegt.</div>
         )}
         {(s.incomeStreams||[]).map((st, i, arr) => {
-          const owner  = (s.owners||[]).find(o => o.id === st.owner);
           const active = isActiveNow(st);
-          const sub = [st.type, owner?.label, (st.growthPct||0) > 0 ? "+"+st.growthPct+" %/J." : null,
+          const sub = [st.type, ownerLabel(st), (st.growthPct||0) > 0 ? "+"+st.growthPct+" %/J." : null,
             st.startsAt > CY ? "ab "+st.startsAt : null, st.endsAt ? "bis "+st.endsAt : null, !active ? "inaktiv" : null].filter(Boolean);
           return (
             <div key={st.id} style={{ opacity:active?1:0.45 }}>
@@ -466,7 +466,7 @@ export default function TabHaushalt({ s, T, upd, updArr, setModal, cf, sparDist,
           <div style={{ fontSize:20, color:T.text, fontWeight:700, letterSpacing:"-0.02em", marginBottom:10 }}>Check-in Verlauf</div>
           {[...s.checkins].sort((a, b) => b.month.localeCompare(a.month)).slice(0, 8).map(ci => {
             const dS = (ci.sparrate_ist||0) - cf.eff;
-            const dA = (ci.streamExp_ist ?? ci.ausgaben_ist ?? 0) - cf.streamExpense;
+            const dA = (ci.streamExp_ist || 0) - cf.streamExpense;
             const hasInc = ci.inc_ist != null;
             return (
               <div key={ci.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", borderBottom:"1px solid "+T.border, paddingBottom:8, marginBottom:8 }}>

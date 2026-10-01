@@ -6,6 +6,7 @@
 // Rates are annual percentages compounded monthly: (1 + r/1200)^12 per year.
 import { CY } from "../constants.js";
 import { kestRate, computeRemDebt, ownerShare } from "./finance.js";
+import { matchesOwnerFilter, profileAge } from "./schema.js";
 
 const ABGELTUNG = 0.26375; // 25 % + Soli
 
@@ -34,18 +35,19 @@ const annuityFactor = (rm) => rm !== 0 ? (growth12(rm) - 1) / rm : 12;
 
 /**
  * Lump-sum drains/inflows from scenarios for a calendar year (positive = money out).
- * "Einmalig"/"Zufluss" fire once in their target year; "Jährlich"/"Monatlich" from target year to endsAt.
+ * One-off expenses and inflows fire in their target year; yearly/monthly expenses from the target year to endsAt.
+ * A target age is converted with the profile's age (s.birthYear), independent of the owner filter.
  */
-export function bucketDrain(s, year, currentAge) {
+export function bucketDrain(s, year, profileAge) {
   let d = 0;
   (s.buckets || []).filter(b => b.active !== false).forEach(b => {
-    if (b.fundingMode === "financed") return;   // paid via monthly rate in the cash flow
-    if (b.type === "Sparrate") return;          // changes the savings rate instead
-    const ty = b.year ? +b.year : b.age ? CY + (+b.age - currentAge) : CY;
-    const sign = b.type === "Zufluss" ? -1 : 1;
-    if (b.type === "Einmalig" || b.type === "Zufluss") { if (year === ty) d += sign * (b.amount || 0); return; }
-    if (b.type === "Jährlich" || b.type === "Jahrlich") { if (year >= ty && (!b.endsAt || year <= +b.endsAt)) d += b.amount || 0; return; }
-    if (b.type === "Monatlich" && year >= ty && (!b.endsAt || year <= +b.endsAt)) d += (b.amount || 0) * 12;
+    if (b.kind === "finanziert" || b.kind === "sparrate") return; // handled in the cash flow
+    const ty = b.year ? +b.year : b.age ? CY + (+b.age - profileAge) : CY;
+    if (b.kind === "zufluss") { if (year === ty) d -= b.amount || 0; return; }
+    const inRange = year >= ty && (!b.endsAt || year <= +b.endsAt);
+    if (b.frequency === "jaehrlich") { if (inRange) d += b.amount || 0; return; }
+    if (b.frequency === "monatlich") { if (inRange) d += (b.amount || 0) * 12; return; }
+    if (year === ty) d += b.amount || 0; // einmalig
   });
   return d;
 }
@@ -75,7 +77,7 @@ export function projectWealth({ s, projAssets, ownerFilter, includeStandaloneLoa
   const loans = [
     ...projAssets.filter(a => a.class !== "Forderung" && (a.debt || 0) > 0).map(a => ({ loan: a, share: sh(a) })),
     ...(includeStandaloneLoans ? (s.standaloneLoans || []) : [])
-      .filter(l => (l.debt || 0) > 0 && (ownerFilter.length === 0 || !l.owner || ownerFilter.includes(l.owner)))
+      .filter(l => (l.debt || 0) > 0 && matchesOwnerFilter(l, ownerFilter))
       .map(l => ({ loan: l, share: 1 })),
   ];
   const debtAt = (y) => loans.reduce((t, { loan, share }) => t + computeRemDebt(loan, y) * share, 0);
@@ -174,7 +176,7 @@ export function projectWealth({ s, projAssets, ownerFilter, includeStandaloneLoa
       bufferV -= fromBuffer;
 
       // 3. Remaining deficit, scenario payments and loan balloons come out of the portfolio; inflows go in
-      const outflow = (annualDeficit - fromBuffer) + bucketDrain(s, CY + y, currentAge) + balloonAt(y);
+      const outflow = (annualDeficit - fromBuffer) + bucketDrain(s, CY + y, profileAge(s)) + balloonAt(y);
       if (outflow > 0) withdraw(outflow); else if (outflow < 0) invest(-outflow);
 
       vals.push(total(y));

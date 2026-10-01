@@ -12,7 +12,7 @@ const exportCSV = (projection, cashflowProjection, s) => {
   assets.forEach(a => {
     const v = (a.value||0) - (a.debt||0);
     totalNet0 += v;
-    const ownership = a.ownership || (a.owner ? [{ownerId:a.owner, share:1}] : []);
+    const ownership = a.ownership || [];
     ownership.forEach(o => { ownerNet[o.ownerId] = (ownerNet[o.ownerId]||0) + v*(o.share||0); });
   });
   const classes = [...new Set(projection.flatMap(r => Object.keys(r.breakdown?.byClass || {})))];

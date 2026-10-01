@@ -125,7 +125,7 @@ export default function TabDashboard({ s, T, setModal, setTab, agg, cf, loanSumm
       )}
 
       {lastCI && (() => {
-        const ausgaben = lastCI.streamExp_ist ?? lastCI.ausgaben_ist ?? 0;
+        const ausgaben = lastCI.streamExp_ist || 0;
         const dA = ausgaben - cf.streamExpense;
         const dS = (lastCI.sparrate_ist||0) - cf.eff;
         const hasInc = lastCI.inc_ist != null;
